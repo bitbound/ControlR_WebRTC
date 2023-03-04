@@ -1,0 +1,150 @@
+﻿using ControlR.Devices.Common.Services.Interfaces;
+using ControlR.Shared.Extensions;
+using ControlR.Shared.Models;
+using ControlR.Shared.Services;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ControlR.Devices.Common.Services.MacOs;
+internal class DeviceDataGeneratorMac : DeviceDataGeneratorBase, IDeviceDataGenerator
+{
+    private readonly ILogger<DeviceDataGeneratorMac> _logger;
+    private readonly IProcessInvoker _processService;
+    public DeviceDataGeneratorMac(
+        IProcessInvoker processInvoker,
+        IEnvironmentHelper environmentHelper,
+        ILogger<DeviceDataGeneratorMac> logger)
+        : base(environmentHelper, logger)
+    {
+        _processService = processInvoker;
+        _logger = logger;
+    }
+
+    public async Task<Device> CreateDevice(double cpuUtilization, IEnumerable<string> authorizedKeys)
+    {
+        var device = GetDeviceBase(authorizedKeys);
+
+        try
+        {
+            var (usedStorage, totalStorage) = GetSystemDriveInfo();
+            var (usedMemory, totalMemory) = await GetMemoryInGB();
+
+            device.CurrentUser = await GetCurrentUser();
+            device.Drives = GetAllDrives();
+            device.UsedStorage = usedStorage;
+            device.TotalStorage = totalStorage;
+            device.UsedMemory = usedMemory;
+            device.TotalMemory = totalMemory;
+            device.CpuUtilization = await GetCpuUtilization();
+            device.AgentVersion = GetAgentVersion();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting device info.");
+        }
+
+        return device;
+    }
+
+    public async Task<(double usedGB, double totalGB)> GetMemoryInGB()
+    {
+        try
+        {
+            double totalGB = default;
+
+            var memTotalResult = await _processService.GetProcessOutput("zsh", "-c \"sysctl -n hw.memsize\"");
+            var memPercentResult = await _processService.GetProcessOutput("zsh", $"-c \"ps -A -o %mem\"");
+
+            if (!memTotalResult.IsSuccess)
+            {
+                _logger.LogResult(memTotalResult);
+                return (0, 0);
+            }
+
+            if (!memPercentResult.IsSuccess)
+            {
+                _logger.LogResult(memPercentResult);
+                return (0, 0);
+            }
+
+            if (double.TryParse(memTotalResult.Value, out var totalMemory))
+            {
+                totalGB = (double)Math.Round(totalMemory / 1024 / 1024 / 1024, 2);
+            }
+
+            double usedGB = default;
+
+            double usedMemPercent = 0;
+            memPercentResult
+                .Value
+                .Split(Environment.NewLine)
+                .ToList()
+                .ForEach(x =>
+                {
+                    if (double.TryParse(x, out var result))
+                    {
+                        usedMemPercent += result;
+                    }
+                });
+
+            usedMemPercent = usedMemPercent / 4 / 100;
+            usedGB = usedMemPercent * totalGB;
+
+            return (usedGB, totalGB);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while getting memory.");
+            return (0, 0);
+        }
+    }
+
+    private async Task<double> GetCpuUtilization()
+    {
+        try
+        {
+            var result = await _processService.GetProcessOutput("zsh", "-c \"ps -A -o %cpu\"");
+
+            if (!result.IsSuccess)
+            {
+                _logger.LogResult(result);
+                return 0;
+            }
+
+            double cpuPercent = 0;
+            result
+                .Value
+                .Split(Environment.NewLine)
+                .ToList()
+                .ForEach(x =>
+                {
+                    if (double.TryParse(x, out var result))
+                    {
+                        cpuPercent += result;
+                    }
+                });
+
+            return cpuPercent / Environment.ProcessorCount / 100;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while getting CPU utilization.");
+        }
+
+        return 0;
+    }
+    private async Task<string> GetCurrentUser()
+    {
+        var result = await _processService.GetProcessOutput("users", "");
+        if (!result.IsSuccess)
+        {
+            _logger.LogResult(result);
+            return string.Empty;
+        }
+        return result.Value?.Split()?.FirstOrDefault()?.Trim() ?? string.Empty;
+    }
+}

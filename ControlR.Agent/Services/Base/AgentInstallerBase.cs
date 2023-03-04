@@ -1,0 +1,90 @@
+﻿using ControlR.Agent.Models;
+using ControlR.Devices.Common.Services;
+using ControlR.Shared.Extensions;
+using ControlR.Shared.Services;
+using ControlR.Shared.Services.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+
+namespace ControlR.Agent.Services.Base;
+internal abstract class AgentInstallerBase
+{
+    private readonly IFileSystem _fileSystem;
+    private readonly IDownloadsApi _downloadsApi;
+    private readonly IEnvironmentHelper _environmentHelper;
+    private readonly ILogger<AgentInstallerBase> _logger;
+    private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+
+    public AgentInstallerBase(
+        IFileSystem fileSystem,
+        IDownloadsApi downloadsApi,
+        IEnvironmentHelper environmentHelper,
+        ILogger<AgentInstallerBase> logger)
+    {
+        _fileSystem = fileSystem;
+        _downloadsApi = downloadsApi;
+        _environmentHelper = environmentHelper;
+        _logger = logger;
+    }
+
+    protected async Task AddAuthorizedKey(string installDir, string? authorizedKey)
+    {
+        using var _ = _logger.BeginMemberScope();
+
+        var appSettings = new AppSettings();
+
+        var appsettingsPath = Path.Combine(installDir, "appsettings.json");
+
+        if (_fileSystem.FileExists(appsettingsPath))
+        {
+            var content = await _fileSystem.ReadAllTextAsync(appsettingsPath);
+            var deserialized = JsonSerializer.Deserialize<AppSettings>(content);
+            if (deserialized is not null)
+            {
+                appSettings = deserialized;
+            }
+            _logger.LogInformation("Existing app settings found.  Using it as a base.");
+            _logger.LogInformation("Key Count: {num}", appSettings.AppOptions.AuthorizedKeys.Count);
+        }
+        else
+        {
+            _logger.LogInformation("No appsettings found.  Creating a new one.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(authorizedKey))
+        {
+            _logger.LogInformation("Adding key passed in from arguments.");
+            appSettings.AppOptions.AuthorizedKeys.Add(authorizedKey);
+            _logger.LogInformation("Key Count: {num}", appSettings.AppOptions.AuthorizedKeys.Count);
+        }
+
+        _logger.LogInformation("Removing duplicates.");
+        appSettings.AppOptions.AuthorizedKeys.RemoveDuplicates();
+        _logger.LogInformation("Key Count: {num}", appSettings.AppOptions.AuthorizedKeys.Count);
+
+        _logger.LogInformation("Removing empties.");
+        appSettings.AppOptions.AuthorizedKeys.RemoveAll(string.IsNullOrWhiteSpace);
+        _logger.LogInformation("Key Count: {num}", appSettings.AppOptions.AuthorizedKeys.Count);
+
+        _logger.LogInformation("Writing results to disk.");
+        await _fileSystem.WriteAllTextAsync(appsettingsPath, JsonSerializer.Serialize(appSettings, _jsonOptions));
+    }
+
+    protected async Task WriteEtag(string installDir)
+    {
+        _logger.LogInformation("Retrieving ETag for installed app.");
+        var etagResult = await _downloadsApi.GetAgentEtag();
+        if (etagResult.IsSuccess)
+        {
+            var etagPath = Path.Combine(installDir, "etag.txt");
+            _logger.LogInformation("Writing ETag to file at path {path}.", etagPath);
+            await _fileSystem.WriteAllTextAsync(etagPath, etagResult.Value.Trim());
+        }
+    }
+}

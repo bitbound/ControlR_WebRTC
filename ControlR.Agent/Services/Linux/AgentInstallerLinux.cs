@@ -1,0 +1,167 @@
+﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using ControlR.Agent.Interfaces;
+using ControlR.Devices.Common.Native.Linux;
+using ControlR.Devices.Common.Services;
+using Microsoft.Extensions.Options;
+using System.Text.Json;
+using ControlR.Shared;
+using ControlR.Shared.Extensions;
+using ControlR.Shared.Services;
+using ControlR.Shared.Services.Http;
+using ControlR.Agent.Services.Base;
+using ControlR.Agent.Models;
+
+namespace ControlR.Agent.Services.Linux;
+
+internal class AgentInstallerLinux : AgentInstallerBase, IAgentInstaller
+{
+    private static readonly SemaphoreSlim _installLock = new(1, 1);
+    private readonly IOptions<AppOptions> _appOptions;
+    private readonly IFileSystem _fileSystem;
+    private readonly string _installDir = "/usr/local/bin/ControlR";
+    private readonly IHostApplicationLifetime _lifetime;
+    private readonly ILogger<AgentInstallerLinux> _logger;
+    private readonly IProcessInvoker _processInvoker;
+    private readonly IEnvironmentHelper _environment;
+
+    public AgentInstallerLinux(
+        IHostApplicationLifetime lifetime,
+        IFileSystem fileSystem,
+        IProcessInvoker processInvoker,
+        IEnvironmentHelper environmentHelper,
+        IDownloadsApi downloadsApi,
+        IOptions<AppOptions> appOptions,
+        ILogger<AgentInstallerLinux> logger)
+        : base(fileSystem, downloadsApi, environmentHelper, logger)
+    {
+        _lifetime = lifetime;
+        _fileSystem = fileSystem;
+        _appOptions = appOptions;
+        _processInvoker = processInvoker;
+        _environment = environmentHelper;
+        _logger = logger;
+    }
+
+
+    public async Task Install(string? authorizedPublicKey = null)
+    {
+        if (!await _installLock.WaitAsync(0))
+        {
+            _logger.LogWarning("Installer lock already acquired.  Aborting.");
+            return;
+        }
+
+        try
+        {
+            _logger.LogInformation("Install started.");
+
+            if (Libc.geteuid() != 0)
+            {
+                _logger.LogError("Install command must be run with sudo.");
+            }
+
+            var exePath = _environment.StartupExePath;
+            var fileName = Path.GetFileName(exePath);
+            var targetPath = Path.Combine(_installDir, AppConstants.AgentFileName);
+            _fileSystem.CreateDirectory(_installDir);
+            _fileSystem.CopyFile(exePath, targetPath, true);
+
+            if (_fileSystem.DirectoryExists(Path.Combine(_installDir, "RemoteControl")))
+            {
+                _fileSystem.DeleteDirectory(Path.Combine(_installDir, "RemoteControl"), true);
+            }
+
+            var serviceFile = GetServiceFile(targetPath).Trim();
+            var serviceFilePath = "/etc/systemd/system/control.agent.service";
+
+            await _fileSystem.WriteAllTextAsync(serviceFilePath, serviceFile);
+            await AddAuthorizedKey(_installDir, authorizedPublicKey);
+            await WriteEtag(_installDir);
+
+            await _processInvoker
+                .Start("sudo", "systemctl enable controlr.agent.service")
+                .WaitForExitAsync(_lifetime.ApplicationStopping);
+
+            await _processInvoker
+                .Start("sudo", "systemctl restart control.agent.service")
+                .WaitForExitAsync(_lifetime.ApplicationStopping);
+
+            _logger.LogInformation("Install completed.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while installing the ControlR service.");
+        }
+        finally
+        {
+            _lifetime.StopApplication();
+            _installLock.Release();
+        }
+    }
+
+    public async Task Uninstall()
+    {
+        if (!await _installLock.WaitAsync(0))
+        {
+            _logger.LogWarning("Installer lock already acquired.  Aborting.");
+            return;
+        }
+
+        try
+        {
+            _logger.LogInformation("Uninstall started.");
+
+            if (Libc.geteuid() != 0)
+            {
+                _logger.LogError("Uninstall command must be run with sudo.");
+            }
+
+            await _processInvoker
+                .Start("sudo", "systemctl stop controlr.agent.service")
+                .WaitForExitAsync(_lifetime.ApplicationStopping);
+
+            await _processInvoker
+                .Start("sudo", "systemctl disable controlr.agent.service")
+                .WaitForExitAsync(_lifetime.ApplicationStopping);
+
+            var serviceFilePath = "/etc/systemd/system/control.agent.service";
+            _fileSystem.DeleteFile(serviceFilePath);
+
+            await _processInvoker
+                .Start("sudo", "systemctl daemon-reload")
+                .WaitForExitAsync(_lifetime.ApplicationStopping);
+
+            _fileSystem.DeleteDirectory(_installDir, true);
+
+            _logger.LogInformation("Uninstall completed.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while uninstalling the ControlR service.");
+        }
+        finally
+        {
+            _lifetime.StopApplication();
+            _installLock.Release();
+        }
+    }
+
+    private string GetServiceFile(string serverUrl)
+    {
+        return @$"
+                [Unit]
+                Description=ControlR provides zero-trust remote control and administration.
+
+                [Service]
+                WorkingDirectory={_installDir}
+                ExecStart={_installDir}/{AppConstants.AgentFileName} run -s {serverUrl}
+                Restart=always
+                StartLimitIntervalSec=0
+                RestartSec=10
+
+                [Install]
+                WantedBy=graphical.target
+            ";
+    }
+}

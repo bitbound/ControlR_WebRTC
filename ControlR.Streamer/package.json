@@ -1,0 +1,59 @@
+{
+  "name": "controlr-streamer",
+  "productName": "controlr-streamer",
+  "version": "2023.03.18.1530",
+  "description": "Zero-trust remote control.",
+  "main": ".webpack/main",
+  "scripts": {
+    "start": "electron-forge start --inspect-electron",
+    "dev": "electron-forge start --inspect-electron -- --dev --session-id=f87d1ba5-b0c8-4f78-87d5-7baef64f8637",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "make-pwsh": "powershell -f ./make.ps1",
+    "publish": "electron-forge publish",
+    "lint": "eslint --ext .ts,.tsx ."
+  },
+  "keywords": [],
+  "author": {
+    "name": "Jared Goodwin",
+    "email": "translucency@outlook.com"
+  },
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "@electron-forge/cli": "^6.0.5",
+    "@electron-forge/maker-deb": "^6.0.5",
+    "@electron-forge/maker-rpm": "^6.0.5",
+    "@electron-forge/maker-squirrel": "^6.0.5",
+    "@electron-forge/maker-zip": "^6.0.5",
+    "@electron-forge/plugin-webpack": "^6.0.4",
+    "@reforged/maker-appimage": "^3.1.7",
+    "@types/react": "^18.0.27",
+    "@types/react-bootstrap": "^0.32.32",
+    "@types/react-dom": "^18.0.10",
+    "@typescript-eslint/eslint-plugin": "^5.50.0",
+    "@typescript-eslint/parser": "^5.50.0",
+    "@vercel/webpack-asset-relocator-loader": "^1.7.3",
+    "app-builder-lib": "^24.0.0-alpha.11",
+    "css-loader": "^6.7.3",
+    "electron": "22.2.0",
+    "eslint": "^8.33.0",
+    "eslint-plugin-import": "^2.27.5",
+    "fork-ts-checker-webpack-plugin": "^7.3.0",
+    "node-loader": "^2.0.0",
+    "style-loader": "^3.3.1",
+    "ts-loader": "^9.4.2",
+    "ts-node": "^10.9.1",
+    "typescript": "~4.5.4"
+  },
+  "dependencies": {
+    "@microsoft/signalr": "^7.0.3",
+    "@msgpack/msgpack": "^3.0.0-beta1",
+    "@nut-tree/nut-js": "^3.1.1",
+    "bootstrap": "^5.3.0-alpha1",
+    "electron-squirrel-startup": "^1.0.0",
+    "react": "^18.2.0",
+    "react-bootstrap": "^2.7.0",
+    "react-dom": "^18.2.0",
+    "react-icons": "^4.8.0"
+  }
+}

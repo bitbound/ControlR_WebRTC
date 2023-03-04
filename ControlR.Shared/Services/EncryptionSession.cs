@@ -1,0 +1,198 @@
+﻿using Microsoft.Extensions.Logging;
+using ControlR.Shared.Models;
+using System.Security.Cryptography;
+using ControlR.Shared.Dtos;
+using MessagePack;
+
+namespace ControlR.Shared.Services;
+
+public interface IEncryptionSession : IDisposable
+{
+    UserKeyPair? CurrentState { get; }
+
+    SignedPayloadDto CreateRandomSignedDto(DtoType dtoType, string publicKey);
+
+    SignedPayloadDto CreateSignedDto<T>(T payload, DtoType dtoType, string publicKey);
+    Result<KeypairExport> ExportKeypair(string username);
+
+    UserKeyPair GenerateKeys(string password);
+
+    Result<UserKeyPair> ImportPrivateKey(string password, byte[] encryptedKey);
+    void ImportPublicKey(byte[] publicBytes);
+
+    void ImportPublicKey(string publicKey);
+
+    void Reset();
+
+    UserKeyPair RestoreState();
+
+    void SaveState();
+
+    byte[] Sign(byte[] payload);
+
+    bool Verify(string payloadBase64, string signatureBase64);
+    bool Verify(byte[] payload, byte[] signature);
+    bool Verify(SignedPayloadDto signedDto);
+}
+
+public class EncryptionSession : IEncryptionSession
+{
+    private readonly ILogger<EncryptionSession> _logger;
+    private readonly PbeParameters _pbeParameters = new(PbeEncryptionAlgorithm.Aes256Cbc, HashAlgorithmName.SHA512, 5_000);
+    private UserKeyPair? _backupKeys;
+    private RSAParameters? _backupParams;
+    private UserKeyPair? _currentKeys;
+    private RSA _rsa = RSA.Create();
+
+    public EncryptionSession(ILogger<EncryptionSession> logger)
+    {
+        _logger = logger;
+    }
+
+    public UserKeyPair? CurrentState => _currentKeys;
+
+    public SignedPayloadDto CreateRandomSignedDto(DtoType dtoType, string publicKey)
+    {
+        var payload = RandomNumberGenerator.GetBytes(256);
+        return CreateSignedDtoImpl(payload, dtoType, publicKey);
+    }
+
+    public SignedPayloadDto CreateSignedDto<T>(T payload, DtoType dtoType, string publicKey)
+    {
+        var payloadBytes = MessagePackSerializer.Serialize(payload);
+        return CreateSignedDtoImpl(payloadBytes, dtoType, publicKey);
+    }
+    public void Dispose()
+    {
+        _rsa.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    public Result<KeypairExport> ExportKeypair(string username)
+    {
+        if (_currentKeys is null)
+        {
+            return Result.Fail<KeypairExport>("There are no keys to export.");
+        }
+
+        var export = new KeypairExport()
+        {
+            EncryptedPrivateKeyBase64 = _currentKeys.EncryptedPrivateKeyBase64,
+            PublicKeyBase64 = _currentKeys.PublicKeyBase64,
+            Username = username
+        };
+        return Result.Ok(export);
+    }
+
+    public UserKeyPair GenerateKeys(string password)
+    {
+        _rsa.Dispose();
+        _rsa = RSA.Create();
+        var encryptedPrivateKey = _rsa.ExportEncryptedPkcs8PrivateKey(password, _pbeParameters);
+        var privateKey = _rsa.ExportRSAPrivateKey();
+        var publicKey = _rsa.ExportRSAPublicKey();
+        _currentKeys = new UserKeyPair(publicKey, privateKey, encryptedPrivateKey);
+        return _currentKeys;
+    }
+
+    public Result<UserKeyPair> ImportPrivateKey(string password, byte[] encryptedKey)
+    {
+        try
+        {
+            _rsa.ImportEncryptedPkcs8PrivateKey(password, encryptedKey, out var bytesRead);
+            var privateKey = _rsa.ExportRSAPrivateKey();
+            var publicKey = _rsa.ExportRSAPublicKey();
+            var encryptedPrivateKey = encryptedKey;
+            _currentKeys = new UserKeyPair(publicKey, privateKey, encryptedPrivateKey);
+            return Result.Ok(_currentKeys);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while importing private key.");
+            return Result.Fail<UserKeyPair>(ex);
+        }
+    }
+
+    public void ImportPublicKey(byte[] publicKeyBytes)
+    {
+        _rsa.ImportRSAPublicKey(publicKeyBytes, out _);
+    }
+
+    public void ImportPublicKey(string publicKey)
+    {
+        ImportPublicKey(Convert.FromBase64String(publicKey));
+    }
+
+    public void Reset()
+    {
+        _rsa.Dispose();
+        _rsa = RSA.Create();
+        _currentKeys = null;
+    }
+
+    public UserKeyPair RestoreState()
+    {
+        if (_backupKeys is null || !_backupParams.HasValue)
+        {
+            throw new Exception("No backup state to restore.");
+        }
+
+        _rsa.ImportParameters(_backupParams.Value);
+        _currentKeys = _backupKeys;
+
+        _backupKeys = null;
+        _backupParams = null;
+
+        return _currentKeys;
+    }
+
+    public void SaveState()
+    {
+        if (_currentKeys is null)
+        {
+            throw new Exception("No current keys to save.");
+        }
+
+        _backupParams = _rsa.ExportParameters(true);
+        _backupKeys = (UserKeyPair)_currentKeys.Clone();
+    }
+
+    public byte[] Sign(byte[] payload)
+    {
+        return _rsa.SignData(payload, HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
+    }
+
+    public bool Verify(byte[] payload, byte[] signature)
+    {
+        var result = _rsa.VerifyData(payload, signature, HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
+        if (!result)
+        {
+            _logger.LogCritical("Verification failed for signature: {sig}", Convert.ToBase64String(signature));
+        }
+        return result;
+    }
+
+    public bool Verify(string payloadBase64, string signatureBase64)
+    {
+        return Verify(Convert.FromBase64String(payloadBase64), Convert.FromBase64String(signatureBase64));
+    }
+
+    public bool Verify(SignedPayloadDto signedDto)
+    {
+        ImportPublicKey(Convert.FromBase64String(signedDto.PublicKey));
+        return Verify(signedDto.Payload, signedDto.Signature);
+    }
+
+    private SignedPayloadDto CreateSignedDtoImpl(byte[] payload, DtoType dtoType, string publicKey)
+    {
+        var signature = Sign(payload);
+        return new SignedPayloadDto()
+        {
+            DtoType = dtoType,
+            Payload = Convert.ToBase64String(payload),
+            Signature = Convert.ToBase64String(signature),
+            PublicKey = publicKey,
+            PublicKeyPem = _rsa.ExportSubjectPublicKeyInfoPem()
+        };
+    }
+}

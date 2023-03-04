@@ -1,0 +1,11 @@
+﻿.logo {
+    position: absolute;
+    transform: translateY(-.5em);
+    height: 2em;
+    width: 2em;
+}
+
+.ps-snippet {
+    width: 400px;
+    max-width: 100vw;
+}
