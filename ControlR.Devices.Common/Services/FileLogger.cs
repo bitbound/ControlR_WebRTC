@@ -109,6 +109,8 @@ public class FileLogger : ILogger
             return;
         }
 
+        _lastLogCleanup = DateTimeOffset.Now;
+
         var logFiles = Directory.GetFiles(Path.GetDirectoryName(LogPath)!)
             .Select(x => new FileInfo(x))
             .Where(x => DateTime.Now - x.CreationTime > TimeSpan.FromDays(7));
