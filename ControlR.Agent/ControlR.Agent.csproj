@@ -32,7 +32,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageReference Include="System.CommandLine.NamingConventionBinder" Version="2.0.0-beta4.22272.1" />
-    <PackageReference Include="Translucency.EasyIpc" Version="2.2.0" />
+    <PackageReference Include="Translucency.EasyIpc" Version="2.2.1" />
   </ItemGroup>
 
   <ItemGroup>
