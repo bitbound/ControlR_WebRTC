@@ -9,8 +9,6 @@ using ControlR.Devices.Common.Services.Interfaces;
 using ControlR.Devices.Common.Services.Windows;
 using ControlR.Devices.Common.Services.Linux;
 using ControlR.Devices.Common.Services;
-using System.CommandLine.Builder;
-using System.CommandLine.Hosting;
 using System.CommandLine.Parsing;
 using System.CommandLine.NamingConventionBinder;
 using ControlR.Shared.Services;
@@ -20,6 +18,7 @@ using ControlR.Agent.Services.Linux;
 using ControlR.Shared.Services.Http;
 using System.Reflection;
 using ControlR.Agent.Models;
+using EasyIpc;
 
 var rootCommand = new RootCommand("Provides zero-trust remote control and remote administration.");
 
@@ -172,6 +171,7 @@ IHost CreateHost(StartupMode startupMode)
         services.AddSingleton<IProcessInvoker, ProcessInvoker>();
         services.AddTransient<IHubConnectionBuilder, HubConnectionBuilder>();
         services.AddSingleton<IEncryptionSessionFactory, EncryptionSessionFactory>();
+        services.AddEasyIpc();
 
         if (OperatingSystem.IsWindows())
         {

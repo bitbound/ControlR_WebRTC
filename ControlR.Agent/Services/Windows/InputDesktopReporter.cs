@@ -1,6 +1,8 @@
-﻿using ControlR.Devices.Common.Native.Windows;
+﻿using ControlR.Agent.Models.IpcDtos;
+using ControlR.Devices.Common.Native.Windows;
 using ControlR.Devices.Common.Services;
 using ControlR.Shared;
+using EasyIpc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
@@ -23,6 +25,7 @@ internal class InputDesktopReporter : IInputDesktopReporter
 {
     private readonly IHostApplicationLifetime _hostLifetime;
     private readonly IProcessInvoker _processes;
+    private readonly IIpcConnectionFactory _ipcFactory;
     private readonly ILogger<InputDesktopReporter> _logger;
     private int _streamerId = -1;
     private int _parentId;
@@ -31,10 +34,12 @@ internal class InputDesktopReporter : IInputDesktopReporter
     public InputDesktopReporter(
         IHostApplicationLifetime hostLifetime,
         IProcessInvoker processes,
+        IIpcConnectionFactory ipcFactory,
         ILogger<InputDesktopReporter> logger)
     {
         _hostLifetime = hostLifetime;
         _processes = processes;
+        _ipcFactory = ipcFactory;
         _logger = logger;
     }
 
@@ -65,13 +70,23 @@ internal class InputDesktopReporter : IInputDesktopReporter
 
         _logger.LogInformation("Beginning desktop watch for streamer ID {id}.", _streamerId);
 
-        var mmfName = AppConstants.GetDesktopWatcherMmfName(_streamerId, Environment.ProcessId);
-        _logger.LogInformation("Opening memory-mapped file for writing: {name}", mmfName);
-        using var mmf = MemoryMappedFile.CreateOrOpen(mmfName, 64);
-        using var accessor = mmf.CreateViewStream();
-        
+        var pipeName = AppConstants.GetDesktopWatcherPipeName(_streamerId, Environment.ProcessId);
+        _logger.LogInformation("Creating IPC client for pipe name: {name}", pipeName);
+        var client = await _ipcFactory.CreateClient(".", pipeName);
+        var connected = await client.Connect(10_000);
 
-        while (!_hostLifetime.ApplicationStopping.IsCancellationRequested)
+        if (!connected)
+        {
+            _logger.LogError("Failed to connect to pipe server host to send desktop change updates.");
+            return;
+        }
+
+        client.BeginRead(_hostLifetime.ApplicationStopping);
+
+        _logger.LogInformation("Connected to pipe server.");
+
+        while (!_hostLifetime.ApplicationStopping.IsCancellationRequested &&
+                client.IsConnected)
         {
             try
             {
@@ -101,10 +116,7 @@ internal class InputDesktopReporter : IInputDesktopReporter
                 if (!string.IsNullOrWhiteSpace(desktopName) &&
                     !string.Equals(_lastDesktop, desktopName, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogInformation("Desktop has changed from {last} to {current}. Reporting to streamer.", _lastDesktop, desktopName);
-                    accessor.Seek(0, SeekOrigin.Begin);
-                    using var sw = new StreamWriter(accessor, Encoding.UTF8, leaveOpen: true);
-                    await sw.WriteLineAsync(desktopName);
+                    await client.Send(new DesktopChangeDto(desktopName));
                     _lastDesktop = desktopName;
                 }
 
@@ -115,5 +127,8 @@ internal class InputDesktopReporter : IInputDesktopReporter
                 _logger.LogError(ex, "Error while reporting input desktop.");
             }
         }
+
+        _logger.LogInformation("Exiting desktop watch for streamer ID {id}.", _streamerId);
+
     }
 }

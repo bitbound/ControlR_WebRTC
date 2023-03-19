@@ -70,14 +70,14 @@ public static partial class AppConstants
 
             if (EnvironmentHelper.Instance.IsDebug)
             {
-                return "https://localhost:7031";
+                return "http://localhost:5120";
             }
             //return "https://controlr.app";
             return "http://192.168.0.2:5007";
         }
     }
 
-    public static string GetDesktopWatcherMmfName(int streamerProcessId, int watcherProcessId)
+    public static string GetDesktopWatcherPipeName(int streamerProcessId, int watcherProcessId)
     {
         return $"ControlR-Desktop-Watcher-{streamerProcessId}-{watcherProcessId}";
     }

@@ -1,9 +1,11 @@
 ﻿using ControlR.Agent.Interfaces;
 using ControlR.Agent.Models;
+using ControlR.Agent.Models.IpcDtos;
 using ControlR.Devices.Common.Native.Windows;
 using ControlR.Devices.Common.Services;
 using ControlR.Shared;
 using ControlR.Shared.Services;
+using EasyIpc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
@@ -28,6 +30,8 @@ internal class StreamingSessionWatcher : IHostedService
     private readonly ILogger<StreamingSessionWatcher> _logger;
     private readonly IProcessInvoker _processes;
     private readonly IRemoteControlLauncher _remoteControlLauncher;
+    private readonly IHostApplicationLifetime _hostLifetime;
+    private readonly IIpcRouter _ipcRouter;
     private readonly Timer _timer = new(50);
     private readonly string _watcherBinaryPath;
     private readonly IStreamingSessionCache _cache;
@@ -37,12 +41,16 @@ internal class StreamingSessionWatcher : IHostedService
         IProcessInvoker processes,
         IEnvironmentHelper environmentHelper,
         IRemoteControlLauncher remoteControlLauncher,
+        IHostApplicationLifetime hostLifetime,
+        IIpcRouter ipcRouter,
         ILogger<StreamingSessionWatcher> logger)
     {
         _cache = streamerCache;
         _processes = processes;
         _environment = environmentHelper;
         _remoteControlLauncher = remoteControlLauncher;
+        _hostLifetime = hostLifetime;
+        _ipcRouter = ipcRouter;
         _logger = logger;
 
         _watcherBinaryPath = _environment.StartupExePath;
@@ -61,7 +69,7 @@ internal class StreamingSessionWatcher : IHostedService
         return Task.CompletedTask;
     }
 
-    private bool EnsureActiveStreamer(Dictionary<int, Process> processes, StreamingSession value)
+    private async Task EnsureActiveSession(Dictionary<int, Process> processes, StreamingSession value)
     {
         try
         {
@@ -76,24 +84,21 @@ internal class StreamingSessionWatcher : IHostedService
                 {
                     watcherProcess.Kill();
                 }
-                return false;
+                return;
             }
 
             if (!processes.ContainsKey(value.WatcherProcessId))
             {
-                LaunchNewWatcherProcess(value, streamerProcess);
+                await LaunchNewWatcherProcess(value, streamerProcess);
             }
-
-            return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error while ensuring active stream for streamer process {id}.", value.StreamerProcessId);
-            return false;
         }
     }
 
-    private void LaunchNewWatcherProcess(StreamingSession session, Process streamerProcess)
+    private async Task LaunchNewWatcherProcess(StreamingSession session, Process streamerProcess)
     {
         if (session.WatcherProcessId == -1)
         {
@@ -134,9 +139,32 @@ internal class StreamingSessionWatcher : IHostedService
 
         if (session.WatcherProcessId > -1)
         {
-            var mmfName = AppConstants.GetDesktopWatcherMmfName(session.StreamerProcessId, session.WatcherProcessId);
-            _logger.LogInformation("Opening memory-mapped file for reading: {name}", mmfName);
-            session.MemoryMappedFile = MemoryMappedFile.CreateOrOpen(mmfName, 64);
+            var pipeName = AppConstants.GetDesktopWatcherPipeName(session.StreamerProcessId, session.WatcherProcessId);
+            _logger.LogInformation("Creating pipe server for desktop watcher: {name}", pipeName);
+            session.IpcServer = await _ipcRouter.CreateServer(pipeName);
+            session.IpcServer.On<DesktopChangeDto>(async dto =>
+            {
+                var desktop = dto.DesktopName.Replace("\0", string.Empty);
+
+                if (!string.IsNullOrWhiteSpace(desktop) &&
+                    !string.Equals(session.LastDesktop, desktop, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogInformation("Desktop has changed from {last} to {current}.  Relaunching streamer.", session.LastDesktop, desktop);
+                    session.LastDesktop = desktop;
+                    await _remoteControlLauncher.CreateSession(session.SessionId, streamerProcess.SessionId, session.AuthorizedKey, null);
+                    streamerProcess.Kill();
+                }
+            });
+            var result = await session.IpcServer.WaitForConnection(_hostLifetime.ApplicationStopping);
+            if (result)
+            {
+                session.IpcServer.BeginRead(_hostLifetime.ApplicationStopping);
+                _logger.LogInformation("Client connected to pipe server.");
+            }
+            else
+            {
+                _logger.LogWarning("Client failed to connect to pipe server.");
+            }
         }
     }
 
@@ -166,31 +194,7 @@ internal class StreamingSessionWatcher : IHostedService
                     continue;
                 }
 
-                if (!EnsureActiveStreamer(processes, session))
-                {
-                    continue;
-                }
-
-                if (session.MemoryMappedFile is null)
-                {
-                    _logger.LogWarning("Streaming session has no memory mapped file created.  Streamer ID: {id}", session.StreamerProcessId);
-                    continue;
-                }
-
-                using var accessor = session.MemoryMappedFile.CreateViewStream();
-                using var sr = new StreamReader(accessor, Encoding.UTF8);
-                var desktop = await sr.ReadLineAsync() ?? string.Empty;
-
-                desktop = desktop.Replace("\0", string.Empty);
-
-                if (!string.IsNullOrWhiteSpace(desktop) &&
-                    !string.Equals(session.LastDesktop, desktop, StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogInformation("Desktop has changed from {last} to {current}.  Relaunching streamer.", session.LastDesktop, desktop);
-                    session.LastDesktop = desktop;
-                    await _remoteControlLauncher.CreateSession(session.SessionId, streamerProcess.SessionId, session.AuthorizedKey, null);
-                    streamerProcess.Kill();
-                }
+                await EnsureActiveSession(processes, session);
             }
         }
         catch (Exception ex)

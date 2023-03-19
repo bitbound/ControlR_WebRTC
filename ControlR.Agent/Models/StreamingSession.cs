@@ -1,4 +1,5 @@
-﻿using System.IO.MemoryMappedFiles;
+﻿using EasyIpc;
+using System.IO.MemoryMappedFiles;
 
 namespace ControlR.Agent.Models;
 internal class StreamingSession : IDisposable
@@ -19,11 +20,10 @@ internal class StreamingSession : IDisposable
     public string AuthorizedKey { get; }
     public int WatcherProcessId { get; set; } = -1;
     public string LastDesktop { get; set; } = "Default";
-    public MemoryMappedFile? MemoryMappedFile { get; internal set; }
+    public IIpcServer? IpcServer { get; set; }
 
     public void Dispose()
     {
-        MemoryMappedFile?.Dispose();
-        GC.SuppressFinalize(this);
+        IpcServer?.Dispose();
     }
 }
