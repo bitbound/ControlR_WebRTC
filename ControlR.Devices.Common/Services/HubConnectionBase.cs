@@ -172,7 +172,7 @@ public abstract class HubConnectionBase : IHubConnectionBase
             }
             catch (HttpRequestException ex)
             {
-                _baseLogger.LogWarning("Failed to connect to server.  Status Code: {code}", ex.StatusCode);
+                _baseLogger.LogWarning(ex, "Failed to connect to server.  Status Code: {code}", ex.StatusCode);
                 await _onConnectFailure.Invoke($"Communication failure.  Status Code: {ex.StatusCode}");
             }
             catch (Exception ex)

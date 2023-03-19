@@ -126,7 +126,7 @@ public static partial class Win32
                 return false;
             }
 
-            desktopName = Marshal.PtrToStringAuto(outValue) ?? string.Empty;
+            desktopName = Marshal.PtrToStringAuto(outValue)?.Trim() ?? string.Empty;
             return !string.IsNullOrWhiteSpace(desktopName);
         }
         finally

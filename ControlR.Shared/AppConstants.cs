@@ -13,27 +13,20 @@ public static partial class AppConstants
 {
     public const string AgentCertificateThumbprint = "4b6235f1c44ab3a5f29bf40ad85b442269f6ee52";
 
-    public static string ServerUri
+    public static string AgentFileName
     {
         get
         {
-            var envUri = Environment.GetEnvironmentVariable("ControlRServerUri");
-            if (!string.IsNullOrWhiteSpace(envUri))
+            return EnvironmentHelper.Instance.Platform switch
             {
-                return envUri;
-            }
-
-            if (EnvironmentHelper.Instance.IsDebug)
-            {
-                return "https://localhost:7031";
-            }
-            //return "https://controlr.app";
-            return "http://192.168.0.2:5007";
+                Platform.Windows => "ControlR.Agent.exe",
+                Platform.Linux => "ControlR.Agent",
+                Platform.MacOS => throw new PlatformNotSupportedException(),
+                Platform.MacCatalyst => throw new PlatformNotSupportedException(),
+                _ => throw new PlatformNotSupportedException(),
+            };
         }
     }
-
-    [GeneratedRegex("[^A-Za-z0-9_-]")]
-    public static partial Regex UsernameValidator();
 
     public static string RemoteControlFileName
     {
@@ -65,18 +58,31 @@ public static partial class AppConstants
         }
     }
 
-    public static string AgentFileName
+    public static string ServerUri
     {
         get
         {
-            return EnvironmentHelper.Instance.Platform switch
+            var envUri = Environment.GetEnvironmentVariable("ControlRServerUri");
+            if (!string.IsNullOrWhiteSpace(envUri))
             {
-                Platform.Windows => "ControlR.Agent.exe",
-                Platform.Linux => "ControlR.Agent",
-                Platform.MacOS => throw new PlatformNotSupportedException(),
-                Platform.MacCatalyst => throw new PlatformNotSupportedException(),
-                _ => throw new PlatformNotSupportedException(),
-            };
+                return envUri;
+            }
+
+            if (EnvironmentHelper.Instance.IsDebug)
+            {
+                return "https://localhost:7031";
+            }
+            //return "https://controlr.app";
+            return "http://192.168.0.2:5007";
         }
     }
+
+    public static string GetDesktopWatcherMmfName(int streamerProcessId, int watcherProcessId)
+    {
+        return $"ControlR-Desktop-Watcher-{streamerProcessId}-{watcherProcessId}";
+    }
+
+
+    [GeneratedRegex("[^A-Za-z0-9_-]")]
+    public static partial Regex UsernameValidator();
 }

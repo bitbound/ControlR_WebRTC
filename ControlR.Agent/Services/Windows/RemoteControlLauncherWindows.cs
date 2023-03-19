@@ -1,4 +1,5 @@
 ﻿using ControlR.Agent.Interfaces;
+using ControlR.Agent.Models;
 using ControlR.Devices.Common.Native.Windows;
 using ControlR.Devices.Common.Services;
 using ControlR.Shared;
@@ -24,6 +25,7 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
     private readonly IProcessInvoker _processInvoker;
     private readonly IDownloadsApi _downloadsApi;
     private readonly IEnvironmentHelper _environmentHelper;
+    private readonly IStreamingSessionCache _streamerProcessCache;
     private readonly ILogger<RemoteControlLauncherWindows> _logger;
 
     public RemoteControlLauncherWindows(
@@ -31,12 +33,14 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
         IProcessInvoker processInvoker,
         IDownloadsApi downloadsApi,
         IEnvironmentHelper environmentHelper,
+        IStreamingSessionCache streamerProcessCache,
         ILogger<RemoteControlLauncherWindows> logger)
     {
         _fileSystem = fileSystem;
         _processInvoker = processInvoker;
         _downloadsApi = downloadsApi;
         _environmentHelper = environmentHelper;
+        _streamerProcessCache = streamerProcessCache;
         _logger = logger;
     }
 
@@ -77,7 +81,14 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
             {
                 return Result.Fail("Failed to start remote control process.");
             }
-
+            else
+            {
+                var session = new StreamingSession(procInfo.dwProcessId, sessionId, authorizedKey);
+                _streamerProcessCache.Streamers.AddOrUpdate(
+                    procInfo.dwProcessId,
+                    session,
+                    (k,v) => session);
+            }
             
         }
         else
@@ -91,6 +102,8 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
 
             var solutionDirReult = GetSolutionDir(Environment.CurrentDirectory);
 
+            Process? process;
+
             if (solutionDirReult.IsSuccess)
             {
                 var desktopDir = Path.Combine(solutionDirReult.Value, "ControlR.Streamer");
@@ -101,11 +114,24 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
                     WorkingDirectory = desktopDir,
                     UseShellExecute = true
                 };
-                _processInvoker.Start(psi);
+                process = _processInvoker.Start(psi);
             }
             else
             {
-                _processInvoker.Start(binaryPath, args);
+                process = _processInvoker.Start(binaryPath, args);
+            }
+
+            if (process is null)
+            {
+                return Result.Fail("Failed to start remote control process.");
+            }
+            else
+            {
+                var session = new StreamingSession(process.Id, sessionId, authorizedKey);
+                _streamerProcessCache.Streamers.AddOrUpdate(
+                    process.Id,
+                    session,
+                    (k, v) => session);
             }
         }
 

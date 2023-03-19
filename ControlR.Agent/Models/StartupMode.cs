@@ -10,5 +10,6 @@ internal enum StartupMode
     None,
     Run,
     Install,
-    Uninstall
+    Uninstall,
+    WatchDesktop
 }

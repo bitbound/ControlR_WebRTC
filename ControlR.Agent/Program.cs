@@ -27,18 +27,33 @@ var installCommand = new Command("install", "Install the ControlR service.");
 
 var unInstallCommand = new Command("uninstall", "Uninstall the ControlR service.");
 
+var watchDesktopCommand = new Command("watch-desktop", "Watches for desktop changes (winlogon/UAC) for the streamer process.");
+var streamerIdOption = new Option<int>(
+    new[] { "-s", "--streamer-id" },
+    "The streamer's process ID.")
+{
+    IsRequired = true
+};
+var parentIdOption = new Option<int>(
+    new[] { "-p", "--parent-id" },
+    "The calling process's ID.")
+{
+    IsRequired = true
+};
+
 var runCommand = new Command("run", "Run the ControlR service.");
-
-
 var authorizedKeyOption = new Option<string>(
     new[] { "-a", "--authorized-key" },
     "An optional public key to preconfigure with authorization to this device.");
 
 
 installCommand.AddOption(authorizedKeyOption);
+watchDesktopCommand.AddOption(streamerIdOption);
+watchDesktopCommand.AddOption(parentIdOption);
 rootCommand.AddCommand(installCommand);
 rootCommand.AddCommand(runCommand);
 rootCommand.AddCommand(unInstallCommand);
+rootCommand.AddCommand(watchDesktopCommand);
 
 installCommand.Handler = CommandHandler.Create<string>(
     async (authorizedKey) =>
@@ -75,6 +90,15 @@ unInstallCommand.Handler = CommandHandler.Create(
         var host = CreateHost(StartupMode.Uninstall);
         var installer = host.Services.GetRequiredService<IAgentInstaller>();
         await installer.Uninstall();
+        await host.RunAsync();
+    });
+
+watchDesktopCommand.Handler = CommandHandler.Create(
+    async (int streamerId, int parentProcessId) =>
+    {
+        var host = CreateHost(StartupMode.WatchDesktop);
+        var desktopReporter = host.Services.GetRequiredService<IInputDesktopReporter>();
+        await desktopReporter.Start(streamerId, parentProcessId);
         await host.RunAsync();
     });
 
@@ -125,7 +149,7 @@ IHost CreateHost(StartupMode startupMode)
         {
             if (OperatingSystem.IsWindows())
             {
-                services.AddHostedService<StreamerProcessWatcher>();
+                services.AddHostedService<StreamingSessionWatcher>();
             }
 
             services.AddSingleton<IAgentUpdater, AgentUpdater>();
@@ -135,7 +159,11 @@ IHost CreateHost(StartupMode startupMode)
             services.AddSingleton<ICpuUtilizationSampler, CpuUtilizationSampler>();
             services.AddHostedService(services => services.GetRequiredService<ICpuUtilizationSampler>());
             services.AddSingleton<IAgentHubConnection, AgentHubConnection>();
-            services.AddSingleton<IStreamerProcessCache, StreamerProcessCache>();
+        }
+
+        if (startupMode == StartupMode.WatchDesktop && OperatingSystem.IsWindows())
+        {
+            services.AddSingleton<IInputDesktopReporter, InputDesktopReporter>();
         }
 
         services.AddSingleton<IProcessInvoker, ProcessInvoker>();
@@ -147,6 +175,7 @@ IHost CreateHost(StartupMode startupMode)
 
         if (OperatingSystem.IsWindows())
         {
+            services.AddSingleton<IStreamingSessionCache, StreamingSessionCache>();
             services.AddSingleton<IDeviceDataGenerator, DeviceDataGeneratorWin>();
             services.AddSingleton<IAgentInstaller, AgentInstallerWindows>();
             services.AddSingleton<IRemoteControlLauncher, RemoteControlLauncherWindows>();

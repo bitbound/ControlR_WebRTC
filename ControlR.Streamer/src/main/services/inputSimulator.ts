@@ -42,13 +42,19 @@ export async function releaseKey(keyCode: string){
 
 export async function resetKeyboardState() {
     keyboard.config.autoDelayMs = 0;
-    await keyboard.releaseKey(
+
+    const keys = [
         Key.LeftShift, 
         Key.RightShift,
         Key.LeftAlt,
         Key.RightAlt,
         Key.LeftControl,
-        Key.RightControl);
+        Key.RightControl
+    ];
+
+    keys.forEach(x => {
+        keyboard.releaseKey(x);
+    })
 }
 
 export async function scrollWheel(deltaX: number, deltaY: number, deltaZ: number){
