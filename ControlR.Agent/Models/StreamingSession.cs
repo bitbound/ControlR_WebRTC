@@ -1,17 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.IO.MemoryMappedFiles;
 
 namespace ControlR.Agent.Models;
-internal class StreamingSession
+internal class StreamingSession : IDisposable
 {
-    public StreamingSession(int streamerProcessId, Guid sessionId, string authorizedKey)
+    public StreamingSession(
+        int streamerProcessId, 
+        Guid sessionId, 
+        string authorizedKey)
     {
         StreamerProcessId = streamerProcessId;
         SessionId = sessionId;
         AuthorizedKey = authorizedKey;
+
     }
 
     public int StreamerProcessId { get; }
@@ -19,4 +19,11 @@ internal class StreamingSession
     public string AuthorizedKey { get; }
     public int WatcherProcessId { get; set; } = -1;
     public string LastDesktop { get; set; } = "Default";
+    public MemoryMappedFile? MemoryMappedFile { get; internal set; }
+
+    public void Dispose()
+    {
+        MemoryMappedFile?.Dispose();
+        GC.SuppressFinalize(this);
+    }
 }

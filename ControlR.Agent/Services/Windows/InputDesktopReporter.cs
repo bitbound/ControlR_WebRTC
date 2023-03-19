@@ -66,6 +66,7 @@ internal class InputDesktopReporter : IInputDesktopReporter
         _logger.LogInformation("Beginning desktop watch for streamer ID {id}.", _streamerId);
 
         var mmfName = AppConstants.GetDesktopWatcherMmfName(_streamerId, Environment.ProcessId);
+        _logger.LogInformation("Opening memory-mapped file for writing: {name}", mmfName);
         using var mmf = MemoryMappedFile.CreateOrOpen(mmfName, 64);
         using var accessor = mmf.CreateViewStream();
         

@@ -18,6 +18,7 @@ using ControlR.Shared.Models;
 using CommunityToolkit.Mvvm.Messaging;
 using ControlR.Viewer.Models.Messages;
 using ControlR.Viewer.Enums;
+using ControlR.Viewer.Extensions;
 
 namespace ControlR.Viewer.Components;
 
@@ -30,11 +31,11 @@ public partial class RemoteDisplay : IAsyncDisposable
     private double _downloadProgress;
     private IJSObjectReference? _module;
     private DisplayDto? _selectedDisplay;
+    private string _statusMessage = "Starting remote control session";
+    private double _statusProgress = -1;
     private string _videoClass = "fit";
     private ElementReference _videoRef;
     private WindowState _windowState = WindowState.Maximized;
-    private string _statusMessage = "Starting remote control session";
-    private double _statusProgress = -1;
 
 #nullable disable
     [Parameter, EditorRequired]
@@ -75,13 +76,6 @@ public partial class RemoteDisplay : IAsyncDisposable
     }
 
     [JSInvokable]
-    public async Task SetStatusMessage(string message)
-    {
-        _statusMessage = message;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    [JSInvokable]
     public async Task SendIceCandidate(string iceCandidateJson)
     {
         await ViewerHub.SendIceCandidate(Session.SessionId, iceCandidateJson);
@@ -94,14 +88,103 @@ public partial class RemoteDisplay : IAsyncDisposable
         await ViewerHub.SendRtcSessionDescription(Session.SessionId, sessionDescription);
     }
 
+    [JSInvokable]
+    public async Task SetStatusMessage(string message)
+    {
+        _statusMessage = message;
+        await InvokeAsync(StateHasChanged);
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        _module ??= await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./Components/RemoteDisplay.razor.js");
+
+        if (firstRender)
+        {
+            _componentRef = DotNetObjectReference.Create(this);
+            await _module.InvokeVoidAsync("initialize", _componentRef, _videoId);
+            var desktopSessionResult = await ViewerHub.GetDesktopSession(Session.Device, Session.SessionId, Session.InitialSystemSession);
+
+            if (!desktopSessionResult.IsSuccess)
+            {
+                Snackbar.Add("Failed to create desktop session", Severity.Error);
+                await Close();
+                return;
+            }
+
+            _statusMessage = "Getting ICE servers";
+            await InvokeAsync(StateHasChanged);
+
+            Logger.LogInformation("Starting RTC offer");
+
+            var iceServersResult = await ViewerHub.GetIceServers();
+
+            Logger.LogInformation("Getting ICE servers.");
+
+            if (!iceServersResult.IsSuccess || !iceServersResult.Value.Any())
+            {
+                Snackbar.Add("Failed to get ICE servers", Severity.Error);
+                await Close();
+                return;
+            }
+
+            _statusMessage = "Sending RTC offer";
+            await InvokeAsync(StateHasChanged);
+            await _module.InvokeVoidAsync("startRtcOffer", iceServersResult.Value.Cast<object>(), _videoId);
+        }
+    }
+
     protected override Task OnInitializedAsync()
     {
         Messenger.Register<RemoteControlDownloadProgressMessage>(this, HandleRemoteControlDownloadProgress);
         Messenger.Register<IceCandidateMessage>(this, HandleIceCandidateReceived);
         Messenger.Register<RtcSessionDescriptionMessage>(this, HandleRtcSessionDescription);
         Messenger.Register<RemoteDisplayWindowStateMessage>(this, HandleRemoteDisplayWindowStateChanged);
+        Messenger.RegisterParameterless(this, HandleParameterlessMessage);
 
         return base.OnInitializedAsync();
+    }
+
+    private async Task Close()
+    {
+        AppState.RemoteControlSessions.Remove(Session);
+        await DisposeAsync();
+    }
+
+    private async void HandleIceCandidateReceived(object recipient, IceCandidateMessage message)
+    {
+        if (message.SessionId != Session.SessionId || _module is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _module.InvokeVoidAsync("receiveIceCandidate", message.CandidateJson, _videoId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error while invoking JavaScript function: {name}", "receiveIceCandidate");
+        }
+    }
+
+    private async void HandleParameterlessMessage(ParameterlessMessageKind kind)
+    {
+        if (kind == ParameterlessMessageKind.ShuttingDown)
+        {
+            await DisposeAsync();
+        }
+    }
+
+    private async void HandleRemoteControlDownloadProgress(object recipient, RemoteControlDownloadProgressMessage message)
+    {
+        if (message.DesktopSessionId != Session.SessionId)
+        {
+            return;
+        }
+
+        _downloadProgress = message.DownloadProgress;
+        await InvokeAsync(StateHasChanged);
     }
 
     private async void HandleRemoteDisplayWindowStateChanged(object recipient, RemoteDisplayWindowStateMessage message)
@@ -134,81 +217,6 @@ public partial class RemoteDisplay : IAsyncDisposable
             Logger.LogError(ex, "Error while invoking JavaScript function: {name}", "receiveRtcSessionDescription");
         }
     }
-
-    private async void HandleIceCandidateReceived(object recipient, IceCandidateMessage message)
-    {
-        if (message.SessionId != Session.SessionId || _module is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await _module.InvokeVoidAsync("receiveIceCandidate", message.CandidateJson, _videoId);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error while invoking JavaScript function: {name}", "receiveIceCandidate");
-        }
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await base.OnAfterRenderAsync(firstRender);
-        _module ??= await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./Components/RemoteDisplay.razor.js");
-
-        if (firstRender)
-        {
-            _componentRef = DotNetObjectReference.Create(this);
-            await _module.InvokeVoidAsync("initialize", _componentRef, _videoId);
-            var desktopSessionResult = await ViewerHub.GetDesktopSession(Session.Device, Session.SessionId, Session.InitialSystemSession);
-
-            if (!desktopSessionResult.IsSuccess)
-            {
-                Snackbar.Add("Failed to create desktop session", Severity.Error);
-                await Close();
-                return;
-            }
-
-            _statusMessage = "Getting ICE servers";
-            await InvokeAsync(StateHasChanged);
-       
-            Logger.LogInformation("Starting RTC offer");
-
-            var iceServersResult = await ViewerHub.GetIceServers();
-
-            Logger.LogInformation("Getting ICE servers.");
-
-            if (!iceServersResult.IsSuccess || !iceServersResult.Value.Any())
-            {
-                Snackbar.Add("Failed to get ICE servers", Severity.Error);
-                await Close();
-                return;
-            }
-
-            _statusMessage = "Sending RTC offer";
-            await InvokeAsync(StateHasChanged);
-            await _module.InvokeVoidAsync("startRtcOffer", iceServersResult.Value.Cast<object>(), _videoId);
-        }
-    }
-
-    private async Task Close()
-    {
-        AppState.RemoteControlSessions.Remove(Session);
-        await DisposeAsync();
-    }
-
-    private async void HandleRemoteControlDownloadProgress(object recipient, RemoteControlDownloadProgressMessage message)
-    {
-        if (message.DesktopSessionId != Session.SessionId)
-        {
-            return;
-        }
-
-        _downloadProgress = message.DownloadProgress;
-        await InvokeAsync(StateHasChanged);
-    }
-
     private void SetWindowState(WindowState state)
     {
         _windowState = state;

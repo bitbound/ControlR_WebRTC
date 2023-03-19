@@ -15,6 +15,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
+using static System.Collections.Specialized.BitVector32;
 using Timer = System.Timers.Timer;
 
 namespace ControlR.Agent.Services.Windows;
@@ -22,14 +23,14 @@ namespace ControlR.Agent.Services.Windows;
 [SupportedOSPlatform("windows")]
 internal class StreamingSessionWatcher : IHostedService
 {
-    private readonly SemaphoreSlim _lock = new(1, 1);
-    private readonly Timer _timer = new(50);
-    private IStreamingSessionCache _cache;
-    private readonly IProcessInvoker _processes;
-    private readonly ILogger<StreamingSessionWatcher> _logger;
     private readonly IEnvironmentHelper _environment;
+    private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly ILogger<StreamingSessionWatcher> _logger;
+    private readonly IProcessInvoker _processes;
     private readonly IRemoteControlLauncher _remoteControlLauncher;
+    private readonly Timer _timer = new(50);
     private readonly string _watcherBinaryPath;
+    private readonly IStreamingSessionCache _cache;
 
     public StreamingSessionWatcher(
         IStreamingSessionCache streamerCache,
@@ -54,6 +55,91 @@ internal class StreamingSessionWatcher : IHostedService
         return Task.CompletedTask;
     }
 
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _timer.Dispose();
+        return Task.CompletedTask;
+    }
+
+    private bool EnsureActiveStreamer(Dictionary<int, Process> processes, StreamingSession value)
+    {
+        try
+        {
+            if (!processes.TryGetValue(value.StreamerProcessId, out var streamerProcess))
+            {
+                if (_cache.Streamers.TryRemove(value.StreamerProcessId, out var oldSession))
+                {
+                    oldSession.Dispose();
+                }
+
+                if (processes.TryGetValue(value.WatcherProcessId, out var watcherProcess))
+                {
+                    watcherProcess.Kill();
+                }
+                return false;
+            }
+
+            if (!processes.ContainsKey(value.WatcherProcessId))
+            {
+                LaunchNewWatcherProcess(value, streamerProcess);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while ensuring active stream for streamer process {id}.", value.StreamerProcessId);
+            return false;
+        }
+    }
+
+    private void LaunchNewWatcherProcess(StreamingSession session, Process streamerProcess)
+    {
+        if (session.WatcherProcessId == -1)
+        {
+            _logger.LogInformation("Starting new watcher for streamer {id}.", session.StreamerProcessId);
+        }
+        else
+        {
+            _logger.LogWarning("Restarting watcher for streamer {id}.", session.StreamerProcessId);
+        }
+
+        if (_processes.GetCurrentProcess().SessionId == 0)
+        {
+            Win32.CreateInteractiveSystemProcess(
+                $"\"{_watcherBinaryPath}\" watch-desktop --streamer-id {session.StreamerProcessId} --parent-id {Environment.ProcessId}",
+                targetSessionId: streamerProcess.SessionId,
+                forceConsoleSession: false,
+                desktopName: "Default",
+                hiddenWindow: true,
+                out var procInfo);
+
+            session.WatcherProcessId = procInfo.dwProcessId;
+
+            if (procInfo.dwProcessId == -1)
+            {
+                _logger.LogError("Failed to start streamer process watcher.");
+            }
+        }
+        else
+        {
+            var process = _processes.Start(_watcherBinaryPath, $"watch-desktop --streamer-id {streamerProcess.Id} --parent-id {Environment.ProcessId}");
+            session.WatcherProcessId = process?.Id ?? -1;
+
+            if (process is null)
+            {
+                _logger.LogError("Failed to start streamer process watcher.");
+            }
+        }
+
+        if (session.WatcherProcessId > -1)
+        {
+            var mmfName = AppConstants.GetDesktopWatcherMmfName(session.StreamerProcessId, session.WatcherProcessId);
+            _logger.LogInformation("Opening memory-mapped file for reading: {name}", mmfName);
+            session.MemoryMappedFile = MemoryMappedFile.CreateOrOpen(mmfName, 64);
+        }
+    }
+
     private async void Timer_Elapsed(object? sender, ElapsedEventArgs e)
     {
         if (!await _lock.WaitAsync(0))
@@ -73,7 +159,10 @@ internal class StreamingSessionWatcher : IHostedService
 
                 if (!processes.TryGetValue(session.StreamerProcessId, out var streamerProcess))
                 {
-                    _cache.Streamers.TryRemove(session.StreamerProcessId, out _);
+                    if (_cache.Streamers.TryRemove(session.StreamerProcessId, out var oldSession))
+                    {
+                        oldSession.Dispose();
+                    }
                     continue;
                 }
 
@@ -82,9 +171,13 @@ internal class StreamingSessionWatcher : IHostedService
                     continue;
                 }
 
-                var mmfName = AppConstants.GetDesktopWatcherMmfName(session.StreamerProcessId, session.WatcherProcessId);
-                using var mmf = MemoryMappedFile.CreateOrOpen(mmfName, 64);
-                using var accessor = mmf.CreateViewStream();
+                if (session.MemoryMappedFile is null)
+                {
+                    _logger.LogWarning("Streaming session has no memory mapped file created.  Streamer ID: {id}", session.StreamerProcessId);
+                    continue;
+                }
+
+                using var accessor = session.MemoryMappedFile.CreateViewStream();
                 using var sr = new StreamReader(accessor, Encoding.UTF8);
                 var desktop = await sr.ReadLineAsync() ?? string.Empty;
 
@@ -108,80 +201,5 @@ internal class StreamingSessionWatcher : IHostedService
         {
             _lock.Release();
         }
-    }
-
-    private bool EnsureActiveStreamer(Dictionary<int, Process> processes, StreamingSession value)
-    {
-        try
-        {
-            if (!processes.TryGetValue(value.StreamerProcessId, out var streamerProcess))
-            {
-                _cache.Streamers.TryRemove(value.StreamerProcessId, out _);
-
-                if (processes.TryGetValue(value.WatcherProcessId, out var watcherProcess))
-                {
-                    watcherProcess.Kill();
-                }
-                return false;
-            }
-
-            if (!processes.ContainsKey(value.WatcherProcessId))
-            {
-                LaunchNewWatcherProcess(value, streamerProcess);
-            }
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error while ensuring active stream for streamer process {id}.", value.StreamerProcessId);
-            return false;
-        }
-    }
-
-    private void LaunchNewWatcherProcess(StreamingSession streamer, Process streamerProcess)
-    {
-        if (streamer.WatcherProcessId == -1)
-        {
-            _logger.LogInformation("Starting new watcher for streamer {id}.", streamer.StreamerProcessId);
-        }
-        else
-        {
-            _logger.LogWarning("Restarting watcher for streamer {id}.", streamer.StreamerProcessId);
-        }
-
-        if (_processes.GetCurrentProcess().SessionId == 0)
-        {
-            Win32.CreateInteractiveSystemProcess(
-                $"\"{_watcherBinaryPath}\" watch-desktop --streamer-id {streamer.StreamerProcessId} --parent-id {Environment.ProcessId}",
-                targetSessionId: streamerProcess.SessionId,
-                forceConsoleSession: false,
-                desktopName: "Default",
-                hiddenWindow: true,
-                out var procInfo);
-
-            streamer.WatcherProcessId = procInfo.dwProcessId;
-
-            if (procInfo.dwProcessId == -1)
-            {
-                _logger.LogError("Failed to start streamer process watcher.");
-            }
-        }
-        else
-        {
-            var process = _processes.Start(_watcherBinaryPath, $"watch-desktop --streamer-id {streamerProcess.Id} --parent-id {Environment.ProcessId}");
-            streamer.WatcherProcessId = process?.Id ?? -1;
-
-            if (process is null)
-            {
-                _logger.LogError("Failed to start streamer process watcher.");
-            }
-        }
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        _timer.Dispose();
-        return Task.CompletedTask;
     }
 }
