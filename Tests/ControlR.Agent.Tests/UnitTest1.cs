@@ -1,6 +1,3 @@
-using ControlR.Agent.Models.IpcDtos;
-using MessagePack;
-
 namespace ControlR.Agent.Tests;
 
 [TestClass]

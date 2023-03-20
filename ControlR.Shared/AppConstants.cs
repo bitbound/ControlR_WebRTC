@@ -77,12 +77,6 @@ public static partial class AppConstants
         }
     }
 
-    public static string GetDesktopWatcherPipeName(int streamerProcessId, int watcherProcessId)
-    {
-        return $"ControlR-Desktop-Watcher-{streamerProcessId}-{watcherProcessId}";
-    }
-
-
     [GeneratedRegex("[^A-Za-z0-9_-]")]
     public static partial Regex UsernameValidator();
 }

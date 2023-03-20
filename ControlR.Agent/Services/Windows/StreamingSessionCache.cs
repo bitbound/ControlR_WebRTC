@@ -10,10 +10,10 @@ namespace ControlR.Agent.Services.Windows;
 
 internal interface IStreamingSessionCache
 {
-    ConcurrentDictionary<int, StreamingSession> Streamers { get; }
+    ConcurrentDictionary<Guid, StreamingSession> Sessions { get; }
 }
 internal class StreamingSessionCache : IStreamingSessionCache
 {
-    public ConcurrentDictionary<int, StreamingSession> Streamers { get; } = new();
+    public ConcurrentDictionary<Guid, StreamingSession> Sessions { get; } = new();
 
 }

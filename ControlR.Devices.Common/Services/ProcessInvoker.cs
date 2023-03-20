@@ -10,7 +10,7 @@ namespace ControlR.Devices.Common.Services;
 public interface IProcessInvoker
 {
     Process GetCurrentProcess();
-
+    Process GetProcessById(int processId);
     Process[] GetProcesses();
 
     Process[] GetProcessesByName(string processName);
@@ -36,6 +36,11 @@ public class ProcessInvoker : IProcessInvoker
     public Process GetCurrentProcess()
     {
         return Process.GetCurrentProcess();
+    }
+
+    public Process GetProcessById(int processId)
+    {
+        return Process.GetProcessById(processId);
     }
 
     public Process[] GetProcesses()
@@ -117,6 +122,35 @@ public class ProcessInvoker : IProcessInvoker
         }
     }
 
+    public Process? LaunchUri(Uri uri)
+    {
+        var psi = new ProcessStartInfo()
+        {
+            FileName = $"{uri}",
+            UseShellExecute = true
+        };
+        return Process.Start(psi);
+    }
+
+    public Process Start(string fileName)
+    {
+        return Process.Start(fileName);
+    }
+
+    public Process Start(string fileName, string arguments)
+    {
+        return Process.Start(fileName, arguments);
+    }
+
+    public Process? Start(ProcessStartInfo startInfo)
+    {
+        if (startInfo is null)
+        {
+            throw new ArgumentNullException(nameof(startInfo));
+        }
+        return Process.Start(startInfo);
+    }
+
     private Task LaunchDesktopStreamerLinux(string serverUrl, Guid requestId, string requesterConnectionId)
     {
         throw new NotImplementedException();
@@ -155,35 +189,5 @@ public class ProcessInvoker : IProcessInvoker
             return Result.Fail(ex);
         }
 
-    }
-
-    public Process? LaunchUri(Uri uri)
-    {
-        var psi = new ProcessStartInfo()
-        {
-            FileName = $"{uri}",
-            UseShellExecute = true
-        };
-        return Process.Start(psi);
-    }
-
-
-    public Process Start(string fileName)
-    {
-        return Process.Start(fileName);
-    }
-
-    public Process Start(string fileName, string arguments)
-    {
-        return Process.Start(fileName, arguments);
-    }
-
-    public Process? Start(ProcessStartInfo startInfo)
-    {
-        if (startInfo is null)
-        {
-            throw new ArgumentNullException(nameof(startInfo));
-        }
-        return Process.Start(startInfo);
     }
 }

@@ -445,7 +445,6 @@ function setDataChannelHandlers(dataChannel, videoId) {
  * @returns {Promise<any>}
  */
 function invokeDotNet(methodName, videoId, ...args) {
-    console.log(`Calling ${methodName} with video ID ${videoId}`);
     const state = getState(videoId);
     return state.componentRef.invokeMethodAsync(methodName, ...args);
 }

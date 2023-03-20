@@ -17,7 +17,7 @@ namespace ControlR.Agent.Services.Windows;
 
 internal interface IInputDesktopReporter
 {
-    Task Start(int streamerProcessId, int parentProcessId);
+    Task Start(string agentPipeName, int parentProcessId);
 }
 
 [SupportedOSPlatform("windows")]
@@ -27,7 +27,7 @@ internal class InputDesktopReporter : IInputDesktopReporter
     private readonly IProcessInvoker _processes;
     private readonly IIpcConnectionFactory _ipcFactory;
     private readonly ILogger<InputDesktopReporter> _logger;
-    private int _streamerId = -1;
+    private string _agentPipeName = string.Empty;
     private int _parentId;
     private string _lastDesktop = "Default";
 
@@ -43,9 +43,9 @@ internal class InputDesktopReporter : IInputDesktopReporter
         _logger = logger;
     }
 
-    public Task Start(int streamerId, int parentProcessId)
+    public Task Start(string agentPipeName, int parentProcessId)
     {
-        _streamerId = streamerId;
+        _agentPipeName = agentPipeName;
         _parentId = parentProcessId;
         _ = Task.Run(WatchDesktop);
 
@@ -54,9 +54,9 @@ internal class InputDesktopReporter : IInputDesktopReporter
 
     private async Task WatchDesktop()
     {
-        if (_streamerId == -1)
+        if (string.IsNullOrWhiteSpace(_agentPipeName))
         {
-            _logger.LogError("Streamer ID shouldn't be -1 here.");
+            _logger.LogError("Agent pipe name cannot be null.");
             _hostLifetime.StopApplication();
             return;
         }
@@ -68,11 +68,21 @@ internal class InputDesktopReporter : IInputDesktopReporter
             return;
         }
 
-        _logger.LogInformation("Beginning desktop watch for streamer ID {id}.", _streamerId);
+        var parentProcess = _processes.GetProcessById(_parentId);
 
-        var pipeName = AppConstants.GetDesktopWatcherPipeName(_streamerId, Environment.ProcessId);
-        _logger.LogInformation("Creating IPC client for pipe name: {name}", pipeName);
-        var client = await _ipcFactory.CreateClient(".", pipeName);
+        _logger.LogInformation("Beginning desktop watch for pipe: ", _agentPipeName);
+
+        if (Win32.GetCurrentDesktop(out var currentDesktop))
+        {
+            _lastDesktop = currentDesktop;
+        }
+        else
+        {
+            _logger.LogWarning("Failed to get initial desktop.");
+        }
+
+        _logger.LogInformation("Creating IPC client for pipe name: {name}", _agentPipeName);
+        var client = await _ipcFactory.CreateClient(".", _agentPipeName);
         var connected = await client.Connect(10_000);
 
         if (!connected)
@@ -90,18 +100,7 @@ internal class InputDesktopReporter : IInputDesktopReporter
         {
             try
             {
-                var processes = _processes
-                    .GetProcesses()
-                    .ToDictionary(x => x.Id, x => x);
-
-                if (!processes.ContainsKey(_streamerId))
-                {
-                    _logger.LogInformation("Streamer ID {id} no longer exists.  Exiting watcher process.", _streamerId);
-                    _hostLifetime.StopApplication();
-                    return;
-                }
-
-                if (!processes.ContainsKey(_parentId))
+                if (parentProcess.HasExited)
                 {
                     _logger.LogInformation("Parent ID {id} no longer exists.  Exiting watcher process.", _parentId);
                     _hostLifetime.StopApplication();
@@ -128,7 +127,7 @@ internal class InputDesktopReporter : IInputDesktopReporter
             }
         }
 
-        _logger.LogInformation("Exiting desktop watch for streamer ID {id}.", _streamerId);
+        _logger.LogInformation("Exiting desktop watch for pipe name: {name}", _agentPipeName);
 
     }
 }

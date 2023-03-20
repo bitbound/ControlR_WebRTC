@@ -27,9 +27,9 @@ var installCommand = new Command("install", "Install the ControlR service.");
 var unInstallCommand = new Command("uninstall", "Uninstall the ControlR service.");
 
 var watchDesktopCommand = new Command("watch-desktop", "Watches for desktop changes (winlogon/UAC) for the streamer process.");
-var streamerIdOption = new Option<int>(
-    new[] { "-s", "--streamer-id" },
-    "The streamer's process ID.")
+var agentPipeOption = new Option<string>(
+    new[] { "-a", "--agent-pipe" },
+    "The agent pipe name to which the watcher should connect.")
 {
     IsRequired = true
 };
@@ -47,60 +47,55 @@ var authorizedKeyOption = new Option<string>(
 
 
 installCommand.AddOption(authorizedKeyOption);
-watchDesktopCommand.AddOption(streamerIdOption);
+watchDesktopCommand.AddOption(agentPipeOption);
 watchDesktopCommand.AddOption(parentIdOption);
 rootCommand.AddCommand(installCommand);
 rootCommand.AddCommand(runCommand);
 rootCommand.AddCommand(unInstallCommand);
 rootCommand.AddCommand(watchDesktopCommand);
 
-installCommand.Handler = CommandHandler.Create<string>(
-    async (authorizedKey) =>
+installCommand.SetHandler(async (authorizedKey) =>
+{
+    var host = CreateHost(StartupMode.Install);
+    var installer = host.Services.GetRequiredService<IAgentInstaller>();
+    await installer.Install(authorizedKey);
+    await host.RunAsync();
+}, authorizedKeyOption);
+
+runCommand.SetHandler(async () =>
+{
+    var host = CreateHost(StartupMode.Run);
+
+    var appDir = EnvironmentHelper.Instance.StartupDirectory;
+    var appSettingsPath = Path.Combine(appDir!, "appsettings.json");
+
+    if (!File.Exists(appSettingsPath))
     {
-        var host = CreateHost(StartupMode.Install);
-        var installer = host.Services.GetRequiredService<IAgentInstaller>();
-        await installer.Install(authorizedKey);
-        await host.RunAsync();
-    });
+        using var mrs = Assembly.GetExecutingAssembly().GetManifestResourceStream("ControlR.Agent.appsettings.json");
+        using var fs = new FileStream(appSettingsPath, FileMode.Create);
+        await mrs!.CopyToAsync(fs);
+    }
 
-runCommand.Handler = CommandHandler.Create(
-    async () =>
-    {
-        var host = CreateHost(StartupMode.Run);
+    var hubConnection = host.Services.GetRequiredService<IAgentHubConnection>();
+    await hubConnection.Start();
+    await host.RunAsync();
+});
 
-        var appDir = EnvironmentHelper.Instance.StartupDirectory;
-        var appSettingsPath = Path.Combine(appDir!, "appsettings.json");
+unInstallCommand.SetHandler(async () =>
+{
+    var host = CreateHost(StartupMode.Uninstall);
+    var installer = host.Services.GetRequiredService<IAgentInstaller>();
+    await installer.Uninstall();
+    await host.RunAsync();
+});
 
-        if (!File.Exists(appSettingsPath))
-        {
-            using var mrs = Assembly.GetExecutingAssembly().GetManifestResourceStream("ControlR.Agent.appsettings.json");
-            using var fs = new FileStream(appSettingsPath, FileMode.Create);
-            await mrs!.CopyToAsync(fs);
-        }
-
-        var hubConnection = host.Services.GetRequiredService<IAgentHubConnection>();
-        await hubConnection.Start();
-        await host.RunAsync();
-    });
-
-unInstallCommand.Handler = CommandHandler.Create(
-    async () =>
-    {
-        var host = CreateHost(StartupMode.Uninstall);
-        var installer = host.Services.GetRequiredService<IAgentInstaller>();
-        await installer.Uninstall();
-        await host.RunAsync();
-    });
-
-watchDesktopCommand.Handler = CommandHandler.Create(
-    async (int streamerId, int parentProcessId) =>
-    {
-        var host = CreateHost(StartupMode.WatchDesktop);
-        var desktopReporter = host.Services.GetRequiredService<IInputDesktopReporter>();
-        await desktopReporter.Start(streamerId, parentProcessId);
-        await host.RunAsync();
-    });
-
+watchDesktopCommand.SetHandler(async (agentPipeName, parentProcessId) =>
+{
+    var host = CreateHost(StartupMode.WatchDesktop);
+    var desktopReporter = host.Services.GetRequiredService<IInputDesktopReporter>();
+    await desktopReporter.Start(agentPipeName, parentProcessId);
+    await host.RunAsync();
+}, agentPipeOption, parentIdOption);
 
 return await rootCommand.InvokeAsync(args);
 

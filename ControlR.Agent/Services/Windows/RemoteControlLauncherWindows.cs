@@ -22,10 +22,10 @@ namespace ControlR.Agent.Services.Windows;
 internal class RemoteControlLauncherWindows : IRemoteControlLauncher
 {
     private readonly IFileSystem _fileSystem;
-    private readonly IProcessInvoker _processInvoker;
+    private readonly IProcessInvoker _processes;
     private readonly IDownloadsApi _downloadsApi;
     private readonly IEnvironmentHelper _environmentHelper;
-    private readonly IStreamingSessionCache _streamerProcessCache;
+    private readonly IStreamingSessionCache _streamingSessionCache;
     private readonly ILogger<RemoteControlLauncherWindows> _logger;
 
     public RemoteControlLauncherWindows(
@@ -33,14 +33,14 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
         IProcessInvoker processInvoker,
         IDownloadsApi downloadsApi,
         IEnvironmentHelper environmentHelper,
-        IStreamingSessionCache streamerProcessCache,
+        IStreamingSessionCache streamingSessionCache,
         ILogger<RemoteControlLauncherWindows> logger)
     {
         _fileSystem = fileSystem;
-        _processInvoker = processInvoker;
+        _processes = processInvoker;
         _downloadsApi = downloadsApi;
         _environmentHelper = environmentHelper;
-        _streamerProcessCache = streamerProcessCache;
+        _streamingSessionCache = streamingSessionCache;
         _logger = logger;
     }
 
@@ -49,6 +49,56 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
         int targetWindowsSession,
         string authorizedKey,
         Func<double, Task>? onDownloadProgress)
+    {
+        var result = await CreateSessionImpl(sessionId, targetWindowsSession, authorizedKey, "Default", onDownloadProgress);
+
+        if (!result.IsSuccess)
+        {
+            return Result.Fail(result.Reason);
+        }
+ 
+        var session = new StreamingSession(result.Value, sessionId, authorizedKey);
+        _streamingSessionCache.Sessions.AddOrUpdate(
+            sessionId,
+            session,
+            (k, v) => session);
+
+        return Result.Ok();
+    }
+
+    public async Task<Result> RelaunchInNewDesktop(StreamingSession session, string desktopName, int targetWindowsSession)
+    {
+        var result = await CreateSessionImpl(
+            session.SessionId, 
+            targetWindowsSession, 
+            session.AuthorizedKey, 
+            desktopName, 
+            null);
+
+        if (!result.IsSuccess)
+        {
+            return Result.Fail(result.Reason);
+        }
+
+        var oldStreamer = session.StreamerProcess;
+        session.LastDesktop = desktopName;
+        session.StreamerProcess = result.Value;
+        _streamingSessionCache.Sessions.AddOrUpdate(
+          session.SessionId,
+          session,
+          (k, v) => session);
+
+        oldStreamer.Kill();
+
+        return Result.Ok();
+    }
+
+    private async Task<Result<Process>> CreateSessionImpl(
+      Guid sessionId,
+      int targetWindowsSession,
+      string authorizedKey,
+      string targetDesktop,
+      Func<double, Task>? onDownloadProgress)
     {
         var startupDir = _environmentHelper.StartupDirectory;
 
@@ -62,34 +112,32 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
             var result = await DownloadRemoteControl(remoteControlDir, onDownloadProgress);
             if (!result.IsSuccess)
             {
-                return result;
+                return Result.Fail<Process>(result.Reason);
             }
         }
 
-        if (_processInvoker.GetCurrentProcess().SessionId == 0)
+        if (_processes.GetCurrentProcess().SessionId == 0)
         {
             Win32.CreateInteractiveSystemProcess(
                 $"\"{binaryPath}\" --session-id={sessionId} --authorized-key={authorizedKey}",
-                targetSessionId: targetWindowsSession, 
+                targetSessionId: targetWindowsSession,
                 forceConsoleSession: false,
-                desktopName: "Default", 
+                desktopName: targetDesktop,
                 hiddenWindow: false,
                 out var procInfo);
 
-            
+
             if (procInfo.dwProcessId == -1)
             {
-                return Result.Fail("Failed to start remote control process.");
+                return Result.Fail<Process>("Failed to start remote control process.");
             }
             else
             {
-                var session = new StreamingSession(procInfo.dwProcessId, sessionId, authorizedKey);
-                _streamerProcessCache.Streamers.AddOrUpdate(
-                    procInfo.dwProcessId,
-                    session,
-                    (k,v) => session);
+                _processes.GetProcessById(procInfo.dwProcessId);
+                var process = _processes.GetProcessById(procInfo.dwProcessId);
+                return Result.Ok(process);
             }
-            
+
         }
         else
         {
@@ -114,28 +162,20 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
                     WorkingDirectory = desktopDir,
                     UseShellExecute = true
                 };
-                process = _processInvoker.Start(psi);
+                process = _processes.Start(psi);
             }
             else
             {
-                process = _processInvoker.Start(binaryPath, args);
+                process = _processes.Start(binaryPath, args);
             }
 
             if (process is null)
             {
-                return Result.Fail("Failed to start remote control process.");
+                return Result.Fail<Process>("Failed to start remote control process.");
             }
-            else
-            {
-                var session = new StreamingSession(process.Id, sessionId, authorizedKey);
-                _streamerProcessCache.Streamers.AddOrUpdate(
-                    process.Id,
-                    session,
-                    (k, v) => session);
-            }
-        }
 
-        return Result.Ok();
+            return Result.Ok(process);
+        }
     }
 
     private async Task<Result> DownloadRemoteControl(string remoteControlDir, Func<double, Task>? onDownloadProgress)

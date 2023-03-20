@@ -1,29 +1,32 @@
-﻿using EasyIpc;
+﻿using ControlR.Shared.Helpers;
+using EasyIpc;
+using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
 
 namespace ControlR.Agent.Models;
 internal class StreamingSession : IDisposable
 {
     public StreamingSession(
-        int streamerProcessId, 
+        Process streamerProcess, 
         Guid sessionId, 
         string authorizedKey)
     {
-        StreamerProcessId = streamerProcessId;
+        StreamerProcess = streamerProcess;
         SessionId = sessionId;
         AuthorizedKey = authorizedKey;
 
     }
 
-    public int StreamerProcessId { get; }
+    public Process StreamerProcess { get; set; }
     public Guid SessionId { get; }
     public string AuthorizedKey { get; }
-    public int WatcherProcessId { get; set; } = -1;
+    public Process? WatcherProcess { get; set; }
     public string LastDesktop { get; set; } = "Default";
     public IIpcServer? IpcServer { get; set; }
+    public string AgentPipeName { get; } = Guid.NewGuid().ToString();
 
     public void Dispose()
     {
-        IpcServer?.Dispose();
+        DisposeHelper.DisposeAll(IpcServer, StreamerProcess, WatcherProcess);
     }
 }

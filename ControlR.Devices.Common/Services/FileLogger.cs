@@ -30,7 +30,7 @@ public class FileLogger : ILogger
                 var logsPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                     "ControlR",
-                "Logs");
+                    "Logs");
 
                 if (EnvironmentHelper.Instance.IsDebug)
                 {

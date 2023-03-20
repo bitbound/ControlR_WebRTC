@@ -168,11 +168,11 @@ public partial class RemoteDisplay : IAsyncDisposable
         }
     }
 
-    private async void HandleParameterlessMessage(ParameterlessMessageKind kind)
+    private void HandleParameterlessMessage(ParameterlessMessageKind kind)
     {
         if (kind == ParameterlessMessageKind.ShuttingDown)
         {
-            await DisposeAsync();
+            DisposeAsync().GetAwaiter().GetResult();
         }
     }
 
