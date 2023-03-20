@@ -135,40 +135,43 @@ internal class StreamingSessionWatcher : IHostedService
             }
         }
 
-        if (session.WatcherProcess?.HasExited == false)
+        if (session.WatcherProcess?.HasExited != false)
         {
-            _logger.LogInformation("Creating pipe server for desktop watcher: {name}", session.AgentPipeName);
-            session.IpcServer = await _ipcRouter.CreateServer(session.AgentPipeName);
-            session.IpcServer.On<DesktopChangeDto>(async dto =>
-            {
-                await _lock.WaitAsync();
-                try
-                {
-                    var desktopName = dto.DesktopName.Trim();
+            _logger.LogError("Watching process is unexpectedly null.");
+            return;
+        }
 
-                    if (!string.IsNullOrWhiteSpace(desktopName) &&
-                        !string.Equals(session.LastDesktop, desktopName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        _logger.LogInformation("Desktop has changed from {last} to {current}.  Relaunching streamer.", session.LastDesktop, desktopName);
-                        await _remoteControlLauncher.RelaunchInNewDesktop(session, desktopName, session.StreamerProcess.SessionId);
-                    }
-                }
-                finally
-                {
-                    _lock.Release();
-                }
-            });
+        _logger.LogInformation("Creating pipe server for desktop watcher: {name}", session.AgentPipeName);
+        session.IpcServer = await _ipcRouter.CreateServer(session.AgentPipeName);
+        session.IpcServer.On<DesktopChangeDto>(async dto =>
+        {
+            await _lock.WaitAsync();
+            try
+            {
+                var desktopName = dto.DesktopName.Trim();
 
-            var result = await session.IpcServer.WaitForConnection(_hostLifetime.ApplicationStopping);
-            if (result)
-            {
-                session.IpcServer.BeginRead(_hostLifetime.ApplicationStopping);
-                _logger.LogInformation("Client connected to pipe server.");
+                if (!string.IsNullOrWhiteSpace(desktopName) &&
+                    !string.Equals(session.LastDesktop, desktopName, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogInformation("Desktop has changed from {last} to {current}.  Relaunching streamer.", session.LastDesktop, desktopName);
+                    await _remoteControlLauncher.RelaunchInNewDesktop(session, desktopName, session.StreamerProcess.SessionId);
+                }
             }
-            else
+            finally
             {
-                _logger.LogWarning("Client failed to connect to pipe server.");
+                _lock.Release();
             }
+        });
+
+        var result = await session.IpcServer.WaitForConnection(_hostLifetime.ApplicationStopping);
+        if (result)
+        {
+            session.IpcServer.BeginRead(_hostLifetime.ApplicationStopping);
+            _logger.LogInformation("Client connected to pipe server.");
+        }
+        else
+        {
+            _logger.LogWarning("Client failed to connect to pipe server.");
         }
     }
 

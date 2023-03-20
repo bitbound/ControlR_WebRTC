@@ -46,117 +46,6 @@ public static partial class Win32
         WTSSessionInfo
     }
 
-    public static List<WindowsSession> GetActiveSessions()
-    {
-        var sessions = new List<WindowsSession>();
-        var consoleSessionId = WTSGetActiveConsoleSessionId();
-        sessions.Add(new WindowsSession()
-        {
-            Id = (int)consoleSessionId,
-            Type = SessionType.Console,
-            Name = "Console",
-            Username = GetUsernameFromSessionId((int)consoleSessionId)
-        });
-
-        var enumSessionResult = WtsApi32.WTSEnumerateSessions(
-            WtsApi32.WTS_CURRENT_SERVER_HANDLE,
-            Reserved: 0,
-            Version: 1,
-            out IntPtr ppSessionInfos,
-            out var count);
-
-        if (!enumSessionResult)
-        {
-            return sessions;
-        }
-
-        var dataSize = Marshal.SizeOf(typeof(WtsApi32.WTS_SESSION_INFO));
-        var current = ppSessionInfos;
-
-        if (enumSessionResult)
-        {
-            for (int i = 0; i < count; i++)
-            {
-
-                var sessionInfo = Marshal.PtrToStructure<WtsApi32.WTS_SESSION_INFO>(current);
-                current += dataSize;
-
-                if (sessionInfo.State == WtsApi32.WTS_CONNECTSTATE_CLASS.WTSActive && sessionInfo.SessionID != consoleSessionId)
-                {
-
-                    sessions.Add(new WindowsSession()
-                    {
-                        Id = sessionInfo.SessionID,
-                        Name = sessionInfo.WinStationName,
-                        Type = SessionType.RDP,
-                        Username = GetUsernameFromSessionId(sessionInfo.SessionID)
-                    });
-                }
-            }
-        }
-
-        return sessions;
-    }
-
-    public static string GetCommandLineString()
-    {
-
-        var commandLinePtr = GetCommandLine();
-        return Marshal.PtrToStringAuto(commandLinePtr) ?? string.Empty;
-    }
-
-    public static bool GetCurrentDesktop(out string desktopName)
-    {
-        var inputDesktop = OpenInputDesktop();
-        if (inputDesktop.IsInvalid)
-        {
-            desktopName = string.Empty;
-            return false;
-        }
-
-        var outValue = Marshal.AllocHGlobal(256);
-        var outLength = Marshal.AllocHGlobal(256);
-        try
-        {
-            var desktopHandle = inputDesktop.DangerousGetHandle();
-
-            if (!User32.GetUserObjectInformation(desktopHandle, User32.ObjectInformationType.UOI_NAME, outValue, 256, outLength))
-            {
-                desktopName = string.Empty;
-                return false;
-            }
-
-            desktopName = Marshal.PtrToStringAuto(outValue)?.Trim() ?? string.Empty;
-            return !string.IsNullOrWhiteSpace(desktopName);
-        }
-        finally
-        {
-            inputDesktop.Close();
-        }
-    }
-
-    public static string GetUsernameFromSessionId(int sessionId)
-    {
-        var username = string.Empty;
-
-        if (WTSQuerySessionInformation(IntPtr.Zero, sessionId, WTS_INFO_CLASS.WTSUserName, out var buffer, out var strLen) && strLen > 1)
-        {
-            username = Marshal.PtrToStringAnsi(buffer);
-            WtsApi32.WTSFreeMemory(buffer);
-        }
-
-        return username ?? string.Empty;
-    }
-
-    [return: MarshalAs(UnmanagedType.Bool)]
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-    public static partial bool GlobalMemoryStatusEx(ref MemoryStatusEx lpBuffer);
-
-    public static User32.SafeDesktopHandle OpenInputDesktop()
-    {
-        return User32.OpenInputDesktop(User32.DesktopCreationFlags.None, true, ACCESS_MASK.GenericRight.GENERIC_ALL);
-    }
-
     public static bool CreateInteractiveSystemProcess(
         string commandLine,
         int targetSessionId,
@@ -269,6 +158,111 @@ public static partial class Win32
 
         return result;
     }
+
+    public static List<WindowsSession> GetActiveSessions()
+    {
+        var sessions = new List<WindowsSession>();
+        var consoleSessionId = WTSGetActiveConsoleSessionId();
+        sessions.Add(new WindowsSession()
+        {
+            Id = (int)consoleSessionId,
+            Type = SessionType.Console,
+            Name = "Console",
+            Username = GetUsernameFromSessionId((int)consoleSessionId)
+        });
+
+        var enumSessionResult = WtsApi32.WTSEnumerateSessions(
+            WtsApi32.WTS_CURRENT_SERVER_HANDLE,
+            Reserved: 0,
+            Version: 1,
+            out IntPtr ppSessionInfos,
+            out var count);
+
+        if (!enumSessionResult)
+        {
+            return sessions;
+        }
+
+        var dataSize = Marshal.SizeOf(typeof(WtsApi32.WTS_SESSION_INFO));
+        var current = ppSessionInfos;
+
+        if (enumSessionResult)
+        {
+            for (int i = 0; i < count; i++)
+            {
+
+                var sessionInfo = Marshal.PtrToStructure<WtsApi32.WTS_SESSION_INFO>(current);
+                current += dataSize;
+
+                if (sessionInfo.State == WtsApi32.WTS_CONNECTSTATE_CLASS.WTSActive && sessionInfo.SessionID != consoleSessionId)
+                {
+
+                    sessions.Add(new WindowsSession()
+                    {
+                        Id = sessionInfo.SessionID,
+                        Name = sessionInfo.WinStationName,
+                        Type = SessionType.RDP,
+                        Username = GetUsernameFromSessionId(sessionInfo.SessionID)
+                    });
+                }
+            }
+        }
+
+        return sessions;
+    }
+
+    public static string GetCommandLineString()
+    {
+
+        var commandLinePtr = GetCommandLine();
+        return Marshal.PtrToStringAuto(commandLinePtr) ?? string.Empty;
+    }
+
+    public static bool GetInputDesktop(out string desktopName)
+    {
+        using var inputDesktop = OpenInputDesktop();
+        if (inputDesktop.IsInvalid)
+        {
+            desktopName = string.Empty;
+            return false;
+        }
+
+        return GetDesktopName(inputDesktop, out desktopName);
+    }
+
+    public static bool GetThreadDesktop(uint threadId, out string desktopName)
+    {
+        using var inputDesktop = User32.GetThreadDesktop(threadId);
+        if (inputDesktop.IsInvalid)
+        {
+            desktopName = string.Empty;
+            return false;
+        }
+
+        return GetDesktopName(inputDesktop, out desktopName);
+    }
+    public static string GetUsernameFromSessionId(int sessionId)
+    {
+        var username = string.Empty;
+
+        if (WTSQuerySessionInformation(IntPtr.Zero, sessionId, WTS_INFO_CLASS.WTSUserName, out var buffer, out var strLen) && strLen > 1)
+        {
+            username = Marshal.PtrToStringAnsi(buffer);
+            WtsApi32.WTSFreeMemory(buffer);
+        }
+
+        return username ?? string.Empty;
+    }
+
+    [return: MarshalAs(UnmanagedType.Bool)]
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    public static partial bool GlobalMemoryStatusEx(ref MemoryStatusEx lpBuffer);
+
+    public static User32.SafeDesktopHandle OpenInputDesktop()
+    {
+        return User32.OpenInputDesktop(User32.DesktopCreationFlags.None, true, ACCESS_MASK.GenericRight.GENERIC_ALL);
+    }
+
     public static User32.MessageBoxResult ShowMessageBox(IntPtr owner,
         string message,
         string caption,
@@ -301,6 +295,21 @@ public static partial class Win32
     [LibraryImport("kernel32.dll")]
     private static partial IntPtr GetCommandLine();
 
+    private static bool GetDesktopName(User32.SafeDesktopHandle handle, out string desktopName)
+    {
+        var outValue = Marshal.AllocHGlobal(256);
+        var outLength = Marshal.AllocHGlobal(256);
+        var desktopHandle = handle.DangerousGetHandle();
+
+        if (!User32.GetUserObjectInformation(desktopHandle, User32.ObjectInformationType.UOI_NAME, outValue, 256, outLength))
+        {
+            desktopName = string.Empty;
+            return false;
+        }
+
+        desktopName = Marshal.PtrToStringAuto(outValue)?.Trim() ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(desktopName);
+    }
     [DllImport("advapi32", SetLastError = true), SuppressUnmanagedCodeSecurity]
     private static extern bool OpenProcessToken(IntPtr processHandle, int desiredAccess, ref IntPtr tokenHandle);
     [DllImport("Wtsapi32.dll")]
