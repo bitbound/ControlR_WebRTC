@@ -5,6 +5,7 @@ using ControlR.Shared;
 using EasyIpc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using PInvoke;
 using System;
 using System.Collections.Generic;
 using System.IO.MemoryMappedFiles;
@@ -72,9 +73,11 @@ internal class InputDesktopReporter : IInputDesktopReporter
 
         _logger.LogInformation("Beginning desktop watch for pipe: ", _agentPipeName);
 
-        if (Win32.GetCurrentDesktop(out var currentDesktop))
+     
+        if (Win32.GetThreadDesktop((uint)Environment.CurrentManagedThreadId, out var currentDesktop))
         {
             _lastDesktop = currentDesktop;
+            _logger.LogInformation("Initial desktop: {desktopName}", currentDesktop);
         }
         else
         {
@@ -95,8 +98,11 @@ internal class InputDesktopReporter : IInputDesktopReporter
 
         _logger.LogInformation("Connected to pipe server.");
 
-        while (!_hostLifetime.ApplicationStopping.IsCancellationRequested &&
-                client.IsConnected)
+        _logger.LogInformation("Sending initial desktop.");
+
+        await client.Send(new DesktopChangeDto(_lastDesktop));
+
+        while (!_hostLifetime.ApplicationStopping.IsCancellationRequested && client.IsConnected)
         {
             try
             {
@@ -107,7 +113,7 @@ internal class InputDesktopReporter : IInputDesktopReporter
                     return;
                 }
 
-                if (!Win32.GetCurrentDesktop(out var desktopName))
+                if (!Win32.GetInputDesktop(out var desktopName))
                 {
                     _logger.LogError("Failed to get current desktop.");
                 }
@@ -115,8 +121,13 @@ internal class InputDesktopReporter : IInputDesktopReporter
                 if (!string.IsNullOrWhiteSpace(desktopName) &&
                     !string.Equals(_lastDesktop, desktopName, StringComparison.OrdinalIgnoreCase))
                 {
+                    _logger.LogDebug("Desktop has changed from {last} to {current}.  Sending to agent.", _lastDesktop, desktopName);
                     await client.Send(new DesktopChangeDto(desktopName));
                     _lastDesktop = desktopName;
+                    if (!Win32.SwitchToInputDesktop())
+                    {
+                        _logger.LogWarning("Failed to switch to input desktop.");
+                    }
                 }
 
                 await Task.Delay(50);
@@ -128,6 +139,5 @@ internal class InputDesktopReporter : IInputDesktopReporter
         }
 
         _logger.LogInformation("Exiting desktop watch for pipe name: {name}", _agentPipeName);
-
     }
 }
