@@ -19,6 +19,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using ControlR.Viewer.Models.Messages;
 using ControlR.Viewer.Enums;
 using ControlR.Viewer.Extensions;
+using ControlR.Shared.Extensions;
 
 namespace ControlR.Viewer.Components;
 
@@ -103,34 +104,7 @@ public partial class RemoteDisplay : IAsyncDisposable
         {
             _componentRef = DotNetObjectReference.Create(this);
             await _module.InvokeVoidAsync("initialize", _componentRef, _videoId);
-            var desktopSessionResult = await ViewerHub.GetDesktopSession(Session.Device, Session.SessionId, Session.InitialSystemSession);
-
-            if (!desktopSessionResult.IsSuccess)
-            {
-                Snackbar.Add("Failed to create desktop session", Severity.Error);
-                await Close();
-                return;
-            }
-
-            _statusMessage = "Getting ICE servers";
-            await InvokeAsync(StateHasChanged);
-
-            Logger.LogInformation("Starting RTC offer");
-
-            var iceServersResult = await ViewerHub.GetIceServers();
-
-            Logger.LogInformation("Getting ICE servers.");
-
-            if (!iceServersResult.IsSuccess || !iceServersResult.Value.Any())
-            {
-                Snackbar.Add("Failed to get ICE servers", Severity.Error);
-                await Close();
-                return;
-            }
-
-            _statusMessage = "Sending RTC offer";
-            await InvokeAsync(StateHasChanged);
-            await _module.InvokeVoidAsync("startRtcOffer", iceServersResult.Value.Cast<object>(), _videoId);
+            await RequestDesktopSessionFromAgent();
         }
     }
 
@@ -140,6 +114,7 @@ public partial class RemoteDisplay : IAsyncDisposable
         Messenger.Register<IceCandidateMessage>(this, HandleIceCandidateReceived);
         Messenger.Register<RtcSessionDescriptionMessage>(this, HandleRtcSessionDescription);
         Messenger.Register<RemoteDisplayWindowStateMessage>(this, HandleRemoteDisplayWindowStateChanged);
+        Messenger.Register<DesktopChangedMessage>(this, HandleDesktopChanged);
         Messenger.RegisterParameterless(this, HandleParameterlessMessage);
 
         return base.OnInitializedAsync();
@@ -149,6 +124,22 @@ public partial class RemoteDisplay : IAsyncDisposable
     {
         AppState.RemoteControlSessions.Remove(Session);
         await DisposeAsync();
+    }
+
+    private async void HandleDesktopChanged(object recipient, DesktopChangedMessage message)
+    {
+        if (message.SessionId != Session.SessionId || _module is null)
+        {
+            return;
+        }
+
+        await SetStatusMessage("Switching desktops");
+
+        await ViewerHub.CloseDesktopSession(Session.SessionId);
+
+        Session.CreateNewSessionId();
+
+        await RequestDesktopSessionFromAgent(message.DesktopName);
     }
 
     private async void HandleIceCandidateReceived(object recipient, IceCandidateMessage message)
@@ -216,6 +207,44 @@ public partial class RemoteDisplay : IAsyncDisposable
         {
             Logger.LogError(ex, "Error while invoking JavaScript function: {name}", "receiveRtcSessionDescription");
         }
+    }
+
+    private async Task RequestDesktopSessionFromAgent(string desktopName = "Default")
+    {
+        if (_module is null)
+        {
+            Snackbar.Add("JavaScript services must be initialized before remote control");
+            return;
+        }
+
+        var desktopSessionResult = await ViewerHub.GetDesktopSession(Session.Device.ConnectionId, Session.SessionId, Session.InitialSystemSession, desktopName);
+
+        if (!desktopSessionResult.IsSuccess)
+        {
+            Snackbar.Add("Failed to create desktop session", Severity.Error);
+            await Close();
+            return;
+        }
+
+        _statusMessage = "Getting ICE servers";
+        await InvokeAsync(StateHasChanged);
+
+        Logger.LogInformation("Starting RTC offer");
+
+        var iceServersResult = await ViewerHub.GetIceServers();
+
+        Logger.LogInformation("Getting ICE servers.");
+
+        if (!iceServersResult.IsSuccess || !iceServersResult.Value.Any())
+        {
+            Snackbar.Add("Failed to get ICE servers", Severity.Error);
+            await Close();
+            return;
+        }
+
+        _statusMessage = "Sending RTC offer";
+        await InvokeAsync(StateHasChanged);
+        await _module.InvokeVoidAsync("startRtcOffer", iceServersResult.Value.Cast<object>(), _videoId);
     }
     private void SetWindowState(WindowState state)
     {

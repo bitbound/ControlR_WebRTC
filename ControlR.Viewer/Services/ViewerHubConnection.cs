@@ -25,7 +25,7 @@ namespace ControlR.Viewer.Services;
 public interface IViewerHubConnection : IViewerHubClient, IHubConnectionBase
 {
     Task CloseDesktopSession(Guid sessionId);
-    Task<Result<string>> GetDesktopSession(DeviceDto device, Guid sessionId, int targetSystemSession);
+    Task<Result<string>> GetDesktopSession(string agentConnectionId, Guid sessionId, int targetSystemSession, string targetDesktop = "Default");
 
     Task<Result<DisplayDto[]>> GetDisplays(string desktopConnectionId);
     Task<Result<IceServer[]>> GetIceServers();
@@ -69,18 +69,19 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
         await Connection.InvokeAsync("SendSignedDto", sessionId, signedDto);
     }
 
-    public async Task<Result<string>> GetDesktopSession(DeviceDto device, Guid sessionId, int targetSystemSession)
+    public async Task<Result<string>> GetDesktopSession(string agentConnectionId, Guid sessionId, int targetSystemSession, string targetDesktop = "Default")
     {
         try
         {
             var desktopSessionRequest = new DesktopSessionRequestDto(
                 sessionId,
                 targetSystemSession,
+                targetDesktop,
                 Connection.ConnectionId);
 
             var signedDto = _appState.Encryptor.CreateSignedDto(desktopSessionRequest, DtoType.DesktopSessionRequest, _settings.PublicKey);
 
-            var result = await Connection.InvokeAsync<Result<string>>("GetDesktopSession", device, sessionId, signedDto);
+            var result = await Connection.InvokeAsync<Result<string>>("GetDesktopSession", agentConnectionId, sessionId, signedDto);
             if (!result.IsSuccess)
             {
                 _logger.LogResult(result);
@@ -94,9 +95,9 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
         }
     }
 
-    public async Task<Result<DisplayDto[]>> GetDisplays(string desktopConnectionId)
+    public Task<Result<DisplayDto[]>> GetDisplays(string desktopConnectionId)
     {
-        return Result.Fail<DisplayDto[]>("Not implemented.");
+        return Result.Fail<DisplayDto[]>("Not implemented.").AsTaskResult();
     }
 
     public async Task<Result<IceServer[]>> GetIceServers()
@@ -127,6 +128,12 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
             _logger.LogError(ex, "Error while getting windows sessions.");
             return Result.Fail<WindowsSession[]>(ex);
         }
+    }
+
+    public Task ReceiveDesktopChanged(Guid sessionId, string desktopName)
+    {
+        _messenger.Send(new DesktopChangedMessage(sessionId, desktopName));
+        return Task.CompletedTask;
     }
 
     public Task ReceiveDeviceUpdate(DeviceDto device)
@@ -208,6 +215,7 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
         connection.On<Guid, double>(nameof(ReceiveRemoteControlDownloadProgress), ReceiveRemoteControlDownloadProgress);
         connection.On<Guid, string>(nameof(ReceiveIceCandidate), ReceiveIceCandidate);
         connection.On<Guid, RtcSessionDescription>(nameof(ReceiveRtcSessionDescription), ReceiveRtcSessionDescription);
+        connection.On<Guid, string>(nameof(ReceiveDesktopChanged), ReceiveDesktopChanged);
     }
 
     private void ConfigureHttpOptions(HttpConnectionOptions options)

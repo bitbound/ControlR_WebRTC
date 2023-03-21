@@ -11,7 +11,7 @@ public class DesktopHubSession
     }
 
     public string DesktopConnectionId { get; }
-    public DeviceDto? Device { get; set; }
+    public string? AgentConnectionId { get; set; }
     public Guid SessionId { get; }
     public string? ViewerConnectionId { get; set; }
 }

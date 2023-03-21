@@ -13,12 +13,7 @@ namespace ControlR.Agent.Services.Linux;
 [SupportedOSPlatform("linux")]
 internal class RemoteControlLauncherLinux : IRemoteControlLauncher
 {
-    public Task<Result> CreateSession(Guid sessionId, int targetSystemSession, string authorizedKey, Func<double, Task>? onDownloadProgress)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<Result> RelaunchInNewDesktop(StreamingSession session, string desktopName, int targetWindowsSession)
+    public Task<Result> CreateSession(Guid sessionId, string authorizedKey, int targetWindowsSession = -1, string targetDesktop = "", Func<double, Task>? onDownloadProgress = null)
     {
         throw new NotImplementedException();
     }

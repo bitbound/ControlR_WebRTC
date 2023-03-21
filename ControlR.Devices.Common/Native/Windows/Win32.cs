@@ -241,6 +241,12 @@ public static partial class Win32
 
         return GetDesktopName(inputDesktop, out desktopName);
     }
+
+    public static bool GetCurrentThreadDesktop(out string desktopName)
+    {
+        var threadId = GetCurrentThreadId();
+        return GetThreadDesktop((uint)threadId, out desktopName);
+    }
     public static string GetUsernameFromSessionId(int sessionId)
     {
         var username = string.Empty;

@@ -8,5 +8,4 @@ using System.Threading.Tasks;
 namespace ControlR.Shared.Interfaces.HubClients;
 public interface IDesktopHubClient : IHubClient
 {
-  
 }

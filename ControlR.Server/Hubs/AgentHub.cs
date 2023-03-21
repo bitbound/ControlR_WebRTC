@@ -15,6 +15,7 @@ public class AgentHub : Hub<IAgentHubClient>
 {
     private readonly IHubContext<ViewerHub, IViewerHubClient> _viewerHub;
     private readonly IAgentSessionCache _agentSessionCache;
+    private readonly IDesktopSessionCache _desktopSessionCache;
     private readonly IOptionsMonitor<AppOptions> _appOptions;
     private readonly ISystemTime _systemTime;
     private readonly ILogger<AgentHub> _logger;
@@ -22,12 +23,14 @@ public class AgentHub : Hub<IAgentHubClient>
     public AgentHub(
         IHubContext<ViewerHub, IViewerHubClient> viewerHubContext,
         IAgentSessionCache agentSessionCache,
+        IDesktopSessionCache desktopSessionCache,
         IOptionsMonitor<AppOptions> appOptions,
         ISystemTime systemTime,
         ILogger<AgentHub> logger)
     {
         _viewerHub = viewerHubContext;
         _agentSessionCache = agentSessionCache;
+        _desktopSessionCache = desktopSessionCache;
         _appOptions = appOptions;
         _systemTime = systemTime;
         _logger = logger;
@@ -63,6 +66,23 @@ public class AgentHub : Hub<IAgentHubClient>
     public IceServer[] GetIceServers()
     {
         return _appOptions.CurrentValue.IceServers.ToArray();
+    }
+
+    public async Task NotifyViewerDesktopChanged(Guid sessionId, string desktopName)
+    {
+        if (!_desktopSessionCache.TryGetValue(sessionId, out var session))
+        {
+            _logger.LogError("Could not find session ID to notify of desktop change: {id}", sessionId);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(session.ViewerConnectionId))
+        {
+            _logger.LogError("Viewer connection ID is unexpectedly empty.");
+            return;
+        }
+
+        await _viewerHub.Clients.Client(session.ViewerConnectionId).ReceiveDesktopChanged(sessionId, desktopName);
     }
 
     public async Task SendRemoteControlDownloadProgress(Guid desktopSessionId, string viewerConnectionId, double downloadProgress)

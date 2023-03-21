@@ -2,12 +2,14 @@
 using ControlR.Devices.Common.Native.Windows;
 using ControlR.Devices.Common.Services;
 using ControlR.Shared;
+using ControlR.Shared.Helpers;
 using EasyIpc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using PInvoke;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Runtime.Versioning;
@@ -30,7 +32,6 @@ internal class InputDesktopReporter : IInputDesktopReporter
     private readonly ILogger<InputDesktopReporter> _logger;
     private string _agentPipeName = string.Empty;
     private int _parentId;
-    private string _lastDesktop = "Default";
 
     public InputDesktopReporter(
         IHostApplicationLifetime hostLifetime,
@@ -74,14 +75,22 @@ internal class InputDesktopReporter : IInputDesktopReporter
         _logger.LogInformation("Beginning desktop watch for pipe: ", _agentPipeName);
 
      
-        if (Win32.GetThreadDesktop((uint)Environment.CurrentManagedThreadId, out var currentDesktop))
+        if (Win32.GetInputDesktop(out var initialInputDesktop))
         {
-            _lastDesktop = currentDesktop;
-            _logger.LogInformation("Initial desktop: {desktopName}", currentDesktop);
+            _logger.LogInformation("Initial desktop: {desktopName}", initialInputDesktop);
         }
         else
         {
             _logger.LogWarning("Failed to get initial desktop.");
+        }
+
+        if (Win32.SwitchToInputDesktop())
+        {
+            _logger.LogInformation("Switched to initial input desktop.");
+        }
+        else
+        {
+            _logger.LogWarning("Failed to switch to initial input desktop.");
         }
 
         _logger.LogInformation("Creating IPC client for pipe name: {name}", _agentPipeName);
@@ -94,50 +103,87 @@ internal class InputDesktopReporter : IInputDesktopReporter
             return;
         }
 
+        client.On<DesktopRequestDto, DesktopChangeDto>((_) =>
+        {
+            if (Win32.GetInputDesktop(out var desktop))
+            {
+                return new DesktopChangeDto(desktop);
+            }
+            return new DesktopChangeDto(string.Empty);
+        });
+
         client.BeginRead(_hostLifetime.ApplicationStopping);
 
         _logger.LogInformation("Connected to pipe server.");
-
-        _logger.LogInformation("Sending initial desktop.");
-
-        await client.Send(new DesktopChangeDto(_lastDesktop));
 
         while (!_hostLifetime.ApplicationStopping.IsCancellationRequested && client.IsConnected)
         {
             try
             {
+                await Task.Delay(50, _hostLifetime.ApplicationStopping);
+
                 if (parentProcess.HasExited)
                 {
                     _logger.LogInformation("Parent ID {id} no longer exists.  Exiting watcher process.", _parentId);
-                    _hostLifetime.StopApplication();
                     return;
                 }
 
-                if (!Win32.GetInputDesktop(out var desktopName))
+                if (!AnyStreamerProcessesExist())
                 {
-                    _logger.LogError("Failed to get current desktop.");
+                    _logger.LogInformation("No more streamers exist in current Windows session.  Exiting.");
+                    break;
                 }
 
-                if (!string.IsNullOrWhiteSpace(desktopName) &&
-                    !string.Equals(_lastDesktop, desktopName, StringComparison.OrdinalIgnoreCase))
+                if (!Win32.GetInputDesktop(out var inputDesktop))
                 {
-                    _logger.LogDebug("Desktop has changed from {last} to {current}.  Sending to agent.", _lastDesktop, desktopName);
-                    await client.Send(new DesktopChangeDto(desktopName));
-                    _lastDesktop = desktopName;
+                    _logger.LogError("Failed to get input desktop.");
+                    break;
+                }
+
+
+                if (!Win32.GetCurrentThreadDesktop(out var threadDesktop))
+                {
+                    _logger.LogError("Failed to get thread desktop.");
+                    break;
+                }
+
+                if (!string.IsNullOrWhiteSpace(inputDesktop) &&
+                    !string.IsNullOrWhiteSpace(threadDesktop) &&
+                    !string.Equals(inputDesktop, threadDesktop, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogInformation("Desktop has changed from {last} to {current}.  Sending to agent.", threadDesktop, inputDesktop);
+                    await client.Send(new DesktopChangeDto(inputDesktop));
                     if (!Win32.SwitchToInputDesktop())
                     {
                         _logger.LogWarning("Failed to switch to input desktop.");
+                        break;
                     }
                 }
-
-                await Task.Delay(50);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while reporting input desktop.");
+                break;
             }
         }
 
-        _logger.LogInformation("Exiting desktop watch for pipe name: {name}", _agentPipeName);
+        _logger.LogInformation("Exiting desktop watcher for pipe name: {name}", _agentPipeName);
+        _hostLifetime.StopApplication();
+    }
+
+    private bool AnyStreamerProcessesExist()
+    {
+        var currentPrcess = _processes.GetCurrentProcess();
+
+        // Wait at least a minute for streamer to start.
+        if (DateTime.Now - currentPrcess.StartTime < TimeSpan.FromMinutes(1))
+        {
+            return true;
+        }
+
+        var streamers = _processes
+            .GetProcessesByName(Path.GetFileNameWithoutExtension(AppConstants.RemoteControlFileName))
+            .Where(x => x.SessionId == currentPrcess.SessionId);
+        return streamers.Any();
     }
 }

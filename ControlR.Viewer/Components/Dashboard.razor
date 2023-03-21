@@ -40,7 +40,8 @@
     </ToolBarContent>
 
     <Columns>
-        <Column T="DeviceDto"
+      
+        <TemplateColumn T="DeviceDto"
                 Sortable="false"
                 Filterable="false"
                 ShowColumnOptions="false"
@@ -70,10 +71,9 @@
                     </MudTooltip>
                 }
             </CellTemplate>
-        </Column>
+        </TemplateColumn>
 
-        <Column T="DeviceDto"
-                Field="@(nameof(DeviceDto.Name))"
+        <TemplateColumn T="DeviceDto"
                 StickyLeft="true"
                 Title="Name">
             <CellTemplate>
@@ -86,9 +86,9 @@
                     @($"{context.Item.Name} ({context.Item.Alias})")
                 }
             </CellTemplate>
-        </Column>
+        </TemplateColumn>
 
-        <Column T="DeviceDto"
+        <TemplateColumn T="DeviceDto"
                 Field="@(nameof(DeviceDto.IsOnline))"
                 Title="Online">
             <CellTemplate>
@@ -105,72 +105,49 @@
                     </MudTooltip>
                 }
             </CellTemplate>
-        </Column>
+        </TemplateColumn>
 
-        <Column T="DeviceDto"
-                Field="@(nameof(DeviceDto.CurrentUser))"
-                Title="Current User" />
+        <PropertyColumn Property="x => x!.CurrentUser" Title="Current User" />
 
-        <Column T="DeviceDto"
-                Field="@(nameof(DeviceDto.LastOnline))"
-                Title="Last Online" />
+        <PropertyColumn Property="x => x!.LastOnline" Title="Last Online" />
 
-        <Column T="DeviceDto"
-                Field="@(nameof(DeviceDto.AgentVersion))"
-                Title="Agent Version" />
+        <PropertyColumn Property="x => x!.AgentVersion" Title="Agent Version" />
 
+        <PropertyColumn Property="x => x!.Platform" Title="Platform" />
 
-        <Column T="DeviceDto"
-                Field="@(nameof(DeviceDto.Platform))"
-                Title="Platform" />
+        <PropertyColumn Property="x => x!.OsDescription" Title="OS" />
 
-        <Column T="DeviceDto"
-                Field="@(nameof(DeviceDto.OsDescription))"
-                Title="OS" />
+        <PropertyColumn Property="x => x!.OsArchitecture" Title="Arch" />
 
-        <Column T="DeviceDto"
-                Field="@(nameof(DeviceDto.OsArchitecture))"
-                Title="Arch" />
-
-        <Column T="DeviceDto"
-                Field="@(nameof(DeviceDto.CpuUtilization))"
-                Title="CPU Util">
+        <TemplateColumn T="DeviceDto" Title="CPU Util">
             <CellTemplate>
                 @($"{Math.Round(context.Item.CpuUtilization * 100, 2)}%")
             </CellTemplate>
-        </Column>
+        </TemplateColumn>
 
-        <Column T="DeviceDto"
-                Field="@(nameof(DeviceDto.UsedStoragePercent))"
-                Title="Storage Used">
+        <TemplateColumn T="DeviceDto" Title="Storage Used">
             <CellTemplate>
                 @($"{Math.Round(context.Item.UsedStoragePercent * 100, 2)}%")
             </CellTemplate>
-        </Column>
+        </TemplateColumn>
 
-        <Column T="DeviceDto"
-                Field="@(nameof(DeviceDto.TotalStorage))"
-                Title="Total Storage (GB)">
+        <TemplateColumn T="DeviceDto" Title="Total Storage (GB)">
             <CellTemplate>
                 @($"{context.Item.TotalStorage:N0}")
             </CellTemplate>
-        </Column>
+        </TemplateColumn>
 
-        <Column T="DeviceDto"
-                Field="@(nameof(DeviceDto.UsedMemoryPercent))"
-                Title="Memory Used">
+        <TemplateColumn T="DeviceDto" Title="Memory Used">
             <CellTemplate>
                 @($"{Math.Round(context.Item.UsedMemoryPercent * 100, 2)}%")
             </CellTemplate>
-        </Column>
+        </TemplateColumn>
 
-        <Column T="DeviceDto"
-                Field="@(nameof(DeviceDto.TotalMemory))"
-                Title="Total Memory (GB)">
+        <TemplateColumn T="DeviceDto" Title="Total Memory (GB)">
             <CellTemplate>
                 @($"{context.Item.TotalMemory:N2}")
             </CellTemplate>
-        </Column>
+        </TemplateColumn>
     </Columns>
 </MudDataGrid>
 
@@ -246,14 +223,16 @@
 
     }
 
-    private async Task RestartClicked(DeviceDto device)
+    private Task RestartClicked(DeviceDto device)
     {
         // TODO
+        return Task.CompletedTask;
     }
 
-    private async Task ShutdownClicked(DeviceDto device)
+    private Task ShutdownClicked(DeviceDto device)
     {
         // TODO
+        return Task.CompletedTask;
     }
 
     private void HandleDeviceCacheUpdated()

@@ -16,5 +16,10 @@ public class RemoteControlSession
 
     public DeviceDto Device { get; }
     public int InitialSystemSession { get; }
-    public Guid SessionId { get; } = Guid.NewGuid();
+    public Guid SessionId { get; private set; } = Guid.NewGuid();
+
+    public void CreateNewSessionId()
+    {
+        SessionId = Guid.NewGuid();
+    }
 }

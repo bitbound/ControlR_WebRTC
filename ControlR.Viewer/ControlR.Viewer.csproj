@@ -94,10 +94,10 @@
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.Maui" Version="5.0.0" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.1.0" />
-        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.3" />
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.4" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="7.0.0" />
-        <PackageReference Include="MudBlazor" Version="6.1.9" />
+        <PackageReference Include="MudBlazor" Version="6.2.0" />
     </ItemGroup>
 
     <ItemGroup>

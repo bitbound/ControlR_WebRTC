@@ -61,7 +61,7 @@ public class ViewerHub : Hub<IViewerHubClient>
         return await _agentHub.Clients.Client(agentConnectionId).GetWindowsSessions(signedDto);
     }
 
-    public async Task<Result<string>> GetDesktopSession(DeviceDto agentDevice, Guid desktopSessionId, SignedPayloadDto sessionRequestDto)
+    public async Task<Result<string>> GetDesktopSession(string agentConnectionId, Guid desktopSessionId, SignedPayloadDto sessionRequestDto)
     {
         try
         {
@@ -71,7 +71,7 @@ public class ViewerHub : Hub<IViewerHubClient>
             }
 
             var sessionSuccess = await _agentHub.Clients
-                   .Client(agentDevice.ConnectionId)
+                   .Client(agentConnectionId)
                    .GetDesktopSession(sessionRequestDto);
 
             if (!sessionSuccess)
@@ -88,7 +88,7 @@ public class ViewerHub : Hub<IViewerHubClient>
                 return Result.Fail<string>("Failed to acquire desktop session.");
             }
 
-            session.Device = agentDevice;
+            session.AgentConnectionId = agentConnectionId;
             session.ViewerConnectionId = Context.ConnectionId;
             return Result.Ok(session.DesktopConnectionId);
         }

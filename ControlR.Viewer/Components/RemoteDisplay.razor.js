@@ -303,6 +303,10 @@ export async function startRtcOffer(iceServers, videoId) {
     console.log("Creating peer connection with ICE servers: ", iceServers);
     invokeDotNet("LogInfo", videoId, "Creating peer connection with ICE servers: " + JSON.stringify(iceServers));
 
+    if (state.peerConnection) {
+        state.peerConnection.close();
+    }
+
     const pc = new RTCPeerConnection({
         iceServers: iceServers,
     });

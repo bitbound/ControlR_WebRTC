@@ -14,10 +14,11 @@ public class DesktopSessionRequestDto
 {
     [JsonConstructor]
     [SerializationConstructor]
-    public DesktopSessionRequestDto(Guid desktopSessionId, int targetSystemSession, string? viewerConnectionId)
+    public DesktopSessionRequestDto(Guid desktopSessionId, int targetSystemSession, string? targetDesktop, string? viewerConnectionId)
     {
         DesktopSessionId = desktopSessionId;
         TargetSystemSession = targetSystemSession;
+        TargetDesktop = targetDesktop;
         ViewerConnectionId = viewerConnectionId;
     }
 
@@ -30,4 +31,6 @@ public class DesktopSessionRequestDto
     [DataMember]
     public string? ViewerConnectionId { get; init; }
 
+    [DataMember]
+    public string? TargetDesktop { get; init; }
 }

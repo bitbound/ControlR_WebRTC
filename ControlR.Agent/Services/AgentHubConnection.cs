@@ -32,8 +32,8 @@ namespace ControlR.Agent.Services;
 
 internal interface IAgentHubConnection : IAgentHubClient, IHubConnectionBase
 {
+    Task NotifyViewerDesktopChanged(Guid sessionId, string desktopName);
     Task SendDeviceHeartbeat();
-
     Task Start();
 }
 
@@ -93,8 +93,9 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
 
             var result = await _remoteControlLauncher.CreateSession(
                 dto.DesktopSessionId, 
-                dto.TargetSystemSession,
                 signedDto.PublicKey,
+                dto.TargetSystemSession,
+                dto.TargetDesktop ?? string.Empty,
                 async progress =>
             {
                 if (progress == 1 || progress - downloadProgress > .05)
@@ -132,6 +133,18 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
         }
 
         return Win32.GetActiveSessions().ToArray().AsTaskResult();
+    }
+
+    public async Task NotifyViewerDesktopChanged(Guid sessionId, string desktopName)
+    {
+        try
+        {
+            await Connection.InvokeAsync("NotifyViewerDesktopChanged", sessionId, desktopName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while sending device update.");
+        }
     }
 
     public async Task SendDeviceHeartbeat()

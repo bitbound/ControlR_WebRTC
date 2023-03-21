@@ -71,7 +71,9 @@ internal class EnvironmentHelper : IEnvironmentHelper
         }
     }
 
-    public string StartupDirectory => Path.GetDirectoryName(StartupExePath) ?? AppContext.BaseDirectory;
+    public string StartupDirectory => 
+        Path.GetDirectoryName(StartupExePath) ?? 
+        throw new DirectoryNotFoundException("Unable to determine startup directory.");
 
     public string StartupExePath { get; } = Environment.ProcessPath ?? Environment.GetCommandLineArgs().First();
 }

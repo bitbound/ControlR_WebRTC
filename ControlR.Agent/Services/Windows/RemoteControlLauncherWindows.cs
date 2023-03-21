@@ -1,11 +1,17 @@
 ﻿using ControlR.Agent.Interfaces;
 using ControlR.Agent.Models;
+using ControlR.Agent.Models.IpcDtos;
 using ControlR.Devices.Common.Native.Windows;
 using ControlR.Devices.Common.Services;
 using ControlR.Shared;
+using ControlR.Shared.Extensions;
 using ControlR.Shared.Services;
 using ControlR.Shared.Services.Http;
+using EasyIpc;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using PInvoke;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,6 +21,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Threading.Tasks;
+using Result = ControlR.Shared.Result;
 
 namespace ControlR.Agent.Services.Windows;
 
@@ -24,87 +31,49 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
     private readonly IFileSystem _fileSystem;
     private readonly IProcessInvoker _processes;
     private readonly IDownloadsApi _downloadsApi;
-    private readonly IEnvironmentHelper _environmentHelper;
+    private readonly IEnvironmentHelper _environment;
     private readonly IStreamingSessionCache _streamingSessionCache;
+    private readonly IIpcRouter _ipcRouter;
+    private readonly IHostApplicationLifetime _hostLifetime;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<RemoteControlLauncherWindows> _logger;
+    private readonly string _watcherBinaryPath;
 
     public RemoteControlLauncherWindows(
         IFileSystem fileSystem,
         IProcessInvoker processInvoker,
         IDownloadsApi downloadsApi,
-        IEnvironmentHelper environmentHelper,
+        IEnvironmentHelper environment,
         IStreamingSessionCache streamingSessionCache,
+        IIpcRouter ipcRouter,
+        IHostApplicationLifetime hostLifetime,
+        IServiceProvider serviceProvider,
         ILogger<RemoteControlLauncherWindows> logger)
     {
         _fileSystem = fileSystem;
         _processes = processInvoker;
         _downloadsApi = downloadsApi;
-        _environmentHelper = environmentHelper;
+        _environment = environment;
         _streamingSessionCache = streamingSessionCache;
+        _ipcRouter = ipcRouter;
+        _hostLifetime = hostLifetime;
+        _serviceProvider = serviceProvider;
         _logger = logger;
+
+        _watcherBinaryPath = _environment.StartupExePath;
     }
 
-    public async Task<Result> CreateSession(
-        Guid sessionId, 
-        int targetWindowsSession,
-        string authorizedKey,
-        Func<double, Task>? onDownloadProgress)
+
+    public async Task<Shared.Result> CreateSession(
+     Guid sessionId,
+     string authorizedKey,
+     int targetWindowsSession = -1,
+     string targetDesktop = "",
+     Func<double, Task>? onDownloadProgress = null)
     {
-        var result = await CreateSessionImpl(sessionId, targetWindowsSession, authorizedKey, "Default", onDownloadProgress);
-
-        if (!result.IsSuccess)
-        {
-            return Result.Fail(result.Reason);
-        }
- 
-        var session = new StreamingSession(result.Value, sessionId, authorizedKey);
-        _streamingSessionCache.Sessions.AddOrUpdate(
-            sessionId,
-            session,
-            (k, v) => session);
-
-        return Result.Ok();
-    }
-
-    public async Task<Result> RelaunchInNewDesktop(StreamingSession session, string desktopName, int targetWindowsSession)
-    {
-        var result = await CreateSessionImpl(
-            session.SessionId, 
-            targetWindowsSession, 
-            session.AuthorizedKey, 
-            desktopName, 
-            null);
-
-        if (!result.IsSuccess)
-        {
-            return Result.Fail(result.Reason);
-        }
-
-        var oldStreamer = session.StreamerProcess;
-        session.LastDesktop = desktopName;
-        session.StreamerProcess = result.Value;
-        _streamingSessionCache.Sessions.AddOrUpdate(
-          session.SessionId,
-          session,
-          (k, v) => session);
-
-        oldStreamer.Kill();
-
-        return Result.Ok();
-    }
-
-    private async Task<Result<Process>> CreateSessionImpl(
-      Guid sessionId,
-      int targetWindowsSession,
-      string authorizedKey,
-      string targetDesktop,
-      Func<double, Task>? onDownloadProgress)
-    {
-        var startupDir = _environmentHelper.StartupDirectory;
-
+        var startupDir = _environment.StartupDirectory;
         var remoteControlDir = Path.Combine(startupDir, "RemoteControl");
         _fileSystem.CreateDirectory(remoteControlDir);
-
         var binaryPath = Path.Combine(remoteControlDir, AppConstants.RemoteControlFileName);
 
         if (!_fileSystem.FileExists(binaryPath))
@@ -112,30 +81,38 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
             var result = await DownloadRemoteControl(remoteControlDir, onDownloadProgress);
             if (!result.IsSuccess)
             {
-                return Result.Fail<Process>(result.Reason);
+                return Result.Fail(result.Reason);
             }
         }
 
+        var session = new StreamingSession(sessionId, authorizedKey, targetWindowsSession, targetDesktop);
+
+        var watcherResult = await LaunchNewWatcherProcess(session);
+        if (!watcherResult.IsSuccess)
+        {
+            _logger.LogResult(watcherResult);
+            return Result.Fail("Failed to start desktop watcher process.");
+        }
+       
         if (_processes.GetCurrentProcess().SessionId == 0)
         {
             Win32.CreateInteractiveSystemProcess(
                 $"\"{binaryPath}\" --session-id={sessionId} --authorized-key={authorizedKey}",
                 targetSessionId: targetWindowsSession,
                 forceConsoleSession: false,
-                desktopName: targetDesktop,
+                desktopName: session.LastDesktop,
                 hiddenWindow: false,
                 out var procInfo);
 
 
             if (procInfo.dwProcessId == -1)
             {
-                return Result.Fail<Process>("Failed to start remote control process.");
+                return Result.Fail("Failed to start remote control process.");
             }
             else
             {
                 _processes.GetProcessById(procInfo.dwProcessId);
-                var process = _processes.GetProcessById(procInfo.dwProcessId);
-                return Result.Ok(process);
+                session.StreamerProcess = _processes.GetProcessById(procInfo.dwProcessId);
             }
 
         }
@@ -143,14 +120,12 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
         {
             var args = $"--session-id={sessionId} --authorized-key={authorizedKey}";
 
-            if (_environmentHelper.IsDebug)
+            if (_environment.IsDebug)
             {
                 args += " --dev";
             }
 
             var solutionDirReult = GetSolutionDir(Environment.CurrentDirectory);
-
-            Process? process;
 
             if (solutionDirReult.IsSuccess)
             {
@@ -162,21 +137,27 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
                     WorkingDirectory = desktopDir,
                     UseShellExecute = true
                 };
-                process = _processes.Start(psi);
+                session.StreamerProcess = _processes.Start(psi);
             }
             else
             {
-                process = _processes.Start(binaryPath, args);
+                session.StreamerProcess = _processes.Start(binaryPath, args);
             }
 
-            if (process is null)
+            if (session.StreamerProcess is null)
             {
-                return Result.Fail<Process>("Failed to start remote control process.");
+                return Result.Fail("Failed to start remote control process.");
             }
-
-            return Result.Ok(process);
         }
+
+        _streamingSessionCache.Sessions.AddOrUpdate(
+           sessionId,
+           session,
+           (k, v) => session);
+
+        return Result.Ok();
     }
+
 
     private async Task<Result> DownloadRemoteControl(string remoteControlDir, Func<double, Task>? onDownloadProgress)
     {
@@ -199,7 +180,7 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
     }
 
     // For debugging.
-    private Result<string> GetSolutionDir(string currentDir)
+    private Shared.Result<string> GetSolutionDir(string currentDir)
     {
         var dirInfo = new DirectoryInfo(currentDir);
         if (!dirInfo.Exists)
@@ -220,5 +201,81 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
         return Result.Fail<string>("Not found.");
     }
 
+    private async Task<Shared.Result> LaunchNewWatcherProcess(StreamingSession session)
+    {
+        if (_processes.GetCurrentProcess().SessionId == 0)
+        {
+            var args = $"--parent-id {Environment.ProcessId} --agent-pipe \"{session.AgentPipeName}\"";
+            Win32.CreateInteractiveSystemProcess(
+                $"\"{_watcherBinaryPath}\" watch-desktop {args}",
+                targetSessionId: session.TargetWindowsSession,
+                forceConsoleSession: false,
+                desktopName: session.LastDesktop,
+                hiddenWindow: true,
+                out var procInfo);
 
+
+            if (procInfo.dwProcessId == -1)
+            {
+                _logger.LogError("Failed to start streamer process watcher.");
+            }
+            else
+            {
+                session.WatcherProcess = _processes.GetProcessById(procInfo.dwProcessId);
+            }
+        }
+        else
+        {
+            var args = $"watch-desktop --parent-id {Environment.ProcessId} --agent-pipe \"{session.AgentPipeName}\"";
+            var process = _processes.Start(_watcherBinaryPath, args);
+            session.WatcherProcess = process;
+
+            if (process is null)
+            {
+                _logger.LogError("Failed to start streamer process watcher.");
+            }
+        }
+
+        if (session.WatcherProcess?.HasExited != false)
+        {
+            _logger.LogError("Watching process is unexpectedly null.");
+            return Result.Fail("Watcher process failed to start.");
+        }
+
+        _logger.LogInformation("Creating pipe server for desktop watcher: {name}", session.AgentPipeName);
+        session.IpcServer = await _ipcRouter.CreateServer(session.AgentPipeName);
+        session.IpcServer.On<DesktopChangeDto>(async dto =>
+        {
+            var agentHub = _serviceProvider.GetRequiredService<IAgentHubConnection>();
+            var desktopName = dto.DesktopName.Trim();
+
+            if (!string.IsNullOrWhiteSpace(desktopName) &&
+                !string.Equals(session.LastDesktop, desktopName, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation("Desktop has changed from {last} to {current}.  Notifying viewer.", session.LastDesktop, desktopName);
+                session.LastDesktop = desktopName;
+                await agentHub.NotifyViewerDesktopChanged(session.SessionId, desktopName);
+            }
+        });
+
+        var result = await session.IpcServer.WaitForConnection(_hostLifetime.ApplicationStopping);
+        if (result)
+        {
+            session.IpcServer.BeginRead(_hostLifetime.ApplicationStopping);
+            _logger.LogInformation("Desktop watcher connected to pipe server.");
+            var desktopResult = await session.IpcServer.Invoke<DesktopRequestDto, DesktopChangeDto>(new());
+            if (desktopResult.IsSuccess)
+            {
+                session.LastDesktop = desktopResult.Value.DesktopName;
+                return Result.Ok();
+            }
+            _logger.LogError("Failed to get initial desktop from watcher.");
+            return Result.Fail(desktopResult.Error);
+        }
+        else
+        {
+            _logger.LogWarning("Desktop watcher failed to connect to pipe server.");
+            return Result.Fail("Desktop watcher failed to connect to pipe server.");
+        }
+    }
 }
