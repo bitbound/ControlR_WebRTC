@@ -39,7 +39,7 @@
                                       HelperText="A friendly name that remote devices will see"
                                       Immediate="true"
                                       InputType="InputType.Text"
-                                      OnKeyPress="InputKeypress"
+                                      OnKeyDown="InputKeyDown"
                                       Required
                                       Validation="(string e) => ValidateUsername(e)" />
 
@@ -49,7 +49,7 @@
                                       HelperText="Enter a PIN or password to protected your private key."
                                       Immediate="true"
                                       InputType="InputType.Password"
-                                      OnKeyPress="InputKeypress"
+                                      OnKeyDown="InputKeyDown"
                                       Required
                                       Validation="(string e) => ValidatePassphrase(e)" />
 
@@ -98,12 +98,16 @@
 
     private async Task ImportButtonClicked(MouseEventArgs args)
     {
-        var fileTypes = FilePickerHelper.GetSupportedPlatformsFileType("crkeys");
+        var fileType = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>()
+            {
+                [DevicePlatform.Android] = new[] { "*/*" },
+                [DevicePlatform.WinUI] = new[] { ".crkeys" }
+            });
 
         var pickOptions = new PickOptions()
             {
                 PickerTitle = "Import ControlR Keys",
-                FileTypes = fileTypes
+                FileTypes = fileType
             };
 
         var result = await FilePicker.PickAsync(pickOptions);
@@ -128,7 +132,7 @@
         }
     }
 
-    private async Task InputKeypress(KeyboardEventArgs args)
+    private async Task InputKeyDown(KeyboardEventArgs args)
     {
         if (args.Key == "Enter")
         {

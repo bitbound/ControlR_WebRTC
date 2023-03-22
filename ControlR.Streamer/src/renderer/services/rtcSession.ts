@@ -10,22 +10,22 @@ class RtcSession {
   screens: MediaScreen[] = [];
 
   async receiveRtcSessionDescription(remoteDescription: RTCSessionDescription) {
-    console.log("Received session description: ", remoteDescription);
+    window.mainApi.writeLog("Received session description: ", "Info", remoteDescription);
 
     if (!this.peerConnection) {
       await this.initializePeerConnection();
     }
 
-    console.log("Setting remote description.");
+    window.mainApi.writeLog("Setting remote description.");
     await this.peerConnection.setRemoteDescription(remoteDescription);
 
     if (remoteDescription.type == "offer") {
-      console.log("Creating answer.");
+      window.mainApi.writeLog("Creating answer.");
       await this.peerConnection.setLocalDescription(
         await this.peerConnection.createAnswer()
       );
 
-      console.log("Sending RTC answer: ", this.peerConnection.localDescription);
+      window.mainApi.writeLog("Sending RTC answer: ", this.peerConnection.localDescription);
       await desktopHubConnection.sendRtcSessionDescription(
         this.peerConnection.localDescription
       );
@@ -34,7 +34,7 @@ class RtcSession {
 
   async receiveIceCandidate(iceCandidateJson?: string): Promise<void> {
     if (!this.peerConnection || !this.peerConnection.remoteDescription) {
-      console.log(
+      window.mainApi.writeLog(
         "Received ICE candidate, but initialization hasn't completed.  Retrying in 1 second."
       );
       setTimeout(() => {
@@ -44,21 +44,21 @@ class RtcSession {
     }
 
     if (!iceCandidateJson) {
-      console.log("Received null (terminating) ICE candidate");
+      window.mainApi.writeLog("Received null (terminating) ICE candidate");
       await this.peerConnection.addIceCandidate(null);
       return;
     }
 
     const iceCandidate = JSON.parse(iceCandidateJson);
-    console.log("Received ICE candidate: ", iceCandidate);
+    window.mainApi.writeLog("Received ICE candidate: ", "Info", iceCandidate);
     await this.peerConnection.addIceCandidate(iceCandidate);
   }
 
   private async initializePeerConnection(): Promise<void> {
-    console.log("Getting ICE servers.");
+    window.mainApi.writeLog("Getting ICE servers.");
 
     const iceServers = await desktopHubConnection.getIceServers();
-    console.log("Got ICE servers: ", iceServers);
+    window.mainApi.writeLog("Got ICE servers: ", "Info", iceServers);
 
     this.peerConnection = new RTCPeerConnection({
       iceServers: iceServers,
@@ -66,32 +66,33 @@ class RtcSession {
 
     this.setConnectionHandlers();
 
-    console.log("Getting screens from main API.");
+    window.mainApi.writeLog("Getting screens from main API.");
     this.screens = await window.mainApi.getScreens();
-    console.log("Found screens: ", this.screens);
+    window.mainApi.writeLog("Found screens: ", this.screens);
 
     this.currentScreen = this.screens[0];
-    console.log("Getting stream for first screen: ", this.currentScreen);
+    window.mainApi.writeLog("Getting stream for first screen: ", "Info", this.currentScreen);
 
-    console.log("Adding tracks from stream.");
+    window.mainApi.writeLog("Adding tracks from stream.");
     await setMediaStreams(this.currentScreen.mediaId, this.peerConnection);
   }
 
   private setConnectionHandlers() {
-    console.log("Setting peer connection handlers.");
+    window.mainApi.writeLog("Setting peer connection handlers.");
     this.peerConnection.addEventListener("connectionstatechange", async () => {
-      console.log(
+      window.mainApi.writeLog(
         "Connection state changed: ",
+        "Info",
         this.peerConnection.connectionState
       );
       switch (this.peerConnection.connectionState) {
         case "closed":
         case "disconnected":
-          console.log("Restarting ICE.");
+          window.mainApi.writeLog("Restarting ICE.");
           this.peerConnection.restartIce();
           break;
         case "failed":
-          console.log("Connection failed.  Exiting.");
+          window.mainApi.writeLog("Connection failed.  Exiting.");
           await window.mainApi.exit();
           break;
         default:
@@ -99,32 +100,34 @@ class RtcSession {
       }
     });
     this.peerConnection.addEventListener("iceconnectionstatechange", (ev) => {
-      console.log(
+      window.mainApi.writeLog(
         "ICE connection state changed: ",
+        "Info",
         this.peerConnection.iceConnectionState
       );
     });
     this.peerConnection.addEventListener("icegatheringstatechange", (ev) => {
-      console.log(
+      window.mainApi.writeLog(
         "ICE gathering state changed: ",
+        "Info",
         this.peerConnection.iceGatheringState
       );
     });
     this.peerConnection.addEventListener("track", (ev) => {
-      console.log("Got track: ", ev);
+      window.mainApi.writeLog("Got track: ", "Info", ev);
     });
     this.peerConnection.addEventListener("icecandidate", async (ev) => {
       if (!ev.candidate) {
-        console.log("End of ICE candidates.");
+        window.mainApi.writeLog("End of ICE candidates.");
         return;
       }
-      console.log("Sending ICE candidate: ", ev.candidate);
+      window.mainApi.writeLog("Sending ICE candidate: ", "Info", ev.candidate);
       await desktopHubConnection.sendIceCandidate(
         JSON.stringify(ev.candidate.toJSON())
       );
     });
     this.peerConnection.addEventListener("negotiationneeded", async (ev) => {
-      console.log("Negotiation needed. Creating new offer.");
+      window.mainApi.writeLog("Negotiation needed. Creating new offer.");
       await this.peerConnection.setLocalDescription(
         await this.peerConnection.createOffer()
       );
@@ -135,19 +138,19 @@ class RtcSession {
     this.peerConnection.addEventListener("datachannel", (ev) => {
       this.dataChannel = ev.channel;
       this.dataChannel.addEventListener("close", () => {
-        console.log("DataChannel closed.");
+        window.mainApi.writeLog("DataChannel closed.");
       });
 
       this.dataChannel.addEventListener("error", () => {
-        console.log("DataChannel error.");
+        window.mainApi.writeLog("DataChannel error.");
       });
 
       this.dataChannel.addEventListener("open", () => {
-        console.log("DataChannel opened.");
+        window.mainApi.writeLog("DataChannel opened.");
       });
 
       this.dataChannel.addEventListener("message", async (ev) => {
-        console.log("Got DataChannel message: ", ev.data);
+        window.mainApi.writeLog("Got DataChannel message: ", "Info", ev.data);
 
         await this.handleDataChannelMessage(ev.data);
       });

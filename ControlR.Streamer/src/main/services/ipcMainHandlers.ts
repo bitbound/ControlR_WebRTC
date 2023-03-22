@@ -4,6 +4,7 @@ import appState from "./appState";
 import { verify, createPublicKey } from "crypto";
 import { getScreens } from "./mediaHelperMain";
 import { invokeKeyEvent, invokeMouseButtonEvent, movePointer, resetKeyboardState, scrollWheel } from "./inputSimulator";
+import { writeLog } from "./logger";
 
 export async function registerIpcHandlers() {
   ipcMain.handle(ipcRtmChannels.getServerUri, () => appState.serverUri);
@@ -16,6 +17,7 @@ export async function registerIpcHandlers() {
   ipcMain.handle(ipcRtmChannels.invokeMouseButtonEvent, (_, button, isPressed, x, y) => invokeMouseButtonEvent(button, isPressed, x, y));
   ipcMain.handle(ipcRtmChannels.resetKeyboardState, (_) => resetKeyboardState());
   ipcMain.handle(ipcRtmChannels.invokeWheelScroll, (_, deltaX, deltaY, deltaZ) => scrollWheel(deltaX, deltaY, deltaZ));
+  ipcMain.handle(ipcRtmChannels.writeLog, (_, message, level, args) => writeLog(message, level, args));
 }
 
 const verifyDto = (

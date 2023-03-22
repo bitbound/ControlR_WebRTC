@@ -175,8 +175,8 @@ internal class InputDesktopReporter : IInputDesktopReporter
     {
         var currentPrcess = _processes.GetCurrentProcess();
 
-        // Wait at least a minute for streamer to start.
-        if (DateTime.Now - currentPrcess.StartTime < TimeSpan.FromMinutes(1))
+        // Wait at least 30 seconds for streamer to start.
+        if (DateTime.Now - currentPrcess.StartTime < TimeSpan.FromSeconds(30))
         {
             return true;
         }

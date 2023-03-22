@@ -1,3 +1,4 @@
+import { LogLevel } from "src/main/services/logger";
 import { SignedPayloadDto } from "src/shared/dtos/signedPayloadDto";
 
 declare interface MainApi {
@@ -11,6 +12,7 @@ declare interface MainApi {
   invokeKeyEvent(keyCode: string, isPressed: boolean): Promise<void>;
   resetKeyboardState(): Promise<void>;
   invokeWheelScroll(deltaX: number, deltaY: number, deltaZ: number): Promise<void>;
+  writeLog(message: string, level: LogLevel = "Info", ...args: any[]);
 }
 
 declare global {

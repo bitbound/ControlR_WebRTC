@@ -5,7 +5,7 @@ import rtcSession from "./rtcSession";
 export async function receiveDto(dto: SignedPayloadDto) {
     const result = await window.mainApi.verifyDto(dto.payload, dto.signature, dto.publicKey, dto.publicKeyPem);
     if (!result) {
-        console.error("DTO signature failed verification.  Aborting.");
+        window.mainApi.writeLog("DTO signature failed verification.  Aborting.");
         return;
     }
 
