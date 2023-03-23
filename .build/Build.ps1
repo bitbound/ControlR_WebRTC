@@ -57,11 +57,11 @@ if ($BuildStreamer) {
 }
 
 if ($BuildViewer) {
-    Remove-Item -Path "$Root\ControlR.Viewer\bin\publish\msix" -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item -Path "$Root\ControlR.Viewer\bin\publish\" -Force -Recurse -ErrorAction SilentlyContinue
     dotnet publish -p:PublishProfile=msix --configuration Release --framework net7.0-windows10.0.19041.0 "$Root\ControlR.Viewer\"
-    New-Item -Path "$Root\ControlR.Server\wwwroot\downloads\msix" -ItemType Directory -Force
-    Get-ChildItem -Path "$Root\ControlR.Viewer\bin\publish\msix" -Recurse -Include "ControlR*.msix" | Select-Object -First 1 | Copy-Item -Destination "$Root\ControlR.Server\wwwroot\downloads\ControlR.Viewer.msix"
-    Get-ChildItem -Path "$Root\ControlR.Viewer\bin\publish\msix" -Recurse -Include "ControlR*.cer" | Select-Object -First 1 | Copy-Item -Destination "$Root\ControlR.Server\wwwroot\downloads\ControlR.Viewer.cer"
+    New-Item -Path "$Root\ControlR.Server\wwwroot\downloads\" -ItemType Directory -Force
+    Get-ChildItem -Path "$Root\ControlR.Viewer\bin\publish\" -Recurse -Include "ControlR*.msix" | Select-Object -First 1 | Copy-Item -Destination "$Root\ControlR.Server\wwwroot\downloads\ControlR.Viewer.msix"
+    Get-ChildItem -Path "$Root\ControlR.Viewer\bin\publish\" -Recurse -Include "ControlR*.cer" | Select-Object -First 1 | Copy-Item -Destination "$Root\ControlR.Server\wwwroot\downloads\ControlR.Viewer.cer"
 }
 
 dotnet publish -p:ExcludeApp_Data=true --runtime ubuntu-x64 --configuration Release --output "$Root\ControlR.Server\bin\publish" --self-contained true "$Root\ControlR.Server\"

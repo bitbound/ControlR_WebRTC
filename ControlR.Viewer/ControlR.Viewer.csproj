@@ -37,7 +37,7 @@
         <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
         <AppxSymbolPackageEnabled>False</AppxSymbolPackageEnabled>
         <GenerateTestArtifacts>True</GenerateTestArtifacts>
-        <AppInstallerUri>https://controlr.app/downloads</AppInstallerUri>
+        <AppInstallerUri>https://controlr.app/downloads/ControlR.Viewer.msix</AppInstallerUri>
         <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
     </PropertyGroup>
 
