@@ -11,7 +11,7 @@ public interface IEnvironmentHelper
 {
     bool IsDebug { get; }
     bool IsWindows { get; }
-    Platform Platform { get; }
+    SystemPlatform Platform { get; }
     string StartupDirectory { get; }
     string StartupExePath { get; }
 }
@@ -32,41 +32,41 @@ internal class EnvironmentHelper : IEnvironmentHelper
 
     public bool IsWindows => OperatingSystem.IsWindows();
 
-    public Platform Platform
+    public SystemPlatform Platform
     {
         get
         {
             if (OperatingSystem.IsWindows())
             {
-                return Platform.Windows;
+                return SystemPlatform.Windows;
             }
             else if (OperatingSystem.IsLinux())
             {
-                return Platform.Linux;
+                return SystemPlatform.Linux;
             }
             else if (OperatingSystem.IsMacOS())
             {
-                return Platform.MacOS;
+                return SystemPlatform.MacOS;
             }
             else if (OperatingSystem.IsMacCatalyst())
             {
-                return Platform.MacCatalyst;
+                return SystemPlatform.MacCatalyst;
             }
             else if (OperatingSystem.IsAndroid())
             {
-                return Platform.Android;
+                return SystemPlatform.Android;
             }
             else if (OperatingSystem.IsIOS())
             {
-                return Platform.IOS;
+                return SystemPlatform.IOS;
             }
             else if (OperatingSystem.IsBrowser())
             {
-                return Platform.Browser;
+                return SystemPlatform.Browser;
             }
             else
             {
-                return Platform.Unknown;
+                return SystemPlatform.Unknown;
             }
         }
     }

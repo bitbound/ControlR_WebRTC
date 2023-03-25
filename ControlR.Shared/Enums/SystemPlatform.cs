@@ -1,6 +1,6 @@
 ﻿namespace ControlR.Shared.Enums;
 
-public enum Platform
+public enum SystemPlatform
 {
     Unknown,
     Windows,

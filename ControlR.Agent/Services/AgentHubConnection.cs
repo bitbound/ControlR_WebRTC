@@ -97,13 +97,16 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
                 dto.TargetSystemSession,
                 dto.TargetDesktop ?? string.Empty,
                 async progress =>
-            {
-                if (progress == 1 || progress - downloadProgress > .05)
                 {
-                    downloadProgress = progress;
-                    await Connection.InvokeAsync("SendRemoteControlDownloadProgress", dto.DesktopSessionId, dto.ViewerConnectionId, downloadProgress);
-                }
-            });
+                    if (progress == 1 || progress - downloadProgress > .05)
+                    {
+                        downloadProgress = progress;
+                        await Connection
+                            .InvokeAsync("SendRemoteControlDownloadProgress", dto.DesktopSessionId, dto.ViewerConnectionId, downloadProgress)
+                            .ConfigureAwait(false);
+                    }
+                })
+                .ConfigureAwait(false);
 
             if (!result.IsSuccess)
             {
@@ -127,7 +130,7 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
             return Array.Empty<WindowsSession>().AsTaskResult();
         }
 
-        if (_environmentHelper.Platform != Platform.Windows)
+        if (_environmentHelper.Platform != SystemPlatform.Windows)
         {
             return Array.Empty<WindowsSession>().AsTaskResult();
         }
@@ -192,7 +195,7 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
     {
         hubConnection.Reconnected += HubConnection_Reconnected;
 
-        if (_environmentHelper.Platform == Platform.Windows)
+        if (_environmentHelper.Platform == SystemPlatform.Windows)
         {
 #pragma warning disable CA1416 // Validate platform compatibility
             hubConnection.On(nameof(GetWindowsSessions), (Func<SignedPayloadDto, Task<WindowsSession[]>>)GetWindowsSessions);

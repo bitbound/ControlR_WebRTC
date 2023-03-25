@@ -2,6 +2,8 @@
 @inject IFileSystem Files
 @inject ControlR.Devices.Common.Services.IFileSystem FileIO
 @inject ISnackbar Snackbar
+@inject IDialogService Dialogs
+@inject ILogger<Logs> Logger
 
 <MudText Typo="Typo.h4" Color="Color.Primary" GutterBottom>
     Logs
@@ -11,6 +13,9 @@
     <div>
         <MudToolBar>
             <MudSpacer />
+            <MudTooltip Text="Delete">
+                <MudIconButton Icon="@Icons.Material.Outlined.DeleteSweep" Color="Color.Error" OnClick="ClearLogs" />
+            </MudTooltip>
             <MudTooltip Text="Copy">
                 <MudIconButton Icon="@Icons.Material.Outlined.ContentCopy" OnClick="CopyLogContent" />
             </MudTooltip>
@@ -60,6 +65,36 @@
         await base.OnInitializedAsync();
     }
 
+    private async Task ClearLogs()
+    {
+        var result = await Dialogs.ShowMessageBox(
+            "Confirm Deletion",
+            "Are you sure you want to delete all logs?",
+            "Yes",
+            "Cancel");
+
+        if (result != true)
+        {
+            return;
+        }
+
+        foreach (var file in FileIO.GetFiles(_logsDir))
+        {
+            try
+            {
+                FileIO.DeleteFile(file);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while deleting log file {name}.", Path.GetFileName(file));
+            }
+        }
+
+        _selectedFileValue = null;
+        _logContent = string.Empty;
+        LoadFileNames();
+    }
+
     private async Task CopyLogContent()
     {
         await Clipboard.SetTextAsync(_logContent);
@@ -77,7 +112,8 @@
 
     private async Task LoadSelectedFile()
     {
-        if (_selectedFileValue is FileInfo fileInfo)
+        if (_selectedFileValue is FileInfo fileInfo &&
+            fileInfo.Exists)
         {
             _logContent = await FileIO.ReadAllTextAsync(fileInfo.FullName);
         }

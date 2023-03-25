@@ -3,7 +3,11 @@
 @using System.Text
 @using System.Runtime.InteropServices.JavaScript;
 
-<div class="display-wrapper @($"{_windowState}".ToLower())">
+<input @ref="_virtualKeyboard" class="virtual-keyboard" type="password" autocomplete="off" />
+
+<div class="display-wrapper @($"{_windowState}".ToLower())" 
+    @onmousemove="@(() => SetControlMode(ControlMode.Mouse))"
+    @ontouchstart="@(() => SetControlMode(ControlMode.Touch))">
     <div class="title-bar p-2">
         <div style="align-self: center; margin-left: 10px;">
             <MudText Typo="Typo.h6" Color="MudBlazor.Color.Primary">
@@ -11,23 +15,35 @@
             </MudText>
         </div>
         <div style="overflow-x: auto; overflow-y: visible;">
-            <MudMenu Variant="Variant.Outlined" StartIcon="@(Icons.Material.Filled.FitScreen)" Label="View" PopoverClass="z9001">
-                <MudMenuItem Icon="@(Icons.Material.Filled.FitScreen)"
-                             IconColor="@(_videoClass == "fit" ? Color.Success : Color.Default)"
-                             OnClick="@(() => _videoClass = "fit")">
-                    Fit
-                </MudMenuItem>
-                <MudMenuItem Icon="@(Icons.Material.Filled.OpenInFull)"
-                             IconColor="@(_videoClass == "stretch" ? Color.Success : Color.Default)"
-                             OnClick="@(() => _videoClass = "stretch")">
-                    Stretch
-                </MudMenuItem>
-                <MudMenuItem Icon="@(Icons.Material.Filled.Fullscreen)"
-                             IconColor="@(_videoClass == string.Empty ? Color.Success : Color.Default)"
-                             OnClick="@(() => _videoClass = string.Empty)">
-                    Original
-                </MudMenuItem>
-            </MudMenu>
+            @if (_windowState != WindowState.Minimized)
+            {
+                <MudMenu Variant="Variant.Outlined" StartIcon="@(Icons.Material.Filled.FitScreen)" Label="View" PopoverClass="z9001">
+                    <MudMenuItem Icon="@(Icons.Material.Filled.FitScreen)"
+                                 IconColor="@(_viewMode == ViewMode.Fit ? Color.Success : Color.Default)"
+                                 OnClick="@(() => _viewMode = ViewMode.Fit)">
+                        Fit
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@(Icons.Material.Filled.OpenInFull)"
+                                 IconColor="@(_viewMode == ViewMode.Stretch ? Color.Success : Color.Default)"
+                                 OnClick="@(() => _viewMode = ViewMode.Stretch)">
+                        Stretch
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@(Icons.Material.Filled.Fullscreen)"
+                                 IconColor="@(_viewMode == ViewMode.Original ? Color.Success : Color.Default)"
+                                 OnClick="@(() => _viewMode = ViewMode.Original)">
+                        Original
+                    </MudMenuItem>
+                </MudMenu>
+                <MudMenu Variant="Variant.Outlined" StartIcon="@(Icons.Material.Filled.ScreenshotMonitor)" Label="Monitor" PopoverClass="z9001">
+                </MudMenu>
+
+                @if (_controlMode == ControlMode.Touch)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@(Icons.Material.Filled.Keyboard)" OnClick="InvokeKeyboard">
+                        Keyboard
+                    </MudButton>
+                }
+            }
         </div>
         <div class="header-download-column">
             @if (_downloadProgress > 0 && _downloadProgress < 1)
@@ -77,10 +93,16 @@
             </MudTooltip>
         </div>
     </div>
-    <div class="@($"content-area")">
+    <div class="content-area"
+        @ontouchstart="OnTouchStart"
+        @ontouchmove="OnTouchMove"
+        @ontouchcancel="OnTouchCancel"
+        @ontouchend="OnTouchEnd">
+
         <video id="@_videoId"
                @ref="_videoRef"
-               class="@($"{_videoClass} {_windowState.ToString().ToLower()} remote-screen")" />
+               class="@($"{_viewMode.ToString().ToLower()} {_windowState.ToString().ToLower()} remote-screen")"
+               style="transform: @(VideoTransform);"/>
 
         @if (!string.IsNullOrWhiteSpace(_statusMessage))
         {

@@ -19,10 +19,10 @@ public static partial class AppConstants
         {
             return EnvironmentHelper.Instance.Platform switch
             {
-                Platform.Windows => "ControlR.Agent.exe",
-                Platform.Linux => "ControlR.Agent",
-                Platform.MacOS => throw new PlatformNotSupportedException(),
-                Platform.MacCatalyst => throw new PlatformNotSupportedException(),
+                SystemPlatform.Windows => "ControlR.Agent.exe",
+                SystemPlatform.Linux => "ControlR.Agent",
+                SystemPlatform.MacOS => throw new PlatformNotSupportedException(),
+                SystemPlatform.MacCatalyst => throw new PlatformNotSupportedException(),
                 _ => throw new PlatformNotSupportedException(),
             };
         }
@@ -34,10 +34,10 @@ public static partial class AppConstants
         {
             return EnvironmentHelper.Instance.Platform switch
             {
-                Platform.Windows => "controlr-streamer.exe",
-                Platform.Linux => "controlr-streamer",
-                Platform.MacOS => throw new PlatformNotSupportedException(),
-                Platform.MacCatalyst => throw new PlatformNotSupportedException(),
+                SystemPlatform.Windows => "controlr-streamer.exe",
+                SystemPlatform.Linux => "controlr-streamer",
+                SystemPlatform.MacOS => throw new PlatformNotSupportedException(),
+                SystemPlatform.MacCatalyst => throw new PlatformNotSupportedException(),
                 _ => throw new PlatformNotSupportedException(),
             };
         }
@@ -49,10 +49,10 @@ public static partial class AppConstants
         {
             return EnvironmentHelper.Instance.Platform switch
             {
-                Platform.Windows => "controlr-streamer-win.zip",
-                Platform.Linux => "controlr-streamer-linux.zip",
-                Platform.MacOS => throw new PlatformNotSupportedException(),
-                Platform.MacCatalyst => throw new PlatformNotSupportedException(),
+                SystemPlatform.Windows => "controlr-streamer-win.zip",
+                SystemPlatform.Linux => "controlr-streamer-linux.zip",
+                SystemPlatform.MacOS => throw new PlatformNotSupportedException(),
+                SystemPlatform.MacCatalyst => throw new PlatformNotSupportedException(),
                 _ => throw new PlatformNotSupportedException(),
             };
         }
@@ -62,6 +62,7 @@ public static partial class AppConstants
     {
         get
         {
+            return "http://192.168.0.2:5007";
             var envUri = Environment.GetEnvironmentVariable("ControlRServerUri");
             if (!string.IsNullOrWhiteSpace(envUri))
             {

@@ -66,7 +66,7 @@ public class Device
 
     [DataMember]
     [Display(Name = "Platform")]
-    public Platform Platform { get; set; }
+    public SystemPlatform Platform { get; set; }
 
     [DataMember]
     [Display(Name = "Processor Count")]

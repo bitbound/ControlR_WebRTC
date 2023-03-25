@@ -91,13 +91,13 @@ public class ProcessInvoker : IProcessInvoker
         {
             switch (EnvironmentHelper.Instance.Platform)
             {
-                case Platform.Unknown:
-                case Platform.MacOS:
-                case Platform.MacCatalyst:
-                case Platform.Browser:
+                case SystemPlatform.Unknown:
+                case SystemPlatform.MacOS:
+                case SystemPlatform.MacCatalyst:
+                case SystemPlatform.Browser:
                 default:
                     break;
-                case Platform.Windows:
+                case SystemPlatform.Windows:
                     {
                         var result = LaunchDesktopStreamerWindows(serverUrl, requestId, requesterConnectionId);
                         if (!result.IsSuccess)
@@ -110,7 +110,7 @@ public class ProcessInvoker : IProcessInvoker
                         }
                         break;
                     }
-                case Platform.Linux:
+                case SystemPlatform.Linux:
                     await LaunchDesktopStreamerLinux(serverUrl, requestId, requesterConnectionId);
                     break;
             }

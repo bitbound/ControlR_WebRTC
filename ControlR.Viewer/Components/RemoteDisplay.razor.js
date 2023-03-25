@@ -1,8 +1,10 @@
 ﻿class State {
     constructor() {
         this.windowEventHandlers = [];
-        this.touchCount = 0;
         this.lastPointerMove = Date.now();
+        this.touchList = { length: 0 };
+        this.previousPinchDistance = -1;
+        this.mouseMoveTimeout = -1;
     }
 
     /** @type {any} */
@@ -17,11 +19,17 @@
     /** @type {number] */
     lastPointerMove;
 
+    /** @type {number} */
+    mouseMoveTimeout;
+
     /** @type {RTCPeerConnection} */
     peerConnection;
 
     /** @type {number} */
-    touchCount;
+    previousPinchDistance;
+
+    /** @type {TouchList} */
+    touchList;
 
     /** @type {string} */
     videoId;
@@ -87,8 +95,6 @@ export async function dispose(videoId) {
  * @param {string} videoId
  */
 export async function initialize(componentRef, videoId) {
-    console.log("Setting video element ID: ", videoId);
-
     const state = getState(videoId);
     console.log("Got new state: ", state);
     const video = document.getElementById(videoId);
@@ -99,81 +105,75 @@ export async function initialize(componentRef, videoId) {
     state.videoElement.onloadedmetadata = () => {
         state.videoElement.play();
     }
-
-    video.addEventListener("touchstart", ev => {
-        state.touchCount = ev.touches.length;
-    });
-
-    video.addEventListener("touchend", ev => {
-        touchCount = ev.touches.length;
-    });
     
-    video.addEventListener("pointermove", async ev => {
+    video.addEventListener("pointerdown", ev => {
+        state.currentPointerType = ev.pointerType;
+    });
+
+    video.addEventListener("pointerenter", ev => {
+        state.currentPointerType = ev.pointerType;
+    });
+
+    video.addEventListener("mousemove", async ev => {
         if (!isDataChannelReady(videoId) || video.classList.contains("minimized")) {
             return;
         }
-        state.currentPointerType = ev.pointerType;
 
         if (!isDataChannelReady(videoId)) {
             return;
         }
-        const now = Date.now();
-        if (now - state.lastPointerMove < 50) {
-            return;
-        }
 
-        state.lastPointerMove = now;
-
-        if (ev.pointerType == "touch") {
-            
-        }
-        else {
+        const sendPointerMove = (ev) => {
             const pointerMoveDto = {
                 dtoType: "pointerMove",
                 percentX: ev.offsetX / state.videoElement.clientWidth,
                 percentY: ev.offsetY / state.videoElement.clientHeight
             };
-            
+
             state.dataChannel.send(JSON.stringify(pointerMoveDto));
         }
+
+        const now = Date.now();
+        if (now - state.lastPointerMove < 50) {
+            if (state.mouseMoveTimeout > -1) {
+                window.clearTimeout(state.mouseMoveTimeout);
+            }
+            state.mouseMoveTimeout = window.setTimeout(() => {
+                sendPointerMove(ev);
+            }, 60);
+            return;
+        }
+
+        state.lastPointerMove = now;
+        sendPointerMove(ev);
     });
 
-    video.addEventListener("pointerdown", async ev => {
+    video.addEventListener("mousedown", async ev => {
         if (!isDataChannelReady(videoId) || video.classList.contains("minimized")) {
             return;
         }
-        if (ev.pointerType == "touch") {
-
-        }
-        else {
-            const mouseButtonDto = {
-                dtoType: "mouseButtonEvent",
-                percentX: ev.offsetX / state.videoElement.clientWidth,
-                percentY: ev.offsetY / state.videoElement.clientHeight,
-                isPressed: true,
-                button: ev.button
-            };
-            state.dataChannel.send(JSON.stringify(mouseButtonDto));
-        }
+        const mouseButtonDto = {
+            dtoType: "mouseButtonEvent",
+            percentX: ev.offsetX / state.videoElement.clientWidth,
+            percentY: ev.offsetY / state.videoElement.clientHeight,
+            isPressed: true,
+            button: ev.button
+        };
+        state.dataChannel.send(JSON.stringify(mouseButtonDto));
     });
 
-    video.addEventListener("pointerup", async ev => {
+    video.addEventListener("mouseup", async ev => {
         if (!isDataChannelReady(videoId) || video.classList.contains("minimized")) {
             return;
         }
-        if (ev.pointerType == "touch") {
-
-        }
-        else {
-            const mouseButtonDto = {
-                dtoType: "mouseButtonEvent",
-                percentX: ev.offsetX / state.videoElement.clientWidth,
-                percentY: ev.offsetY / state.videoElement.clientHeight,
-                isPressed: false,
-                button: ev.button
-            };
-            state.dataChannel.send(JSON.stringify(mouseButtonDto));
-        }
+        const mouseButtonDto = {
+            dtoType: "mouseButtonEvent",
+            percentX: ev.offsetX / state.videoElement.clientWidth,
+            percentY: ev.offsetY / state.videoElement.clientHeight,
+            isPressed: false,
+            button: ev.button
+        };
+        state.dataChannel.send(JSON.stringify(mouseButtonDto));
     });
 
     video.addEventListener("wheel", ev => {
@@ -192,6 +192,20 @@ export async function initialize(componentRef, videoId) {
 
     video.addEventListener("contextmenu", async ev => {
         ev.preventDefault();
+        if (!isDataChannelReady(videoId) || video.classList.contains("minimized")) {
+            return;
+        }
+     
+        if (state.currentPointerType == "touch") {
+            const mouseButtonDto = {
+                dtoType: "mouseButtonEvent",
+                percentX: ev.offsetX / state.videoElement.clientWidth,
+                percentY: ev.offsetY / state.videoElement.clientHeight,
+                isPressed: false,
+                button: 2
+            };
+            state.dataChannel.send(JSON.stringify(mouseButtonDto));
+        }
     });
 
     const onKeyDown = (ev) => {
@@ -318,6 +332,16 @@ export async function startRtcOffer(iceServers, videoId) {
     setDataChannelHandlers(state.dataChannel, videoId);
 }
 
+/**
+ * @param {number} point1X
+ * @param {number} point1Y
+ * @param {number} point2X
+ * @param {number} point2Y
+ */
+function getDistanceBetween(point1X, point1Y, point2X, point2Y) {
+    return Math.sqrt(Math.pow(point1X - point2X, 2) +
+        Math.pow(point1Y - point2Y, 2));
+}
 
 /**
  * 
@@ -330,6 +354,7 @@ function getState(videoId) {
     }
     return window[`state-${videoId}`];
 }
+
 
 /**
  * 

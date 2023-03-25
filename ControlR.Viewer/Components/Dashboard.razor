@@ -191,7 +191,7 @@
     {
         switch (device.Platform)
         {
-            case Platform.Windows:
+            case SystemPlatform.Windows:
                 var sessionResult = await ViewerHub.GetWindowsSessions(device);
                 if (!sessionResult.IsSuccess)
                 {

@@ -20,6 +20,10 @@ using ControlR.Viewer.Models.Messages;
 using ControlR.Viewer.Enums;
 using ControlR.Viewer.Extensions;
 using ControlR.Shared.Extensions;
+using TouchEventArgs = Microsoft.AspNetCore.Components.Web.TouchEventArgs;
+using ControlR.Shared.Helpers;
+using ControlR.Shared.Services;
+using ControlR.Shared.Enums;
 
 namespace ControlR.Viewer.Components;
 
@@ -34,9 +38,13 @@ public partial class RemoteDisplay : IAsyncDisposable
     private DisplayDto? _selectedDisplay;
     private string _statusMessage = "Starting remote control session";
     private double _statusProgress = -1;
-    private string _videoClass = "fit";
     private ElementReference _videoRef;
+    private ViewMode _viewMode = ViewMode.Fit;
     private WindowState _windowState = WindowState.Maximized;
+    private ControlMode _controlMode = ControlMode.Mouse;
+    private double _videoScale = 1;
+    private double _lastPinchDistance = -1;
+    private ElementReference _virtualKeyboard;
 
 #nullable disable
     [Parameter, EditorRequired]
@@ -58,7 +66,23 @@ public partial class RemoteDisplay : IAsyncDisposable
 
     [Inject]
     private IViewerHubConnection ViewerHub { get; init; }
+
+    [Inject]
+    private IEnvironmentHelper EnvironmentHelper { get; init; }
 #nullable enable
+
+    private string VideoTransform
+    {
+        get
+        {
+            var transform = $"scale({_videoScale})";
+            if (_viewMode is ViewMode.Fit or ViewMode.Stretch)
+            {
+                transform += " translateX(-50%)";
+            }
+            return transform;
+        }
+    }
 
     public async ValueTask DisposeAsync()
     {
@@ -74,6 +98,14 @@ public partial class RemoteDisplay : IAsyncDisposable
     {
         Logger.LogInformation("JS Log: {message}", message);
         return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public async Task OnPinchZoom(double zoomChange)
+    {
+        _viewMode = ViewMode.Original;
+        _videoScale += zoomChange / 100;
+        await InvokeAsync(StateHasChanged);
     }
 
     [JSInvokable]
@@ -104,12 +136,18 @@ public partial class RemoteDisplay : IAsyncDisposable
         {
             _componentRef = DotNetObjectReference.Create(this);
             await _module.InvokeVoidAsync("initialize", _componentRef, _videoId);
-            await RequestDesktopSessionFromAgent();
+            await RequestStreamingSessionFromAgent();
         }
     }
 
     protected override Task OnInitializedAsync()
     {
+        if (EnvironmentHelper.Platform is SystemPlatform.Android or SystemPlatform.IOS)
+        {
+            _controlMode = ControlMode.Touch;
+            _viewMode = ViewMode.Original;
+        }
+
         Messenger.Register<RemoteControlDownloadProgressMessage>(this, HandleRemoteControlDownloadProgress);
         Messenger.Register<IceCandidateMessage>(this, HandleIceCandidateReceived);
         Messenger.Register<RtcSessionDescriptionMessage>(this, HandleRtcSessionDescription);
@@ -139,7 +177,7 @@ public partial class RemoteDisplay : IAsyncDisposable
 
         Session.CreateNewSessionId();
 
-        await RequestDesktopSessionFromAgent(message.DesktopName);
+        await RequestStreamingSessionFromAgent(message.DesktopName);
     }
 
     private async void HandleIceCandidateReceived(object recipient, IceCandidateMessage message)
@@ -209,46 +247,104 @@ public partial class RemoteDisplay : IAsyncDisposable
         }
     }
 
-    private async Task RequestDesktopSessionFromAgent(string desktopName = "Default")
+    private async Task InvokeKeyboard()
     {
-        if (_module is null)
+        await _virtualKeyboard.FocusAsync();
+    }
+
+    private void OnTouchEnd(TouchEventArgs ev)
+    {
+        _lastPinchDistance = -1;
+    }
+    private void OnTouchCancel(TouchEventArgs ev)
+    {
+        _lastPinchDistance = -1;
+    }
+    private void OnTouchStart(TouchEventArgs ev)
+    {
+        _lastPinchDistance = -1;
+    }
+
+    private void OnTouchMove(TouchEventArgs ev)
+    {
+        //if (ev.Touches.Length != 2)
+        //{
+        //    return;
+        //}
+
+        //var pinchDistance = MathHelper.GetDistanceBetween(
+        //    ev.Touches[0].PageX,
+        //    ev.Touches[0].PageY,
+        //    ev.Touches[1].PageX,
+        //    ev.Touches[1].PageY);
+
+        //if (_lastPinchDistance <= 0)
+        //{
+        //    _lastPinchDistance = pinchDistance;
+        //    return;
+        //}
+
+        //var pinchChange = pinchDistance - _lastPinchDistance;
+
+        //_viewMode = ViewMode.Original;
+        //_videoScale = Math.Max(.5, Math.Min(_videoScale + pinchChange / 100, 3));
+        //_lastPinchDistance = pinchDistance;
+    }
+
+    private async Task RequestStreamingSessionFromAgent(string desktopName = "Default")
+    {
+        try
         {
-            Snackbar.Add("JavaScript services must be initialized before remote control");
-            return;
+            if (_module is null)
+            {
+                Snackbar.Add("JavaScript services must be initialized before remote control", Severity.Error);
+                return;
+            }
+
+            var desktopSessionResult = await ViewerHub.GetDesktopSession(Session.Device.ConnectionId, Session.SessionId, Session.InitialSystemSession, desktopName);
+
+            if (!desktopSessionResult.IsSuccess)
+            {
+                Snackbar.Add("Failed to create desktop session", Severity.Error);
+                await Close();
+                return;
+            }
+
+            _statusMessage = "Getting ICE servers";
+            await InvokeAsync(StateHasChanged);
+
+            Logger.LogInformation("Starting RTC offer");
+
+            var iceServersResult = await ViewerHub.GetIceServers();
+
+            Logger.LogInformation("Getting ICE servers.");
+
+            if (!iceServersResult.IsSuccess || !iceServersResult.Value.Any())
+            {
+                Snackbar.Add("Failed to get ICE servers", Severity.Error);
+                await Close();
+                return;
+            }
+
+            _statusMessage = "Sending RTC offer";
+            await InvokeAsync(StateHasChanged);
+            await _module.InvokeVoidAsync("startRtcOffer", iceServersResult.Value.Cast<object>(), _videoId);
         }
-
-        var desktopSessionResult = await ViewerHub.GetDesktopSession(Session.Device.ConnectionId, Session.SessionId, Session.InitialSystemSession, desktopName);
-
-        if (!desktopSessionResult.IsSuccess)
+        catch (Exception ex)
         {
-            Snackbar.Add("Failed to create desktop session", Severity.Error);
-            await Close();
-            return;
+            Logger.LogError(ex, "Error while requesting streaming session.");
+            Snackbar.Add("An error occurred while requesting streaming session", Severity.Error);
         }
+    }
 
-        _statusMessage = "Getting ICE servers";
-        await InvokeAsync(StateHasChanged);
-
-        Logger.LogInformation("Starting RTC offer");
-
-        var iceServersResult = await ViewerHub.GetIceServers();
-
-        Logger.LogInformation("Getting ICE servers.");
-
-        if (!iceServersResult.IsSuccess || !iceServersResult.Value.Any())
-        {
-            Snackbar.Add("Failed to get ICE servers", Severity.Error);
-            await Close();
-            return;
-        }
-
-        _statusMessage = "Sending RTC offer";
-        await InvokeAsync(StateHasChanged);
-        await _module.InvokeVoidAsync("startRtcOffer", iceServersResult.Value.Cast<object>(), _videoId);
+    private void SetControlMode(ControlMode mode)
+    {
+        _controlMode = mode;
     }
     private void SetWindowState(WindowState state)
     {
         _windowState = state;
+        _videoScale = 1;
         Messenger.Send(new RemoteDisplayWindowStateMessage(Session.SessionId, state));
     }
 }
