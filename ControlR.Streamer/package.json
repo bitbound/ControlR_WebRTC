@@ -1,7 +1,7 @@
 {
   "name": "controlr-streamer",
   "productName": "controlr-streamer",
-  "version": "2023.03.22.1553",
+  "version": "2023.03.23.0712",
   "description": "Zero-trust remote control.",
   "main": ".webpack/main",
   "scripts": {

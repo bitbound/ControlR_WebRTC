@@ -15,5 +15,6 @@ public enum DtoType
     RtcSessionDescription,
     RtcIceCandidate,
     PointerMove,
-    CloseDesktopSession
+    CloseDesktopSession,
+    PowerStateChange
 }

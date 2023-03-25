@@ -48,7 +48,10 @@ class DesktopHubConnection {
 
     private setHandlers() {
         this.connection.onclose((err) => {
-            console.log("Connection closed: ", err);
+            window.mainApi.writeLog("Connection closed.  Exiting.");
+            window.setTimeout(() => {
+                window.mainApi.exit();
+            }, 1000);
         });
 
         this.connection.on(

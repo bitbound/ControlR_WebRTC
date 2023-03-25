@@ -20,6 +20,7 @@ using ControlR.Viewer.Models.Messages;
 using MudBlazor;
 using Microsoft.Maui.Controls;
 using ControlR.Shared.Extensions;
+using ControlR.Shared.Enums;
 
 namespace ControlR.Viewer.Services;
 public interface IViewerHubConnection : IViewerHubClient, IHubConnectionBase
@@ -35,6 +36,7 @@ public interface IViewerHubConnection : IViewerHubClient, IHubConnectionBase
     Task SendIceCandidate(Guid sessionId, string iceCandidateJson);
     Task SendRtcSessionDescription(Guid sessionId, RtcSessionDescription sessionDescription);
     Task Start(CancellationToken cancellationToken);
+    Task SendPowerStateChange(DeviceDto device, PowerStateChangeType powerStateType);
 }
 
 internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
@@ -66,7 +68,7 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
     public async Task CloseDesktopSession(Guid sessionId)
     {
         var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.CloseDesktopSession, _settings.PublicKey);
-        await Connection.InvokeAsync("SendSignedDto", sessionId, signedDto);
+        await Connection.InvokeAsync("SendSignedDtoToStreamer", sessionId, signedDto);
     }
 
     public async Task<Result<string>> GetDesktopSession(string agentConnectionId, Guid sessionId, int targetSystemSession, string targetDesktop = "Default")
@@ -172,20 +174,27 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
     public async Task SendIceCandidate(Guid sessionId, string iceCandidateJson)
     {
         var signedDto = _appState.Encryptor.CreateSignedDto(iceCandidateJson, DtoType.RtcIceCandidate, _settings.PublicKey);
-        await Connection.InvokeAsync("SendSignedDto", sessionId, signedDto);
+        await Connection.InvokeAsync("SendSignedDtoToStreamer", sessionId, signedDto);
     }
 
     public async Task SendPointerMove(Guid sessionId, double percentX, double percentY)
     {
         var pointerMoveDto = new PointerMoveDto(percentX, percentY);
         var signedDto = _appState.Encryptor.CreateSignedDto(pointerMoveDto, DtoType.PointerMove, _settings.PublicKey);
-        await Connection.InvokeAsync("SendSignedDto", sessionId, signedDto);
+        await Connection.InvokeAsync("SendSignedDtoToStreamer", sessionId, signedDto);
+    }
+
+    public async Task SendPowerStateChange(DeviceDto device, PowerStateChangeType powerStateType)
+    {
+        var powerDto = new PowerStateChangeDto(powerStateType);
+        var signedDto = _appState.Encryptor.CreateSignedDto(powerDto, DtoType.PowerStateChange, _settings.PublicKey);
+        await Connection.InvokeAsync("SendSignedDtoToAgent", device.ConnectionId, signedDto);
     }
 
     public async Task SendRtcSessionDescription(Guid sessionId, RtcSessionDescription sessionDescription)
     {
         var signedDto = _appState.Encryptor.CreateSignedDto(sessionDescription, DtoType.RtcSessionDescription, _settings.PublicKey);
-        await Connection.InvokeAsync("SendSignedDto", sessionId, signedDto);
+        await Connection.InvokeAsync("SendSignedDtoToStreamer", sessionId, signedDto);
     }
 
     public async Task Start(CancellationToken cancellationToken)

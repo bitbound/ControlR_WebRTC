@@ -1,8 +1,10 @@
-﻿using ControlR.Agent.Models;
+﻿using ControlR.Agent.Interfaces;
+using ControlR.Agent.Models;
 using ControlR.Shared.Dtos;
 using ControlR.Shared.Extensions;
 using ControlR.Shared.Interfaces;
 using ControlR.Shared.Services;
+using MessagePack;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -17,17 +19,20 @@ internal class DtoHandler : IHostedService
 {
     private readonly IEncryptionSessionFactory _encryptionFactory;
     private readonly IAgentHubConnection _agentHub;
+    private readonly IPowerControl _powerControl;
     private readonly IOptionsMonitor<AppOptions> _appOptions;
     private readonly ILogger<DtoHandler> _logger;
 
     public DtoHandler(
         IEncryptionSessionFactory encryptionFactory,
         IAgentHubConnection agentHub,
+        IPowerControl powerControl,
         IOptionsMonitor<AppOptions> appOptions,
         ILogger<DtoHandler> logger)
     {
         _encryptionFactory = encryptionFactory;
         _agentHub = agentHub;
+        _powerControl = powerControl;
         _appOptions = appOptions;
         _logger = logger;
     }
@@ -59,6 +64,10 @@ internal class DtoHandler : IHostedService
         {
             case DtoType.DeviceUpdateRequest:
                 await _agentHub.SendDeviceHeartbeat();
+                break;
+            case DtoType.PowerStateChange:
+                var powerDto = MessagePackSerializer.Deserialize<PowerStateChangeDto>(Convert.FromBase64String(dto.Payload));
+                await _powerControl.ChangeState(powerDto.Type);
                 break;
             default:
                 _logger.LogWarning("Unhandled DTO type: {type}", dto.DtoType);

@@ -19,7 +19,7 @@ namespace ControlR.Server.Hubs;
 public class ViewerHub : Hub<IViewerHubClient>
 {
     private readonly IHubContext<AgentHub, IAgentHubClient> _agentHub;
-    private readonly IHubContext<DesktopHub, IDesktopHubClient> _desktopHub;
+    private readonly IHubContext<DesktopHub, IDesktopHubClient> _streamerHub;
     private readonly IAgentSessionCache _agentSessionCache;
     private readonly IDesktopSessionCache _desktopSessionCache;
     private readonly IOptionsMonitor<AppOptions> _appOptions;
@@ -34,7 +34,7 @@ public class ViewerHub : Hub<IViewerHubClient>
         ILogger<ViewerHub> logger)
     {
         _agentHub = agentHubContext;
-        _desktopHub = desktopHubContext;
+        _streamerHub = desktopHubContext;
         _agentSessionCache = agentSessionCache;
         _desktopSessionCache = desktopSessionCache;
         _appOptions = appOptions;
@@ -98,7 +98,18 @@ public class ViewerHub : Hub<IViewerHubClient>
         }
     }
 
-    public async Task SendSignedDto(Guid desktopSessionId, SignedPayloadDto signedDto)
+    public async Task SendSignedDtoToAgent(string agentConnectionId, SignedPayloadDto signedDto)
+    {
+        using var scope = _logger.BeginMemberScope();
+
+        if (!VerifyPayload(signedDto, out _))
+        {
+            return;
+        }
+
+        await _agentHub.Clients.Client(agentConnectionId).ReceiveDto(signedDto);
+    }
+    public async Task SendSignedDtoToStreamer(Guid desktopSessionId, SignedPayloadDto signedDto)
     {
         using var scope = _logger.BeginMemberScope();
 
@@ -113,7 +124,7 @@ public class ViewerHub : Hub<IViewerHubClient>
             return;
         }
 
-        await _desktopHub.Clients
+        await _streamerHub.Clients
             .Client(session.DesktopConnectionId)
             .ReceiveDto(signedDto);
     }

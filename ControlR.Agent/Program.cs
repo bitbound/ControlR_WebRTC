@@ -174,12 +174,14 @@ IHost CreateHost(StartupMode startupMode)
             services.AddSingleton<IDeviceDataGenerator, DeviceDataGeneratorWin>();
             services.AddSingleton<IAgentInstaller, AgentInstallerWindows>();
             services.AddSingleton<IRemoteControlLauncher, RemoteControlLauncherWindows>();
+            services.AddSingleton<IPowerControl, PowerControlWindows>();
         }
         else if (OperatingSystem.IsLinux())
         {
             services.AddSingleton<IDeviceDataGenerator, DeviceDataGeneratorLinux>();
             services.AddSingleton<IAgentInstaller, AgentInstallerLinux>();
             services.AddSingleton<IRemoteControlLauncher, RemoteControlLauncherLinux>();
+            services.AddSingleton<IPowerControl, PowerControlLinux>();
         }
         else
         {

@@ -109,8 +109,6 @@
 
         <PropertyColumn Property="x => x!.CurrentUser" Title="Current User" />
 
-        <PropertyColumn Property="x => x!.LastOnline" Title="Last Online" />
-
         <PropertyColumn Property="x => x!.AgentVersion" Title="Agent Version" />
 
         <PropertyColumn Property="x => x!.Platform" Title="Platform" />
@@ -223,16 +221,36 @@
 
     }
 
-    private Task RestartClicked(DeviceDto device)
+    private async Task RestartClicked(DeviceDto device)
     {
-        // TODO
-        return Task.CompletedTask;
+        var result = await DialogService.ShowMessageBox(
+            "Confirm Restart",
+            $"Are you sure you want to restart {device.Name}?",
+            "Yes",
+            "No");
+
+        if (result != true)
+        {
+            return;
+        }
+
+        await ViewerHub.SendPowerStateChange(device, PowerStateChangeType.Restart);
     }
 
-    private Task ShutdownClicked(DeviceDto device)
+    private async Task ShutdownClicked(DeviceDto device)
     {
-        // TODO
-        return Task.CompletedTask;
+        var result = await DialogService.ShowMessageBox(
+           "Confirm Shutdown",
+           $"Are you sure you want to shut down {device.Name}?",
+           "Yes",
+           "No");
+
+        if (result != true)
+        {
+            return;
+        }
+
+        await ViewerHub.SendPowerStateChange(device, PowerStateChangeType.Shutdown);
     }
 
     private void HandleDeviceCacheUpdated()

@@ -29,7 +29,6 @@ public interface IHubConnectionBase
 
 public abstract class HubConnectionBase : IHubConnectionBase
 {
-    private static readonly ConcurrentDictionary<Guid, byte[]> _dtoChunks = new();
     private readonly ILogger<HubConnectionBase> _baseLogger;
     private readonly IServiceScopeFactory _scopeFactory;
     private CancellationToken _cancellationToken;

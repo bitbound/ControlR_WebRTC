@@ -21,6 +21,7 @@ public interface IProcessInvoker
 
     Process Start(string fileName);
     Process Start(string fileName, string arguments);
+    Process? Start(string fileName, string arguments, bool useShellExec);
     Process? Start(ProcessStartInfo startInfo);
 }
 
@@ -149,6 +150,17 @@ public class ProcessInvoker : IProcessInvoker
             throw new ArgumentNullException(nameof(startInfo));
         }
         return Process.Start(startInfo);
+    }
+
+    public Process? Start(string fileName, string arguments, bool useShellExec)
+    {
+        var psi = new ProcessStartInfo()
+        {
+            FileName = fileName,
+            Arguments = arguments,
+            UseShellExecute = useShellExec
+        };
+        return Process.Start(psi);
     }
 
     private Task LaunchDesktopStreamerLinux(string serverUrl, Guid requestId, string requesterConnectionId)
