@@ -7,14 +7,11 @@ public enum DtoType
 {
     None,
     PublicKey,
-    DesktopSessionRequest,
-    DisplayDto,
-    DisplayList,
+    StreamingSessionRequest,
     WindowsSessions,
     DeviceUpdateRequest,
     RtcSessionDescription,
     RtcIceCandidate,
-    PointerMove,
-    CloseDesktopSession,
+    CloseStreamingSession,
     PowerStateChange
 }

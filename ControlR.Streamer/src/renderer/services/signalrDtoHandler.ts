@@ -20,7 +20,7 @@ export async function receiveDto(dto: SignedPayloadDto) {
             const iceCandidate = decode(payloadBuffer) as string;
             await rtcSession.receiveIceCandidate(iceCandidate);
             break;
-        case "CloseDesktopSession":
+        case "CloseStreamingSession":
             console.log("Received exit request. Shutting down.");
             await window.mainApi.exit();
             break;

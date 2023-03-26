@@ -1,6 +1,6 @@
 import { Point } from "@nut-tree/nut-js";
-import { MediaScreen } from "../../shared/global";
-import desktopHubConnection from "./desktopHubConnection";
+import { MediaScreen } from "../../shared/interfaces/mediaScreen";
+import streamerHubConnection from "./streamerHubConnection";
 import { setMediaStreams } from "./mediaHelperRenderer";
 
 class RtcSession {
@@ -25,8 +25,8 @@ class RtcSession {
         await this.peerConnection.createAnswer()
       );
 
-      window.mainApi.writeLog("Sending RTC answer: ", this.peerConnection.localDescription);
-      await desktopHubConnection.sendRtcSessionDescription(
+      window.mainApi.writeLog("Sending RTC answer: ", "Info", this.peerConnection.localDescription);
+      await streamerHubConnection.sendRtcSessionDescription(
         this.peerConnection.localDescription
       );
     }
@@ -57,7 +57,7 @@ class RtcSession {
   private async initializePeerConnection(): Promise<void> {
     window.mainApi.writeLog("Getting ICE servers.");
 
-    const iceServers = await desktopHubConnection.getIceServers();
+    const iceServers = await streamerHubConnection.getIceServers();
     window.mainApi.writeLog("Got ICE servers: ", "Info", iceServers);
 
     this.peerConnection = new RTCPeerConnection({
@@ -68,7 +68,7 @@ class RtcSession {
 
     window.mainApi.writeLog("Getting screens from main API.");
     this.screens = await window.mainApi.getScreens();
-    window.mainApi.writeLog("Found screens: ", this.screens);
+    window.mainApi.writeLog("Found screens: ", "Info", this.screens);
 
     this.currentScreen = this.screens[0];
     window.mainApi.writeLog("Getting stream for first screen: ", "Info", this.currentScreen);
@@ -122,7 +122,7 @@ class RtcSession {
         return;
       }
       window.mainApi.writeLog("Sending ICE candidate: ", "Info", ev.candidate);
-      await desktopHubConnection.sendIceCandidate(
+      await streamerHubConnection.sendIceCandidate(
         JSON.stringify(ev.candidate.toJSON())
       );
     });
@@ -131,7 +131,7 @@ class RtcSession {
       await this.peerConnection.setLocalDescription(
         await this.peerConnection.createOffer()
       );
-      await desktopHubConnection.sendRtcSessionDescription(
+      await streamerHubConnection.sendRtcSessionDescription(
         this.peerConnection.localDescription
       );
     });

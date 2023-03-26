@@ -10,20 +10,20 @@ using System.Threading.Tasks;
 namespace ControlR.Shared.Dtos;
 
 [DataContract]
-public class DesktopSessionRequestDto
+public class StreamerSessionRequestDto
 {
     [JsonConstructor]
     [SerializationConstructor]
-    public DesktopSessionRequestDto(Guid desktopSessionId, int targetSystemSession, string? targetDesktop, string? viewerConnectionId)
+    public StreamerSessionRequestDto(Guid streamingSessionId, int targetSystemSession, string? targetDesktop, string? viewerConnectionId)
     {
-        DesktopSessionId = desktopSessionId;
+        StreamingSessionId = streamingSessionId;
         TargetSystemSession = targetSystemSession;
         TargetDesktop = targetDesktop;
         ViewerConnectionId = viewerConnectionId;
     }
 
     [DataMember]
-    public Guid DesktopSessionId { get; init; }
+    public Guid StreamingSessionId { get; init; }
 
     [DataMember]
     public int TargetSystemSession { get; init; }

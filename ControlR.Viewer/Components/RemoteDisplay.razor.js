@@ -109,14 +109,13 @@ export async function dispose(videoId) {
 export async function initialize(componentRef, videoId) {
     const state = getState(videoId);
     console.log("Got new state: ", state);
+
+    /** @type {HTMLVideoElement} */
     const video = document.getElementById(videoId);
 
     state.componentRef = componentRef;
     state.videoId = videoId;
     state.videoElement = video;
-    state.videoElement.onloadedmetadata = () => {
-        state.videoElement.play();
-    }
 
     video.addEventListener("pointerup", ev => {
         if (state.longPressStarted && !state.isDragging) {
@@ -127,39 +126,40 @@ export async function initialize(componentRef, videoId) {
             sendMouseButtonEvent(ev.offsetX, ev.offsetY, false, 1, state);
         }
 
-        state.longPressStarted = false;
-        state.isDragging = false;
+        resetTouchState(state);
     });
 
     video.addEventListener("pointercancel", ev => {
-        state.longPressStarted = false;
-        state.isDragging = false;
+        resetTouchState(state);
     });
     video.addEventListener("pointerout", ev => {
-        state.longPressStarted = false;
-        state.isDragging = false;
+        resetTouchState(state);
     });
     video.addEventListener("pointerleave", ev => {
-        state.longPressStarted = false;
-        state.isDragging = false;
+        resetTouchState(state);
     });
     
     video.addEventListener("pointermove", ev => {
         if (state.longPressStarted && !state.isDragging) {
+            ev.preventDefault();
+            ev.stopPropagation();
+
             const moveDistance = getDistanceBetween(
                 state.longPressStartOffsetX,
                 state.longPressStartOffsetY,
                 ev.offsetX,
                 ev.offsetY);
 
-            if (moveDistance > 5) {
+            if (moveDistance > 5) { 
                 state.isDragging = true;
                 sendPointerMove(state.longPressStartOffsetX, state.longPressStartOffsetY, state);
-                sendMouseButtonEvent(state.longPressStartOffsetX, state.longPressStartOffsetY, true, 1, state);
+                sendMouseButtonEvent(state.longPressStartOffsetX, state.longPressStartOffsetY, true, 0, state);
             }
         }
 
         if (state.isDragging) {
+            ev.preventDefault();
+            ev.stopPropagation();
             sendPointerMove(ev.offsetX, ev.offsetY, state);
         }
     })
@@ -170,6 +170,12 @@ export async function initialize(componentRef, videoId) {
 
     video.addEventListener("pointerenter", ev => {
         state.currentPointerType = ev.pointerType;
+    });
+
+    video.addEventListener("touchmove", ev => {
+        if (state.longPressStarted || state.isDragging) {
+            ev.preventDefault();
+        }
     });
 
     video.addEventListener("mousemove", async ev => {
@@ -193,7 +199,7 @@ export async function initialize(componentRef, videoId) {
         }
 
         state.lastPointerMove = now;
-        sendPointerMove(ev);
+        sendPointerMove(ev.offsetX, ev.offsetY, state);
     });
 
     video.addEventListener("mousedown", async ev => {
@@ -250,6 +256,10 @@ export async function initialize(componentRef, videoId) {
             state.longPressStartOffsetX = ev.offsetX;
             state.longPressStartOffsetY = ev.offsetY;
         }
+    });
+
+    video.addEventListener("loadedmetadata", () => {
+        video.play();
     });
 
     const onKeyDown = (ev) => {
@@ -412,6 +422,16 @@ function isDataChannelReady(videoId) {
     }
 
     return true;
+}
+
+/**
+ * 
+ * @param {State} state
+ */
+function resetTouchState(state) {
+    state.longPressStarted = false;
+    state.isDragging = false;
+    state.videoElement.parentElement.style.touchAction = "";
 }
 
 /**

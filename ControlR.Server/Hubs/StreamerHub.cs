@@ -10,29 +10,29 @@ using System.Text.Json;
 
 namespace ControlR.Server.Hubs;
 
-public class DesktopHub : Hub<IDesktopHubClient>
+public class StreamerHub : Hub<IStreamerHubClient>
 {
-    private readonly IDesktopSessionCache _desktopSessionCache;
+    private readonly IStreamerSessionCache _streamerSessionCache;
     private readonly IOptionsMonitor<AppOptions> _appOptions;
     private readonly IHubContext<ViewerHub, IViewerHubClient> _viewerHub;
-    private readonly ILogger<DesktopHub> _logger;
+    private readonly ILogger<StreamerHub> _logger;
 
-    public DesktopHub(
-        IDesktopSessionCache desktopSessionCache,
+    public StreamerHub(
+        IStreamerSessionCache streamerSessionCache,
         IHubContext<ViewerHub, IViewerHubClient> viewerHubContext,
         IOptionsMonitor<AppOptions> appOptions,
-        ILogger<DesktopHub> logger)
+        ILogger<StreamerHub> logger)
     {
-        _desktopSessionCache = desktopSessionCache;
+        _streamerSessionCache = streamerSessionCache;
         _appOptions = appOptions;
         _viewerHub = viewerHubContext;
         _logger = logger;
     }
 
-    public Task SetConnectionIdForSession(Guid sessionId)
+    public Task SetSessionDetails(Guid sessionId, Display[] displays)
     {
-        var session = new DesktopHubSession(sessionId, Context.ConnectionId);
-        _desktopSessionCache.AddOrUpdate(sessionId, session);
+        var session = new StreamerHubSession(sessionId, displays, Context.ConnectionId);
+        _streamerSessionCache.AddOrUpdate(sessionId, session);
         return Task.CompletedTask;
     }
 
@@ -43,7 +43,7 @@ public class DesktopHub : Hub<IDesktopHubClient>
 
     public async Task SendIceCandidate(Guid sessionId, string candidateJson)
     {
-        if (!_desktopSessionCache.TryGetValue(sessionId, out var session))
+        if (!_streamerSessionCache.TryGetValue(sessionId, out var session))
         {
             _logger.LogError("Could not find session for ID {id}.", sessionId);
             return;
@@ -54,7 +54,7 @@ public class DesktopHub : Hub<IDesktopHubClient>
 
     public async Task SendRtcSessionDescription(Guid sessionId, RtcSessionDescription sessionDescription)
     {
-        if (!_desktopSessionCache.TryGetValue(sessionId, out var session))
+        if (!_streamerSessionCache.TryGetValue(sessionId, out var session))
         {
             _logger.LogError("Could not find session for ID {id}.", sessionId);
             return;

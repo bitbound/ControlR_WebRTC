@@ -1,5 +1,4 @@
-﻿using ControlR.Shared.Dtos;
-using Microsoft.AspNetCore.Components.Web;
+﻿using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using System;
@@ -32,10 +31,10 @@ public partial class RemoteDisplay : IAsyncDisposable
 {
     private readonly string _videoId = $"video-{Guid.NewGuid()}";
     private DotNetObjectReference<RemoteDisplay>? _componentRef;
-    private IEnumerable<DisplayDto> _displays = Enumerable.Empty<DisplayDto>();
+    private Display[] _displays = Array.Empty<Display>();
     private double _downloadProgress;
     private IJSObjectReference? _module;
-    private DisplayDto? _selectedDisplay;
+    private Display? _selectedDisplay;
     private string _statusMessage = "Starting remote control session";
     private double _statusProgress = -1;
     private ElementReference _videoRef;
@@ -45,6 +44,7 @@ public partial class RemoteDisplay : IAsyncDisposable
     private double _videoScale = 1;
     private double _lastPinchDistance = -1;
     private ElementReference _virtualKeyboard;
+    private bool _isMobileActionsMenuOpen;
 
 #nullable disable
     [Parameter, EditorRequired]
@@ -74,7 +74,7 @@ public partial class RemoteDisplay : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        await ViewerHub.CloseDesktopSession(Session.SessionId);
+        await ViewerHub.CloseStreamingSession(Session.SessionId);
         Messenger.UnregisterAll(this);
         await _module!.InvokeVoidAsync("dispose", _videoId);
         _componentRef?.Dispose();
@@ -161,7 +161,7 @@ public partial class RemoteDisplay : IAsyncDisposable
 
         await SetStatusMessage("Switching desktops");
 
-        await ViewerHub.CloseDesktopSession(Session.SessionId);
+        await ViewerHub.CloseStreamingSession(Session.SessionId);
 
         Session.CreateNewSessionId();
 
@@ -195,7 +195,7 @@ public partial class RemoteDisplay : IAsyncDisposable
 
     private async void HandleRemoteControlDownloadProgress(object recipient, RemoteControlDownloadProgressMessage message)
     {
-        if (message.DesktopSessionId != Session.SessionId)
+        if (message.StreamingSessionId != Session.SessionId)
         {
             return;
         }
@@ -264,33 +264,33 @@ public partial class RemoteDisplay : IAsyncDisposable
 
     private void OnTouchMove(TouchEventArgs ev)
     {
-        //if (ev.Touches.Length != 2)
-        //{
-        //    return;
-        //}
+        if (ev.Touches.Length != 2)
+        {
+            return;
+        }
 
-        //var pinchDistance = MathHelper.GetDistanceBetween(
-        //    ev.Touches[0].PageX,
-        //    ev.Touches[0].PageY,
-        //    ev.Touches[1].PageX,
-        //    ev.Touches[1].PageY);
+        var pinchDistance = MathHelper.GetDistanceBetween(
+            ev.Touches[0].PageX,
+            ev.Touches[0].PageY,
+            ev.Touches[1].PageX,
+            ev.Touches[1].PageY);
 
-        //if (_lastPinchDistance <= 0)
-        //{
-        //    _lastPinchDistance = pinchDistance;
-        //    return;
-        //}
+        if (_lastPinchDistance <= 0)
+        {
+            _lastPinchDistance = pinchDistance;
+            return;
+        }
 
-        //var pinchChange = pinchDistance - _lastPinchDistance;
+        var pinchChange = pinchDistance - _lastPinchDistance;
 
-        //_viewMode = ViewMode.Original;
-        //_videoScale = Math.Max(.5, Math.Min(_videoScale + pinchChange / 100, 3));
-        //_lastPinchDistance = pinchDistance;
+        _viewMode = ViewMode.Original;
+        _videoScale = Math.Max(.5, Math.Min(_videoScale + pinchChange / 100, 3));
+        _lastPinchDistance = pinchDistance;
     }
 
-    private void OnVkKeyPress(KeyboardEventArgs args)
+    private void OnVkInput(ChangeEventArgs args)
     {
-        Logger.LogInformation("VK key pressed: {key}", args.Key);
+        Logger.LogInformation("VK input: {value}", args.Value);
     }
 
     private async Task RequestStreamingSessionFromAgent(string desktopName = "Default")
@@ -303,14 +303,17 @@ public partial class RemoteDisplay : IAsyncDisposable
                 return;
             }
 
-            var desktopSessionResult = await ViewerHub.GetDesktopSession(Session.Device.ConnectionId, Session.SessionId, Session.InitialSystemSession, desktopName);
+            var streamingSessionResult = await ViewerHub.GetStreamingSession(Session.Device.ConnectionId, Session.SessionId, Session.InitialSystemSession, desktopName);
 
-            if (!desktopSessionResult.IsSuccess)
+            if (!streamingSessionResult.IsSuccess)
             {
                 Snackbar.Add("Failed to create desktop session", Severity.Error);
                 await Close();
                 return;
             }
+
+            _displays = streamingSessionResult.Value.Displays;
+            _selectedDisplay = _displays?.FirstOrDefault();
 
             _statusMessage = "Getting ICE servers";
             await InvokeAsync(StateHasChanged);

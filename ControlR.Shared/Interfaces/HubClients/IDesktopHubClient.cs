@@ -6,6 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace ControlR.Shared.Interfaces.HubClients;
-public interface IDesktopHubClient : IHubClient
+public interface IStreamerHubClient : IHubClient
 {
 }

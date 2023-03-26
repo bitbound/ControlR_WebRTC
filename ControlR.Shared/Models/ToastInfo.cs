@@ -1,10 +1,10 @@
 ﻿using ControlR.Shared.Enums;
 using System.Runtime.Serialization;
 
-namespace ControlR.Shared.Dtos;
+namespace ControlR.Shared.Models;
 
 [DataContract]
-public class ToastDto
+public class ToastInfo
 {
     [DataMember]
     public string Message { get; set; } = string.Empty;

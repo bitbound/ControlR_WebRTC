@@ -31,7 +31,7 @@ import { App } from './app';
 
 import './index.css';
 import '../../node_modules/bootstrap/dist/css/bootstrap.min.css';
-import hubConnection from './services/desktopHubConnection';
+import hubConnection from './services/streamerHubConnection';
 
 const container = document.getElementById('app');
 const root = createRoot(container);

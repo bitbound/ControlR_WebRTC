@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace ControlR.Viewer.Enums;
-internal enum ViewMode
+public enum ViewMode
 {
     Fit,
     Stretch,

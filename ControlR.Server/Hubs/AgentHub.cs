@@ -15,7 +15,7 @@ public class AgentHub : Hub<IAgentHubClient>
 {
     private readonly IHubContext<ViewerHub, IViewerHubClient> _viewerHub;
     private readonly IAgentSessionCache _agentSessionCache;
-    private readonly IDesktopSessionCache _desktopSessionCache;
+    private readonly IStreamerSessionCache _streamerSessionCache;
     private readonly IOptionsMonitor<AppOptions> _appOptions;
     private readonly ISystemTime _systemTime;
     private readonly ILogger<AgentHub> _logger;
@@ -23,14 +23,14 @@ public class AgentHub : Hub<IAgentHubClient>
     public AgentHub(
         IHubContext<ViewerHub, IViewerHubClient> viewerHubContext,
         IAgentSessionCache agentSessionCache,
-        IDesktopSessionCache desktopSessionCache,
+        IStreamerSessionCache streamerSessionCache,
         IOptionsMonitor<AppOptions> appOptions,
         ISystemTime systemTime,
         ILogger<AgentHub> logger)
     {
         _viewerHub = viewerHubContext;
         _agentSessionCache = agentSessionCache;
-        _desktopSessionCache = desktopSessionCache;
+        _streamerSessionCache = streamerSessionCache;
         _appOptions = appOptions;
         _systemTime = systemTime;
         _logger = logger;
@@ -70,7 +70,7 @@ public class AgentHub : Hub<IAgentHubClient>
 
     public async Task NotifyViewerDesktopChanged(Guid sessionId, string desktopName)
     {
-        if (!_desktopSessionCache.TryGetValue(sessionId, out var session))
+        if (!_streamerSessionCache.TryGetValue(sessionId, out var session))
         {
             _logger.LogError("Could not find session ID to notify of desktop change: {id}", sessionId);
             return;
@@ -85,9 +85,9 @@ public class AgentHub : Hub<IAgentHubClient>
         await _viewerHub.Clients.Client(session.ViewerConnectionId).ReceiveDesktopChanged(sessionId, desktopName);
     }
 
-    public async Task SendRemoteControlDownloadProgress(Guid desktopSessionId, string viewerConnectionId, double downloadProgress)
+    public async Task SendRemoteControlDownloadProgress(Guid streamingSessionId, string viewerConnectionId, double downloadProgress)
     {
-        await _viewerHub.Clients.Client(viewerConnectionId).ReceiveRemoteControlDownloadProgress(desktopSessionId, downloadProgress);
+        await _viewerHub.Clients.Client(viewerConnectionId).ReceiveRemoteControlDownloadProgress(streamingSessionId, downloadProgress);
     }
 
     public async Task UpdateDevice(Device device)

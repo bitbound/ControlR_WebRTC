@@ -13,6 +13,6 @@ public interface IViewerHubClient : IHubClient
     Task ReceiveDesktopChanged(Guid sessionId, string desktopName);
     Task ReceiveDeviceUpdate(DeviceDto device);
     Task ReceiveIceCandidate(Guid sessionId, string candidateJson);
-    Task ReceiveRemoteControlDownloadProgress(Guid desktopSessionId, double downloadProgress);
+    Task ReceiveRemoteControlDownloadProgress(Guid streamingSessionId, double downloadProgress);
     Task ReceiveRtcSessionDescription(Guid sessionId, RtcSessionDescription sessionDescription);
 }

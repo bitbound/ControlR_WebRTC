@@ -80,7 +80,7 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddSingleton<IEncryptionSessionFactory, EncryptionSessionFactory>();
 builder.Services.AddSingleton<ISystemTime, SystemTime>();
 builder.Services.AddSingleton<IAgentSessionCache, AgentSessionCache>();
-builder.Services.AddSingleton<IDesktopSessionCache, DesktopSessionCache>();
+builder.Services.AddSingleton<IStreamerSessionCache, StreamerSessionCache>();
 
 builder.Host.UseSystemd();
 
@@ -128,7 +128,7 @@ app.MapBlazorHub();
 
 app.MapHub<AgentHub>("/hubs/agent");
 app.MapHub<ViewerHub>("/hubs/viewer");
-app.MapHub<DesktopHub>("/hubs/desktop");
+app.MapHub<StreamerHub>("/hubs/desktop");
 
 app.UseWhen(
     context => !context.Request.Path.StartsWithSegments("/api"),

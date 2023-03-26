@@ -78,7 +78,7 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
         _logger = logger;
     }
 
-    public async Task<bool> GetDesktopSession(SignedPayloadDto signedDto)
+    public async Task<bool> GetStreamingSession(SignedPayloadDto signedDto)
     {
         try
         {
@@ -87,12 +87,12 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
                 return false;
             }
 
-            var dto = MessagePackSerializer.Deserialize<DesktopSessionRequestDto>(Convert.FromBase64String(signedDto.Payload));
+            var dto = MessagePackSerializer.Deserialize<StreamerSessionRequestDto>(Convert.FromBase64String(signedDto.Payload));
 
             double downloadProgress = 0;
 
             var result = await _remoteControlLauncher.CreateSession(
-                dto.DesktopSessionId, 
+                dto.StreamingSessionId, 
                 signedDto.PublicKey,
                 dto.TargetSystemSession,
                 dto.TargetDesktop ?? string.Empty,
@@ -102,7 +102,7 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
                     {
                         downloadProgress = progress;
                         await Connection
-                            .InvokeAsync("SendRemoteControlDownloadProgress", dto.DesktopSessionId, dto.ViewerConnectionId, downloadProgress)
+                            .InvokeAsync("SendRemoteControlDownloadProgress", dto.StreamingSessionId, dto.ViewerConnectionId, downloadProgress)
                             .ConfigureAwait(false);
                     }
                 })
@@ -110,14 +110,14 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
 
             if (!result.IsSuccess)
             {
-                _logger.LogError("Failed to get desktop session.  Reason: {reason}", result.Reason);
+                _logger.LogError("Failed to get streaming session.  Reason: {reason}", result.Reason);
             }
 
             return result.IsSuccess;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error while creating desktop session.");
+            _logger.LogError(ex, "Error while creating streaming session.");
             return false;
         }
     }
@@ -202,7 +202,7 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
 #pragma warning restore CA1416 // Validate platform compatibility
         }
 
-        hubConnection.On(nameof(GetDesktopSession), (Func<SignedPayloadDto, Task<bool>>)GetDesktopSession);
+        hubConnection.On(nameof(GetStreamingSession), (Func<SignedPayloadDto, Task<bool>>)GetStreamingSession);
     }
 
     private void ConfigureHttpOptions(HttpConnectionOptions options)

@@ -19,24 +19,24 @@ namespace ControlR.Server.Hubs;
 public class ViewerHub : Hub<IViewerHubClient>
 {
     private readonly IHubContext<AgentHub, IAgentHubClient> _agentHub;
-    private readonly IHubContext<DesktopHub, IDesktopHubClient> _streamerHub;
+    private readonly IHubContext<StreamerHub, IStreamerHubClient> _streamerHub;
     private readonly IAgentSessionCache _agentSessionCache;
-    private readonly IDesktopSessionCache _desktopSessionCache;
+    private readonly IStreamerSessionCache _streamerSessionCache;
     private readonly IOptionsMonitor<AppOptions> _appOptions;
     private readonly ILogger<ViewerHub> _logger;
 
     public ViewerHub(
         IHubContext<AgentHub, IAgentHubClient> agentHubContext,
-        IHubContext<DesktopHub, IDesktopHubClient> desktopHubContext,
+        IHubContext<StreamerHub, IStreamerHubClient> streamerHubContext,
         IAgentSessionCache agentSessionCache,
-        IDesktopSessionCache desktopSessionCache,
+        IStreamerSessionCache streamerSessionCache,
         IOptionsMonitor<AppOptions> appOptions,
         ILogger<ViewerHub> logger)
     {
         _agentHub = agentHubContext;
-        _streamerHub = desktopHubContext;
+        _streamerHub = streamerHubContext;
         _agentSessionCache = agentSessionCache;
-        _desktopSessionCache = desktopSessionCache;
+        _streamerSessionCache = streamerSessionCache;
         _appOptions = appOptions;
         _logger = logger;
     }
@@ -61,40 +61,40 @@ public class ViewerHub : Hub<IViewerHubClient>
         return await _agentHub.Clients.Client(agentConnectionId).GetWindowsSessions(signedDto);
     }
 
-    public async Task<Result<string>> GetDesktopSession(string agentConnectionId, Guid desktopSessionId, SignedPayloadDto sessionRequestDto)
+    public async Task<Result<StreamerHubSession>> GetStreamingSession(string agentConnectionId, Guid streamingSessionId, SignedPayloadDto sessionRequestDto)
     {
         try
         {
             if (!VerifyPayload(sessionRequestDto, out _))
             {
-                return Result.Fail<string>(string.Empty);
+                return Result.Fail<StreamerHubSession>(string.Empty);
             }
 
             var sessionSuccess = await _agentHub.Clients
                    .Client(agentConnectionId)
-                   .GetDesktopSession(sessionRequestDto);
+                   .GetStreamingSession(sessionRequestDto);
 
             if (!sessionSuccess)
             {
-                return Result.Fail<string>("Failed to acquire desktop session.");
+                return Result.Fail<StreamerHubSession>("Failed to acquire desktop session.");
             }
 
             await WaitHelper.WaitForAsync(
-                () => _desktopSessionCache.Sessions.ContainsKey(desktopSessionId),
+                () => _streamerSessionCache.Sessions.ContainsKey(streamingSessionId),
                 TimeSpan.FromSeconds(30));
 
-            if (!_desktopSessionCache.TryGetValue(desktopSessionId, out var session))
+            if (!_streamerSessionCache.TryGetValue(streamingSessionId, out var session))
             {
-                return Result.Fail<string>("Failed to acquire desktop session.");
+                return Result.Fail<StreamerHubSession>("Failed to acquire desktop session.");
             }
 
             session.AgentConnectionId = agentConnectionId;
             session.ViewerConnectionId = Context.ConnectionId;
-            return Result.Ok(session.DesktopConnectionId);
+            return Result.Ok(session);
         }
         catch (Exception ex)
         {
-            return Result.Fail<string>(ex);
+            return Result.Fail<StreamerHubSession>(ex);
         }
     }
 
@@ -109,7 +109,7 @@ public class ViewerHub : Hub<IViewerHubClient>
 
         await _agentHub.Clients.Client(agentConnectionId).ReceiveDto(signedDto);
     }
-    public async Task SendSignedDtoToStreamer(Guid desktopSessionId, SignedPayloadDto signedDto)
+    public async Task SendSignedDtoToStreamer(Guid streamingSessionId, SignedPayloadDto signedDto)
     {
         using var scope = _logger.BeginMemberScope();
 
@@ -118,14 +118,14 @@ public class ViewerHub : Hub<IViewerHubClient>
             return;
         }
 
-        if (!_desktopSessionCache.TryGetValue(desktopSessionId, out var session))
+        if (!_streamerSessionCache.TryGetValue(streamingSessionId, out var session))
         {
-            _logger.LogError("Session ID not found: {id}", desktopSessionId);
+            _logger.LogError("Session ID not found: {id}", streamingSessionId);
             return;
         }
 
         await _streamerHub.Clients
-            .Client(session.DesktopConnectionId)
+            .Client(session.StreamerConnectionId)
             .ReceiveDto(signedDto);
     }
 

@@ -9,6 +9,6 @@ using System.Threading.Tasks;
 namespace ControlR.Shared.Interfaces.HubClients;
 public interface IAgentHubClient : IHubClient
 {
-    Task<bool> GetDesktopSession(SignedPayloadDto sessionRequest);
+    Task<bool> GetStreamingSession(SignedPayloadDto sessionRequest);
     Task<WindowsSession[]> GetWindowsSessions(SignedPayloadDto signedDto);
 }

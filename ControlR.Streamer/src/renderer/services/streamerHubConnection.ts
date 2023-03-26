@@ -1,8 +1,10 @@
 import { HubConnection, HubConnectionBuilder, JsonHubProtocol, LogLevel } from "@microsoft/signalr";
+import { MediaScreen } from "../../shared/interfaces/mediaScreen";
+import { Display } from "../../shared/interfaces/display";
 import { SignedPayloadDto } from "../../shared/signalrDtos/signedPayloadDto";
 import { receiveDto } from "./signalrDtoHandler";
 
-class DesktopHubConnection {
+class StreamerHubConnection {
     connection?: HubConnection;
     serverUri?: string;
     sessionId?: string;
@@ -30,7 +32,20 @@ class DesktopHubConnection {
         await this.connection.start();
 
         if (this.sessionId) {
-            await this.connection.invoke("setConnectionIdForSession", this.sessionId);
+            const screens = await window.mainApi.getScreens();
+            const displays = screens.map(x => {
+                return {
+                    top: x.bounds.y,
+                    left: x.bounds.x,
+                    right: x.bounds.x + x.bounds.width,
+                    bottom: x.bounds.y + x.bounds.height,
+                    name: x.name,
+                    displayId: x.displayId,
+                    mediaId: x.mediaId,
+                    isPrimary: x.isPrimary
+                } as Display
+            })
+            await this.connection.invoke("setSessionDetails", this.sessionId, displays);
         }
     }
 
@@ -63,6 +78,6 @@ class DesktopHubConnection {
     }
 }
 
-const desktopHubConnection = new DesktopHubConnection();
+const streamerHubConnection = new StreamerHubConnection();
 
-export default desktopHubConnection;
+export default streamerHubConnection;

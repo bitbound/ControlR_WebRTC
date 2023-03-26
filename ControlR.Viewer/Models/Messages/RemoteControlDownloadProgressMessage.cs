@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 namespace ControlR.Viewer.Models.Messages;
 internal class RemoteControlDownloadProgressMessage
 {
-    public RemoteControlDownloadProgressMessage(Guid desktopSessionId, double downloadProgress)
+    public RemoteControlDownloadProgressMessage(Guid streamingSessionId, double downloadProgress)
     {
-        DesktopSessionId = desktopSessionId;
+        StreamingSessionId = streamingSessionId;
         DownloadProgress = downloadProgress;
     }
 
-    public Guid DesktopSessionId { get; }
+    public Guid StreamingSessionId { get; }
     public double DownloadProgress { get; }
 }

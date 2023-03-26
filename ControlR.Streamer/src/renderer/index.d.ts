@@ -1,5 +1,6 @@
 import { LogLevel } from "src/main/services/logger";
 import { SignedPayloadDto } from "src/shared/dtos/signedPayloadDto";
+import { MediaScreen } from "src/shared/models/MediaScreen";
 
 declare interface MainApi {
   exit(): Promise<void>;

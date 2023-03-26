@@ -2,8 +2,9 @@
 @using System.Runtime.InteropServices
 @using System.Text
 @using System.Runtime.InteropServices.JavaScript;
+@using ControlR.Viewer.Components.RemoteDisplayComponents;
 
-<input @ref="_virtualKeyboard" class="virtual-keyboard" type="text" autocomplete="off" @onkeypress="OnVkKeyPress" />
+<input @ref="_virtualKeyboard" class="virtual-keyboard" type="text" autocomplete="off" @oninput="OnVkInput" />
 
 <div class="display-wrapper @($"{_windowState}".ToLower())" 
     @onmousemove="@(() => SetControlMode(ControlMode.Mouse))"
@@ -14,35 +15,47 @@
                 @(Session?.Device?.Name)
             </MudText>
         </div>
-        <div style="overflow-x: auto; overflow-y: visible;">
+        <div>
             @if (_windowState != WindowState.Minimized)
             {
-                <MudMenu Variant="Variant.Outlined" StartIcon="@(Icons.Material.Filled.FitScreen)" Label="View" PopoverClass="z9001">
-                    <MudMenuItem Icon="@(Icons.Material.Filled.FitScreen)"
-                                 IconColor="@(_viewMode == ViewMode.Fit ? Color.Success : Color.Default)"
-                                 OnClick="@(() => _viewMode = ViewMode.Fit)">
-                        Fit
-                    </MudMenuItem>
-                    <MudMenuItem Icon="@(Icons.Material.Filled.OpenInFull)"
-                                 IconColor="@(_viewMode == ViewMode.Stretch ? Color.Success : Color.Default)"
-                                 OnClick="@(() => _viewMode = ViewMode.Stretch)">
-                        Stretch
-                    </MudMenuItem>
-                    <MudMenuItem Icon="@(Icons.Material.Filled.Fullscreen)"
-                                 IconColor="@(_viewMode == ViewMode.Original ? Color.Success : Color.Default)"
-                                 OnClick="@(() => _viewMode = ViewMode.Original)">
-                        Original
-                    </MudMenuItem>
-                </MudMenu>
-                <MudMenu Variant="Variant.Outlined" StartIcon="@(Icons.Material.Filled.ScreenshotMonitor)" Label="Monitor" PopoverClass="z9001">
-                </MudMenu>
+                <div class="desktop-actions">
+                    <ViewModeMenu
+                        ViewMode="_viewMode" 
+                        OnViewModeSelected="@((viewMode) => _viewMode = viewMode)" />
 
-                @if (_controlMode == ControlMode.Touch)
-                {
-                    <MudButton Variant="Variant.Outlined" StartIcon="@(Icons.Material.Filled.Keyboard)" OnClick="InvokeKeyboard">
-                        Keyboard
-                    </MudButton>
-                }
+                    <MonitorsMenu Displays="_displays" SelectedDisplay="_selectedDisplay" />
+                </div>
+
+                <div class="mobile-actions">
+                    
+                    <MudTooltip Text="Actions">
+                        <MudIconButton 
+                            Icon="@(Icons.Material.Filled.MoreVert)" 
+                            Color="Color.Info"
+                            OnClick="@(() => _isMobileActionsMenuOpen = !_isMobileActionsMenuOpen)" />
+                    </MudTooltip>
+
+                    <MudPopover Open="_isMobileActionsMenuOpen" Class="z9001" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
+                        <MudList>
+                            <MudListItem>
+                                <ViewModeMenu ViewMode="_viewMode" OnViewModeSelected="@((viewMode) => _viewMode = viewMode)" />
+                            </MudListItem>
+                            <MudListItem>
+                                <MonitorsMenu Displays="_displays" SelectedDisplay="_selectedDisplay" />
+                            </MudListItem>
+                            <MudListItem>
+                                @if (_controlMode == ControlMode.Touch)
+                                {
+                                    <MudMenuItem>
+                                        <MudButton Variant="Variant.Outlined" StartIcon="@(Icons.Material.Filled.Keyboard)" OnClick="InvokeKeyboard">
+                                            Keyboard
+                                        </MudButton>
+                                    </MudMenuItem>
+                                }
+                            </MudListItem>
+                        </MudList>
+                    </MudPopover>
+                </div>
             }
         </div>
         <div class="text-end" style="white-space: nowrap">

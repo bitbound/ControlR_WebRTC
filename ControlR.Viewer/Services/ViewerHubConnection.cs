@@ -25,10 +25,10 @@ using ControlR.Shared.Enums;
 namespace ControlR.Viewer.Services;
 public interface IViewerHubConnection : IViewerHubClient, IHubConnectionBase
 {
-    Task CloseDesktopSession(Guid sessionId);
-    Task<Result<string>> GetDesktopSession(string agentConnectionId, Guid sessionId, int targetSystemSession, string targetDesktop = "Default");
+    Task CloseStreamingSession(Guid sessionId);
+    Task<Result<StreamerHubSession>> GetStreamingSession(string agentConnectionId, Guid sessionId, int targetSystemSession, string targetDesktop = "Default");
 
-    Task<Result<DisplayDto[]>> GetDisplays(string desktopConnectionId);
+    Task<Result<Display[]>> GetDisplays(string desktopConnectionId);
     Task<Result<IceServer[]>> GetIceServers();
 
     Task<Result<WindowsSession[]>> GetWindowsSessions(DeviceDto device);
@@ -65,25 +65,25 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
         _logger = logger;
     }
 
-    public async Task CloseDesktopSession(Guid sessionId)
+    public async Task CloseStreamingSession(Guid sessionId)
     {
-        var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.CloseDesktopSession, _settings.PublicKey);
+        var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.CloseStreamingSession, _settings.PublicKey);
         await Connection.InvokeAsync("SendSignedDtoToStreamer", sessionId, signedDto);
     }
 
-    public async Task<Result<string>> GetDesktopSession(string agentConnectionId, Guid sessionId, int targetSystemSession, string targetDesktop = "Default")
+    public async Task<Result<StreamerHubSession>> GetStreamingSession(string agentConnectionId, Guid sessionId, int targetSystemSession, string targetDesktop = "Default")
     {
         try
         {
-            var desktopSessionRequest = new DesktopSessionRequestDto(
+            var streamingSessionRequest = new StreamerSessionRequestDto(
                 sessionId,
                 targetSystemSession,
                 targetDesktop,
                 Connection.ConnectionId);
 
-            var signedDto = _appState.Encryptor.CreateSignedDto(desktopSessionRequest, DtoType.DesktopSessionRequest, _settings.PublicKey);
+            var signedDto = _appState.Encryptor.CreateSignedDto(streamingSessionRequest, DtoType.StreamingSessionRequest, _settings.PublicKey);
 
-            var result = await Connection.InvokeAsync<Result<string>>("GetDesktopSession", agentConnectionId, sessionId, signedDto);
+            var result = await Connection.InvokeAsync<Result<StreamerHubSession>>("GetStreamingSession", agentConnectionId, sessionId, signedDto);
             if (!result.IsSuccess)
             {
                 _logger.LogResult(result);
@@ -92,14 +92,14 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error while getting remote desktop session.");
-            return Result.Fail<string>(ex);
+            _logger.LogError(ex, "Error while getting remote streaming session.");
+            return Result.Fail<StreamerHubSession>(ex);
         }
     }
 
-    public Task<Result<DisplayDto[]>> GetDisplays(string desktopConnectionId)
+    public Task<Result<Display[]>> GetDisplays(string desktopConnectionId)
     {
-        return Result.Fail<DisplayDto[]>("Not implemented.").AsTaskResult();
+        return Result.Fail<Display[]>("Not implemented.").AsTaskResult();
     }
 
     public async Task<Result<IceServer[]>> GetIceServers()
@@ -152,9 +152,9 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
         return Task.CompletedTask;
     }
 
-    public Task ReceiveRemoteControlDownloadProgress(Guid desktopSessionId, double downloadProgress)
+    public Task ReceiveRemoteControlDownloadProgress(Guid streamingSessionId, double downloadProgress)
     {
-        _messenger.Send(new RemoteControlDownloadProgressMessage(desktopSessionId, downloadProgress));
+        _messenger.Send(new RemoteControlDownloadProgressMessage(streamingSessionId, downloadProgress));
         return Task.CompletedTask;
     }
 
@@ -174,13 +174,6 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
     public async Task SendIceCandidate(Guid sessionId, string iceCandidateJson)
     {
         var signedDto = _appState.Encryptor.CreateSignedDto(iceCandidateJson, DtoType.RtcIceCandidate, _settings.PublicKey);
-        await Connection.InvokeAsync("SendSignedDtoToStreamer", sessionId, signedDto);
-    }
-
-    public async Task SendPointerMove(Guid sessionId, double percentX, double percentY)
-    {
-        var pointerMoveDto = new PointerMoveDto(percentX, percentY);
-        var signedDto = _appState.Encryptor.CreateSignedDto(pointerMoveDto, DtoType.PointerMove, _settings.PublicKey);
         await Connection.InvokeAsync("SendSignedDtoToStreamer", sessionId, signedDto);
     }
 
