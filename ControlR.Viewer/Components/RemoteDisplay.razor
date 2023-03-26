@@ -4,11 +4,9 @@
 @using System.Runtime.InteropServices.JavaScript;
 @using ControlR.Viewer.Components.RemoteDisplayComponents;
 
-<input @ref="_virtualKeyboard" class="virtual-keyboard" type="text" autocomplete="off" @oninput="OnVkInput" />
+<input @ref="_virtualKeyboard" class="virtual-keyboard" type="text" autocomplete="off" @oninput="OnVkInput" @onkeydown="OnVkKeyDown" />
 
-<div class="display-wrapper @($"{_windowState}".ToLower())" 
-    @onmousemove="@(() => SetControlMode(ControlMode.Mouse))"
-    @ontouchstart="@(() => SetControlMode(ControlMode.Touch))">
+<div class="display-wrapper @($"{_windowState}".ToLower())">
     <div class="title-bar p-2">
         <div style="align-self: center; margin-left: 10px;">
             <MudText Typo="Typo.h6" Color="MudBlazor.Color.Primary">
@@ -43,16 +41,14 @@
                             <MudListItem>
                                 <MonitorsMenu Displays="_displays" SelectedDisplay="_selectedDisplay" />
                             </MudListItem>
-                            <MudListItem>
-                                @if (_controlMode == ControlMode.Touch)
-                                {
-                                    <MudMenuItem>
-                                        <MudButton Variant="Variant.Outlined" StartIcon="@(Icons.Material.Filled.Keyboard)" OnClick="InvokeKeyboard">
-                                            Keyboard
-                                        </MudButton>
-                                    </MudMenuItem>
-                                }
-                            </MudListItem>
+                            @if (_controlMode == ControlMode.Touch)
+                            {
+                                <MudListItem>
+                                    <MudButton Variant="Variant.Outlined" StartIcon="@(Icons.Material.Filled.Keyboard)" OnClick="InvokeKeyboard">
+                                        Keyboard
+                                    </MudButton>
+                                </MudListItem>
+                            }
                         </MudList>
                     </MudPopover>
                 </div>

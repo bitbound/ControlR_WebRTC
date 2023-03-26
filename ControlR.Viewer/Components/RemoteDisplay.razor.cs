@@ -285,12 +285,27 @@ public partial class RemoteDisplay : IAsyncDisposable
 
         _viewMode = ViewMode.Original;
         _videoScale = Math.Max(.5, Math.Min(_videoScale + pinchChange / 100, 3));
+        // TODO: Compare to selected display size.  Set CSS width/height.
         _lastPinchDistance = pinchDistance;
     }
 
-    private void OnVkInput(ChangeEventArgs args)
+    private async Task OnVkInput(ChangeEventArgs args)
     {
+        // TODO
         Logger.LogInformation("VK input: {value}", args.Value);
+    }
+
+    private async Task OnVkKeyDown(KeyboardEventArgs args)
+    {
+        // TODO
+        if (args.Key == "Enter")
+        {
+
+        }
+        else if (args.Key == "Backspace")
+        {
+
+        }
     }
 
     private async Task RequestStreamingSessionFromAgent(string desktopName = "Default")
@@ -342,10 +357,6 @@ public partial class RemoteDisplay : IAsyncDisposable
         }
     }
 
-    private void SetControlMode(ControlMode mode)
-    {
-        _controlMode = mode;
-    }
     private void SetWindowState(WindowState state)
     {
         _windowState = state;
