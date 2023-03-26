@@ -31,7 +31,12 @@ export function writeLog(message: string, level: LogLevel = "Info", ...args: any
             mkdirSync(logDir, {recursive: true});
         }
 
-        let logPath = path.join(logDir, "Streamer.log");
+        const date = new Date();
+        const year = date.getFullYear();
+        const month = date.getMonth().toString().padStart(2, "0");
+        const day = date.getDay().toString().padStart(2, "0");
+
+        let logPath = path.join(logDir, `Streamer-${year}-${month}-${day}.log`);
 
         if (existsSync(logPath)) {
             while (statSync(logPath).size > 1000000) {
@@ -41,7 +46,7 @@ export function writeLog(message: string, level: LogLevel = "Info", ...args: any
         }
         var entry = `[${level}]\t[${(new Date()).toLocaleString()}]\t${message}`;
 
-        if (args) {
+        if (args && args.length > 0) {
             entry += ` ${JSON.stringify(args)}`
         }
 

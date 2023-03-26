@@ -1,27 +1,25 @@
-﻿.remote-screen.fit {
-    position: absolute;
-    max-width: 100%;
-    max-height: 100%;
-}
-
-.remote-screen.stretch {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-}
-
-.content-area {
+﻿.content-area {
     overflow: auto;
     position: relative;
-    text-align: center;
 }
 
-
 .remote-screen {
+    position: absolute;
     touch-action: pinch-zoom;
     object-fit: fill;
     cursor: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgBAMAAACBVGfHAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAMUExURf///39/fwAAAD8/P3lJiBsAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAlSURBVCjPY4ACRkUGVDA8BQQhQFgZymBQQgOYKgaL0wdCgIEBAOjpCEPOMv3qAAAAAElFTkSuQmCC') 0 0, default !important;
 }
+
+    .remote-screen.fit {
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    .remote-screen.stretch {
+        width: 100%;
+        height: 100%;
+    }
+
 
 .display-wrapper {
     display: grid;
@@ -59,20 +57,11 @@
 
 .title-bar {
     display: grid;
-    grid-template-columns: auto auto 1fr auto;
+    grid-template-columns: auto 1fr auto;
     column-gap: 15px;
     background-color: rgb(25,25,25);
     align-items: center;
     white-space: nowrap;
-}
-
-
-.header-download-column {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: 10px;
-    align-self: center;
-    align-items: center;
 }
 
 .virtual-keyboard {

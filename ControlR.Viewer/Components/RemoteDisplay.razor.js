@@ -16,8 +16,20 @@
     /** @type {RTCDataChannel} */
     dataChannel;
 
+    /** @type {boolean} */
+    isDragging;
+
     /** @type {number] */
     lastPointerMove;
+
+    /** @type {boolean} */
+    longPressStarted;
+
+    /** @type {number} */
+    longPressStartOffsetX;
+
+    /** @type {number} */
+    longPressStartOffsetY;
 
     /** @type {number} */
     mouseMoveTimeout;
@@ -105,7 +117,53 @@ export async function initialize(componentRef, videoId) {
     state.videoElement.onloadedmetadata = () => {
         state.videoElement.play();
     }
+
+    video.addEventListener("pointerup", ev => {
+        if (state.longPressStarted && !state.isDragging) {
+            sendMouseButtonEvent(ev.offsetX, ev.offsetY, false, 2, state);
+        }
+
+        if (state.longPressStarted && state.isDragging) {
+            sendMouseButtonEvent(ev.offsetX, ev.offsetY, false, 1, state);
+        }
+
+        state.longPressStarted = false;
+        state.isDragging = false;
+    });
+
+    video.addEventListener("pointercancel", ev => {
+        state.longPressStarted = false;
+        state.isDragging = false;
+    });
+    video.addEventListener("pointerout", ev => {
+        state.longPressStarted = false;
+        state.isDragging = false;
+    });
+    video.addEventListener("pointerleave", ev => {
+        state.longPressStarted = false;
+        state.isDragging = false;
+    });
     
+    video.addEventListener("pointermove", ev => {
+        if (state.longPressStarted && !state.isDragging) {
+            const moveDistance = getDistanceBetween(
+                state.longPressStartOffsetX,
+                state.longPressStartOffsetY,
+                ev.offsetX,
+                ev.offsetY);
+
+            if (moveDistance > 5) {
+                state.isDragging = true;
+                sendPointerMove(state.longPressStartOffsetX, state.longPressStartOffsetY, state);
+                sendMouseButtonEvent(state.longPressStartOffsetX, state.longPressStartOffsetY, true, 1, state);
+            }
+        }
+
+        if (state.isDragging) {
+            sendPointerMove(ev.offsetX, ev.offsetY, state);
+        }
+    })
+
     video.addEventListener("pointerdown", ev => {
         state.currentPointerType = ev.pointerType;
     });
@@ -123,23 +181,13 @@ export async function initialize(componentRef, videoId) {
             return;
         }
 
-        const sendPointerMove = (ev) => {
-            const pointerMoveDto = {
-                dtoType: "pointerMove",
-                percentX: ev.offsetX / state.videoElement.clientWidth,
-                percentY: ev.offsetY / state.videoElement.clientHeight
-            };
-
-            state.dataChannel.send(JSON.stringify(pointerMoveDto));
-        }
-
         const now = Date.now();
         if (now - state.lastPointerMove < 50) {
             if (state.mouseMoveTimeout > -1) {
                 window.clearTimeout(state.mouseMoveTimeout);
             }
             state.mouseMoveTimeout = window.setTimeout(() => {
-                sendPointerMove(ev);
+                sendPointerMove(ev.offsetX, ev.offsetY, state);
             }, 60);
             return;
         }
@@ -192,19 +240,15 @@ export async function initialize(componentRef, videoId) {
 
     video.addEventListener("contextmenu", async ev => {
         ev.preventDefault();
+
         if (!isDataChannelReady(videoId) || video.classList.contains("minimized")) {
             return;
         }
      
         if (state.currentPointerType == "touch") {
-            const mouseButtonDto = {
-                dtoType: "mouseButtonEvent",
-                percentX: ev.offsetX / state.videoElement.clientWidth,
-                percentY: ev.offsetY / state.videoElement.clientHeight,
-                isPressed: false,
-                button: 2
-            };
-            state.dataChannel.send(JSON.stringify(mouseButtonDto));
+            state.longPressStarted = true;
+            state.longPressStartOffsetX = ev.offsetX;
+            state.longPressStartOffsetY = ev.offsetY;
         }
     });
 
@@ -372,6 +416,43 @@ function isDataChannelReady(videoId) {
 
 /**
  * 
+ * @param {number} offsetX
+ * @param {number} offsetY
+ * @param {State} state
+ */
+function sendPointerMove(offsetX, offsetY, state) {
+    const pointerMoveDto = {
+        dtoType: "pointerMove",
+        percentX: offsetX / state.videoElement.clientWidth,
+        percentY: offsetY / state.videoElement.clientHeight
+    };
+
+    state.dataChannel.send(JSON.stringify(pointerMoveDto));
+}
+
+/**
+ * 
+ * @param {number} offsetX
+ * @param {number} offsetY
+ * @param {boolean} isPressed
+ * @param {number} button
+ * @param {State} state
+ */
+function sendMouseButtonEvent(offsetX, offsetY, isPressed, button, state) {
+    const mouseButtonDto = {
+        dtoType: "mouseButtonEvent",
+        percentX: offsetX / state.videoElement.clientWidth,
+        percentY: offsetY / state.videoElement.clientHeight,
+        isPressed: isPressed,
+        button: button
+    };
+
+    state.dataChannel.send(JSON.stringify(mouseButtonDto));
+}
+
+
+/**
+ * 
  * @param {RTCPeerConnection} peerConnection
  * @param {string} videoId
  */
@@ -415,9 +496,9 @@ function setPeerConnectionHandlers(peerConnection, videoId) {
 
     peerConnection.addEventListener("track", async ev => {
         console.log("Got tracks: ", ev);
+        state.videoElement.srcObject = ev.streams[0];
         invokeDotNet("LogInfo", videoId, "Got tracks: " + JSON.stringify(ev));
         await invokeDotNet("SetStatusMessage", videoId, "");
-        state.videoElement.srcObject = ev.streams[0];
     });
 
     peerConnection.addEventListener("negotiationneeded", async ev => {

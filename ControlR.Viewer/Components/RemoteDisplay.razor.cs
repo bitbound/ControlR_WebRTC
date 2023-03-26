@@ -39,7 +39,7 @@ public partial class RemoteDisplay : IAsyncDisposable
     private string _statusMessage = "Starting remote control session";
     private double _statusProgress = -1;
     private ElementReference _videoRef;
-    private ViewMode _viewMode = ViewMode.Fit;
+    private ViewMode _viewMode = ViewMode.Stretch;
     private WindowState _windowState = WindowState.Maximized;
     private ControlMode _controlMode = ControlMode.Mouse;
     private double _videoScale = 1;
@@ -71,18 +71,6 @@ public partial class RemoteDisplay : IAsyncDisposable
     private IEnvironmentHelper EnvironmentHelper { get; init; }
 #nullable enable
 
-    private string VideoTransform
-    {
-        get
-        {
-            var transform = $"scale({_videoScale})";
-            if (_viewMode is ViewMode.Fit or ViewMode.Stretch)
-            {
-                transform += " translateX(-50%)";
-            }
-            return transform;
-        }
-    }
 
     public async ValueTask DisposeAsync()
     {
@@ -212,7 +200,16 @@ public partial class RemoteDisplay : IAsyncDisposable
             return;
         }
 
-        _downloadProgress = message.DownloadProgress;
+        if (_downloadProgress < 1)
+        {
+            _statusMessage = "Downloading streamer on remote device";
+        }
+        else
+        {
+            _statusMessage = string.Empty;
+            _downloadProgress = -1;
+        }
+        _statusProgress = message.DownloadProgress;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -289,6 +286,11 @@ public partial class RemoteDisplay : IAsyncDisposable
         //_viewMode = ViewMode.Original;
         //_videoScale = Math.Max(.5, Math.Min(_videoScale + pinchChange / 100, 3));
         //_lastPinchDistance = pinchDistance;
+    }
+
+    private void OnVkKeyPress(KeyboardEventArgs args)
+    {
+        Logger.LogInformation("VK key pressed: {key}", args.Key);
     }
 
     private async Task RequestStreamingSessionFromAgent(string desktopName = "Default")

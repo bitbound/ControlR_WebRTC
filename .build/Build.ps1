@@ -57,6 +57,11 @@ if ($BuildStreamer) {
 }
 
 if ($BuildViewer) {
+    $Manifest = Select-Xml -XPath "/" -Path "$Root\ControlR.Viewer\Platforms\Windows\Package.appxmanifest"
+    $Version = [System.Version]::Parse($Manifest.Node.Package.Identity.Version)
+    $NewVersion = [System.Version]::new($Version.Major, $Version.Minor, $Version.Build + 1, $Version.Revision)
+    $Manifest.Node.Package.Identity.Version = $NewVersion.ToString()
+    Set-Content -Path "$Root\ControlR.Viewer\Platforms\Windows\Package.appxmanifest" -Value $Manifest.Node.OuterXml.Trim()
     Remove-Item -Path "$Root\ControlR.Viewer\bin\publish\" -Force -Recurse -ErrorAction SilentlyContinue
     dotnet publish -p:PublishProfile=msix --configuration Release --framework net7.0-windows10.0.19041.0 "$Root\ControlR.Viewer\"
     New-Item -Path "$Root\ControlR.Server\wwwroot\downloads\" -ItemType Directory -Force

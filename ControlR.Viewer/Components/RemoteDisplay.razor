@@ -3,7 +3,7 @@
 @using System.Text
 @using System.Runtime.InteropServices.JavaScript;
 
-<input @ref="_virtualKeyboard" class="virtual-keyboard" type="password" autocomplete="off" />
+<input @ref="_virtualKeyboard" class="virtual-keyboard" type="text" autocomplete="off" @onkeypress="OnVkKeyPress" />
 
 <div class="display-wrapper @($"{_windowState}".ToLower())" 
     @onmousemove="@(() => SetControlMode(ControlMode.Mouse))"
@@ -43,20 +43,6 @@
                         Keyboard
                     </MudButton>
                 }
-            }
-        </div>
-        <div class="header-download-column">
-            @if (_downloadProgress > 0 && _downloadProgress < 1)
-            {
-                <div>
-                    <MudText Typo="Typo.subtitle1" Color="MudBlazor.Color.Info">
-                        Downloading On Agent:
-                    </MudText>
-                </div>
-
-                <div>
-                    <MudProgressLinear Min="0" Max="1" Value="_downloadProgress" Color="MudBlazor.Color.Tertiary" />
-                </div>
             }
         </div>
         <div class="text-end" style="white-space: nowrap">
@@ -101,8 +87,7 @@
 
         <video id="@_videoId"
                @ref="_videoRef"
-               class="@($"{_viewMode.ToString().ToLower()} {_windowState.ToString().ToLower()} remote-screen")"
-               style="transform: @(VideoTransform);"/>
+               class="@($"{_viewMode.ToString().ToLower()} {_windowState.ToString().ToLower()} remote-screen")" />
 
         @if (!string.IsNullOrWhiteSpace(_statusMessage))
         {
