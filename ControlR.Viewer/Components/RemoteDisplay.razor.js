@@ -19,6 +19,9 @@
     /** @type {boolean} */
     isDragging;
 
+    /** @type {boolean} */
+    isMakingOffer;
+
     /** @type {number] */
     lastPointerMove;
 
@@ -323,19 +326,25 @@ export async function initialize(componentRef, videoId) {
  * @param {string} videoId
  */
 export async function receiveIceCandidate(candidateJson, videoId) {
-    const state = getState(videoId);
+    try {
+        const state = getState(videoId);
 
-    if (!candidateJson) {
-        console.log("Received null (terminating) ICE candidate.");
-        invokeDotNet("LogInfo", videoId, "Received null (terminating) ICE candidate");
-        await this.peerConnection.addIceCandidate(null);
-        return;
+        if (!candidateJson) {
+            console.log("Received null (terminating) ICE candidate.");
+            invokeDotNet("LogInfo", videoId, "Received null (terminating) ICE candidate");
+            await this.peerConnection.addIceCandidate(null);
+            return;
+        }
+
+        invokeDotNet("LogInfo", videoId, "Adding ICE candidate: " + candidateJson);
+        const candidate = JSON.parse(candidateJson);
+        console.log("Adding ICE candidate: ", candidate);
+        state.peerConnection.addIceCandidate(candidate);
     }
-
-    invokeDotNet("LogInfo", videoId, "Adding ICE candidate: " + candidateJson);
-    const candidate = JSON.parse(candidateJson);
-    console.log("Adding ICE candidate: ", candidate);
-    state.peerConnection.addIceCandidate(candidate);
+    catch (ex) {
+        console.error(ex);
+        invokeDotNet("LogError", videoId, "Error while receiving ICE candidate: " + JSON.stringify(ex));
+    }
 }
 
 /**
@@ -344,19 +353,26 @@ export async function receiveIceCandidate(candidateJson, videoId) {
  * @param {string} videoId
  */
 export async function receiveRtcSessionDescription(sessionDescription, videoId) {
-    const state = getState(videoId);
+    try {
+        const state = getState(videoId);
 
-    console.log("Setting remote description: ", sessionDescription);
-    invokeDotNet("LogInfo", videoId, "Setting remote description: " + JSON.stringify(sessionDescription));
-    await state.peerConnection.setRemoteDescription(sessionDescription);
+        console.log("Setting remote description: ", sessionDescription);
+        invokeDotNet("LogInfo", videoId, "Setting remote description: " + JSON.stringify(sessionDescription));
 
-    if (sessionDescription.type == "offer") {
-        console.log("Creating RTC answer.");
-        invokeDotNet("LogInfo", videoId, "Creating RTC answer.");
-        await state.peerConnection.setLocalDescription(await state.peerConnection.createAnswer());
-        console.log("Sending RTC answer.");
-        invokeDotNet("LogInfo", videoId, "Sending RTC answer.");
-        await invokeDotNet("SendRtcDescription", videoId, state.peerConnection.localDescription);
+        await state.peerConnection.setRemoteDescription(sessionDescription);
+
+        if (sessionDescription.type == "offer") {
+            console.log("Creating RTC answer.");
+            invokeDotNet("LogInfo", videoId, "Creating RTC answer.");
+            await state.peerConnection.setLocalDescription(await state.peerConnection.createAnswer());
+            console.log("Sending RTC answer.");
+            invokeDotNet("LogInfo", videoId, "Sending RTC answer.");
+            await invokeDotNet("SendRtcDescription", videoId, state.peerConnection.localDescription);
+        }
+    }
+    catch (ex) {
+        console.error(ex);
+        invokeDotNet("LogError", videoId, "Error while receiving session description: " + JSON.stringify(ex));
     }
 }
 
@@ -515,17 +531,30 @@ function setPeerConnectionHandlers(peerConnection, videoId) {
     });
 
     peerConnection.addEventListener("track", async ev => {
-        console.log("Got tracks: ", ev);
-        state.videoElement.srcObject = ev.streams[0];
-        invokeDotNet("LogInfo", videoId, "Got tracks: " + JSON.stringify(ev));
-        await invokeDotNet("SetStatusMessage", videoId, "");
+        ev.track.addEventListener("unmute", async () => {
+            console.log("Got track: ", ev.track);
+            await invokeDotNet("LogInfo", videoId, "Got track: " + JSON.stringify(ev.track));
+            state.videoElement.srcObject = ev.streams[0];
+            await invokeDotNet("SetStatusMessage", videoId, "");
+        })
     });
 
-    peerConnection.addEventListener("negotiationneeded", async ev => {
+    peerConnection.addEventListener("negotiationneeded", async () => {
         console.log("Negotiation needed.");
-        invokeDotNet("LogInfo", videoId, "Negotiation needed.");
-        await peerConnection.setLocalDescription(await peerConnection.createOffer());
-        await invokeDotNet("SendRtcDescription", videoId, peerConnection.localDescription);
+        try {
+            state.isMakingOffer = true;
+            await invokeDotNet("LogInfo", videoId, "Negotiation needed.");
+            await peerConnection.setLocalDescription();
+            await invokeDotNet("SendRtcDescription", videoId, peerConnection.localDescription);
+        }
+        catch (ex) {
+            console.error(ex);
+            await invokeDotNet("LogError", videoId, "Error occurred: " + JSON.stringify(ex));
+        }
+        finally {
+            state.isMakingOffer = false;
+        }
+
     });
 
     peerConnection.addEventListener("icecandidate", async ev => {
@@ -536,8 +565,8 @@ function setPeerConnectionHandlers(peerConnection, videoId) {
         }
 
         console.log("Ice candidate: ", ev.candidate);
-        invokeDotNet("LogInfo", videoId, "Ice candidate: " + JSON.stringify(ev.candidate.toJSON()));
-        await invokeDotNet("SendIceCandidate", videoId, JSON.stringify(ev.candidate.toJSON()));
+        invokeDotNet("LogInfo", videoId, "Ice candidate: " + JSON.stringify(ev.candidate));
+        await invokeDotNet("SendIceCandidate", videoId, JSON.stringify(ev.candidate));
     });
 }
 

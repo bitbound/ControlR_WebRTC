@@ -96,6 +96,7 @@
 
         <video id="@_videoId"
                @ref="_videoRef"
+               autoplay="autoplay"
                class="@($"{_viewMode.ToString().ToLower()} {_windowState.ToString().ToLower()} remote-screen")" />
 
         @if (!string.IsNullOrWhiteSpace(_statusMessage))

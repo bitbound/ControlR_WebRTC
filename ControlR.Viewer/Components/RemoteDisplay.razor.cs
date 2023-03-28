@@ -89,6 +89,13 @@ public partial class RemoteDisplay : IAsyncDisposable
     }
 
     [JSInvokable]
+    public Task LogError(string message)
+    {
+        Logger.LogError("JS Log: {message}", message);
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
     public async Task OnPinchZoom(double zoomChange)
     {
         _viewMode = ViewMode.Original;
@@ -246,6 +253,7 @@ public partial class RemoteDisplay : IAsyncDisposable
 
     private async Task InvokeKeyboard()
     {
+        _isMobileActionsMenuOpen = false;
         await _virtualKeyboard.FocusAsync();
     }
 
@@ -319,6 +327,9 @@ public partial class RemoteDisplay : IAsyncDisposable
             }
 
             var streamingSessionResult = await ViewerHub.GetStreamingSession(Session.Device.ConnectionId, Session.SessionId, Session.InitialSystemSession, desktopName);
+
+            _statusMessage = string.Empty;
+            _statusProgress = -1;
 
             if (!streamingSessionResult.IsSuccess)
             {

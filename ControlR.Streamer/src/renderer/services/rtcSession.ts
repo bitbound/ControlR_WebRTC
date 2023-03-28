@@ -6,52 +6,72 @@ import { setMediaStreams } from "./mediaHelperRenderer";
 class RtcSession {
   peerConnection?: RTCPeerConnection;
   dataChannel?: RTCDataChannel;
+  isMakingOffer: boolean;
   currentScreen?: MediaScreen;
   screens: MediaScreen[] = [];
 
   async receiveRtcSessionDescription(remoteDescription: RTCSessionDescription) {
-    window.mainApi.writeLog("Received session description: ", "Info", remoteDescription);
+    try {
+      window.mainApi.writeLog("Received session description: ", "Info", remoteDescription);
 
-    if (!this.peerConnection) {
-      await this.initializePeerConnection();
+      if (!this.peerConnection) {
+        await this.initializePeerConnection();
+      }
+  
+      const offerCollision =
+        remoteDescription.type === "offer" &&
+        (this.isMakingOffer || this.peerConnection.signalingState !== "stable");
+  
+      if (offerCollision) {
+        window.mainApi.writeLog("Ignoring session description due to offer collision.", "Info", remoteDescription);
+        return;
+      }
+
+      window.mainApi.writeLog("Setting remote description.");
+      await this.peerConnection.setRemoteDescription(remoteDescription);
+  
+      if (remoteDescription.type == "offer") {
+        window.mainApi.writeLog("Creating answer.");
+        await this.peerConnection.setLocalDescription(
+          await this.peerConnection.createAnswer()
+        );
+  
+        window.mainApi.writeLog("Sending RTC answer: ", "Info", this.peerConnection.localDescription);
+        await streamerHubConnection.sendRtcSessionDescription(
+          this.peerConnection.localDescription
+        );
+      }
     }
-
-    window.mainApi.writeLog("Setting remote description.");
-    await this.peerConnection.setRemoteDescription(remoteDescription);
-
-    if (remoteDescription.type == "offer") {
-      window.mainApi.writeLog("Creating answer.");
-      await this.peerConnection.setLocalDescription(
-        await this.peerConnection.createAnswer()
-      );
-
-      window.mainApi.writeLog("Sending RTC answer: ", "Info", this.peerConnection.localDescription);
-      await streamerHubConnection.sendRtcSessionDescription(
-        this.peerConnection.localDescription
-      );
+    catch (ex) {
+      window.mainApi.writeLog("Error while receiving session description: ", "Error", ex);
     }
   }
 
   async receiveIceCandidate(iceCandidateJson?: string): Promise<void> {
-    if (!this.peerConnection || !this.peerConnection.remoteDescription) {
-      window.mainApi.writeLog(
-        "Received ICE candidate, but initialization hasn't completed.  Retrying in 1 second."
-      );
-      setTimeout(() => {
-        this.receiveIceCandidate(iceCandidateJson);
-      }, 1000);
-      return;
+    try{
+      if (!this.peerConnection || !this.peerConnection.remoteDescription) {
+        window.mainApi.writeLog(
+          "Received ICE candidate, but initialization hasn't completed.  Retrying in 1 second."
+        );
+        setTimeout(() => {
+          this.receiveIceCandidate(iceCandidateJson);
+        }, 1000);
+        return;
+      }
+  
+      if (!iceCandidateJson) {
+        window.mainApi.writeLog("Received null (terminating) ICE candidate");
+        await this.peerConnection.addIceCandidate(null);
+        return;
+      }
+  
+      const iceCandidate = JSON.parse(iceCandidateJson);
+      window.mainApi.writeLog("Received ICE candidate: ", "Info", iceCandidate);
+      await this.peerConnection.addIceCandidate(iceCandidate);
     }
-
-    if (!iceCandidateJson) {
-      window.mainApi.writeLog("Received null (terminating) ICE candidate");
-      await this.peerConnection.addIceCandidate(null);
-      return;
+    catch (ex) {
+      window.mainApi.writeLog("Error while receiving ICE candidate: ", "Error", ex);
     }
-
-    const iceCandidate = JSON.parse(iceCandidateJson);
-    window.mainApi.writeLog("Received ICE candidate: ", "Info", iceCandidate);
-    await this.peerConnection.addIceCandidate(iceCandidate);
   }
 
   private async initializePeerConnection(): Promise<void> {
@@ -123,17 +143,24 @@ class RtcSession {
       }
       window.mainApi.writeLog("Sending ICE candidate: ", "Info", ev.candidate);
       await streamerHubConnection.sendIceCandidate(
-        JSON.stringify(ev.candidate.toJSON())
+        JSON.stringify(ev.candidate)
       );
     });
-    this.peerConnection.addEventListener("negotiationneeded", async (ev) => {
-      window.mainApi.writeLog("Negotiation needed. Creating new offer.");
-      await this.peerConnection.setLocalDescription(
-        await this.peerConnection.createOffer()
-      );
-      await streamerHubConnection.sendRtcSessionDescription(
-        this.peerConnection.localDescription
-      );
+    this.peerConnection.addEventListener("negotiationneeded", async () => {
+      try {
+        this.isMakingOffer = true;
+        window.mainApi.writeLog("Negotiation needed. Creating new offer.");
+        await this.peerConnection.setLocalDescription();
+        await streamerHubConnection.sendRtcSessionDescription(
+          this.peerConnection.localDescription
+        );
+      }
+      catch (ex) {
+        window.mainApi.writeLog("Error during negotiation: ", "Error", ex);
+      }
+      finally {
+        this.isMakingOffer = false;
+      }
     });
     this.peerConnection.addEventListener("datachannel", (ev) => {
       this.dataChannel = ev.channel;

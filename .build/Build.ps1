@@ -20,7 +20,8 @@ $VsWhere = "$InstallerDir\vswhere.exe"
 $MSBuildPath = (&"$VsWhere" -latest -products * -find "\MSBuild\Current\Bin\MSBuild.exe").Trim()
 $Root = (Get-Item -Path $PSScriptRoot).Parent.FullName
 $DownloadsFolder = "$Root\ControlR.Server\wwwroot\downloads\"
-$CurrentVersion = [System.DateTime]::Now.ToString("yyyy.MM.dd.HHmm")
+$Now = [System.DateTime]::Now
+$CurrentVersion = $Now.ToString("yyyy.MM.dd.HHmm")
 
 if (!(Test-Path $CertificatePath)) {
     Write-Error "Certificate not found."
@@ -48,7 +49,7 @@ if ($BuildAgent){
 if ($BuildStreamer) {
     [string]$PackageJson = Get-Content -Path "$Root\ControlR.Streamer\package.json"
     $Package = $PackageJson | ConvertFrom-Json
-    $Package.version = $CurrentVersion
+    $Package.version = $Now.ToString("yyyy.MM.dd")
     [string]$PackageJson = $Package | ConvertTo-Json
     [System.IO.File]::WriteAllText("$Root\ControlR.Streamer\package.json", $PackageJson)
     Push-Location "$Root\ControlR.Streamer"

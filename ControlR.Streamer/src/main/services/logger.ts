@@ -2,11 +2,6 @@ import { platform, tmpdir, EOL } from "os";
 import { appendFileSync, statSync, readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import path from "path";
 
-export type LogLevel = 
-    | "Info"
-    | "Warning"
-    | "Error";
-
 export function writeLog(message: string, level: LogLevel = "Info", ...args: any[]) {
     try {
         if (level == "Info") {
@@ -33,8 +28,8 @@ export function writeLog(message: string, level: LogLevel = "Info", ...args: any
 
         const date = new Date();
         const year = date.getFullYear();
-        const month = date.getMonth().toString().padStart(2, "0");
-        const day = date.getDay().toString().padStart(2, "0");
+        const month = (date.getMonth() + 1).toString().padStart(2, "0");
+        const day = date.getDate().toString().padStart(2, "0");
 
         let logPath = path.join(logDir, `Streamer-${year}-${month}-${day}.log`);
 
@@ -47,6 +42,7 @@ export function writeLog(message: string, level: LogLevel = "Info", ...args: any
         var entry = `[${level}]\t[${(new Date()).toLocaleString()}]\t${message}`;
 
         if (args && args.length > 0) {
+            args = args.filter(x => !!x);
             entry += ` ${JSON.stringify(args)}`
         }
 

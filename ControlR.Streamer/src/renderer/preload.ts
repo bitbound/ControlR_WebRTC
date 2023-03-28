@@ -29,5 +29,5 @@ contextBridge.exposeInMainWorld("mainApi", {
         ipcRenderer.invoke(ipcRtmChannels.invokeWheelScroll, deltaX, deltaY, deltaZ),
 
     "writeLog": (message, level, args) => 
-        ipcRenderer.invoke(ipcRtmChannels.writeLog, message, level, !args ? null : Array.isArray(args) ? args : [args]),
+        ipcRenderer.invoke(ipcRtmChannels.writeLog, message, level, args),
 } as MainApi)

@@ -49,7 +49,7 @@ internal class FileLogger : ILogger
         _writeLock.Wait();
         try
         {
-            var message = FormatLogEntry(logLevel, _categoryName, $"{state}", exception, _scopeStack.Reverse().ToArray());
+            var message = FormatLogEntry(logLevel, _categoryName, $"{state}", exception, _scopeStack.ToArray());
             CheckLogFileExists();
             File.AppendAllText(LogPath, message);
 

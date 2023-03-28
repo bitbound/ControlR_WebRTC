@@ -78,7 +78,7 @@ public class FileLogger : ILogger
         try
         {
 
-            var message = FormatLogEntry(logLevel, _categoryName, $"{state}", exception, _scopeStack.Reverse().ToArray());
+            var message = FormatLogEntry(logLevel, _categoryName, $"{state}", exception, _scopeStack.ToArray());
             CheckLogFileExists();
             File.AppendAllText(LogPath, message);
             CleanupLogs();
