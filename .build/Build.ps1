@@ -8,6 +8,9 @@ param (
     [Parameter(Mandatory=$true)]
     [string]$SignToolPath,
 
+    [Parameter(Mandatory=$true)]
+    [string]$KeystorePassword,
+
     [switch]$BuildAgent,
 
     [switch]$BuildViewer,
@@ -68,6 +71,10 @@ if ($BuildViewer) {
     New-Item -Path "$Root\ControlR.Server\wwwroot\downloads\" -ItemType Directory -Force
     Get-ChildItem -Path "$Root\ControlR.Viewer\bin\publish\" -Recurse -Include "ControlR*.msix" | Select-Object -First 1 | Copy-Item -Destination "$Root\ControlR.Server\wwwroot\downloads\ControlR.Viewer.msix"
     Get-ChildItem -Path "$Root\ControlR.Viewer\bin\publish\" -Recurse -Include "ControlR*.cer" | Select-Object -First 1 | Copy-Item -Destination "$Root\ControlR.Server\wwwroot\downloads\ControlR.Viewer.cer"
-}
+
+    Remove-Item -Path "$Root\ControlR.Viewer\bin\publish\" -Force -Recurse -ErrorAction SilentlyContinue
+    dotnet publish "$Root\ControlR.Viewer\" -f:net7.0-android -c:Release /p:AndroidSigningKeyPass=$KeystorePassword /p:AndroidSigningStorePass=$KeystorePassword -o "$Root\ControlR.Viewer\bin\publish\"
+    Get-ChildItem -Path "$Root\ControlR.Viewer\bin\publish\" -Recurse -Include "*Signed.apk" | Select-Object -First 1 | Copy-Item -Destination "$Root\ControlR.Server\wwwroot\downloads\ControlR.Viewer.apk"
+}   
 
 dotnet publish -p:ExcludeApp_Data=true --runtime ubuntu-x64 --configuration Release --output "$Root\ControlR.Server\bin\publish" --self-contained true "$Root\ControlR.Server\"

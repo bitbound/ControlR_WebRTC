@@ -35,6 +35,7 @@ public interface IFileSystem
 
     void WriteAllText(string filePath, string contents);
     Task WriteAllTextAsync(string path, string content);
+    Task WriteAllBytesAsync(string path, byte[] buffer, CancellationToken cancellationToken = default);
 }
 
 public class FileSystem : IFileSystem
@@ -153,6 +154,12 @@ public class FileSystem : IFileSystem
         }
         await File.WriteAllLinesAsync(filePath, lines);
     }
+
+    public Task WriteAllBytesAsync(string path, byte[] buffer, CancellationToken cancellationToken = default)
+    {
+        return File.WriteAllBytesAsync(path, buffer);
+    }
+
     public void WriteAllText(string filePath, string contents)
     {
         File.WriteAllText(filePath, contents);

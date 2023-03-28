@@ -1,6 +1,7 @@
 ﻿@inject IDialogService Dialogs
 @inject ISettings Settings
 @inject IAppState AppState
+@inject ControlR.Devices.Common.Services.IFileSystem FileIO
 @inject ILogger<KeypairExportDialog> Logger
 
 <MudDialog>
@@ -69,7 +70,7 @@
 
     protected override void OnInitialized()
     {
-        _formIsValid = Directory.Exists(KeyExportPath);
+        _formIsValid = FileIO.DirectoryExists(KeyExportPath);
         base.OnInitialized();
     }
 
@@ -109,7 +110,7 @@
     {
         try
         {
-            if (!Directory.Exists(KeyExportPath))
+            if (!FileIO.DirectoryExists(KeyExportPath))
             {
                 await Dialogs.ShowMessageBox("Path Not Found", "The folder path doesn't exist.");
                 return;
@@ -118,7 +119,7 @@
             var keyExport = AppState.Encryptor.ExportKeypair(Settings.Username);
             var exportPath = Path.Combine(KeyExportPath, $"ControlR_Key_Export_{DateTime.Now:yyyyMMdd-HHmmss}.crkeys");
 
-            await File.WriteAllBytesAsync(exportPath, MessagePackSerializer.Serialize(keyExport.Value));
+            await FileIO.WriteAllBytesAsync(exportPath, MessagePackSerializer.Serialize(keyExport.Value));
         }
         catch (Exception ex)
         {
@@ -132,6 +133,6 @@
 
     private bool ValidateExportPath(string path)
     {
-        return Directory.Exists(path);
+        return FileIO.DirectoryExists(path);
     }
 }

@@ -177,8 +177,6 @@ class RtcSession {
       });
 
       this.dataChannel.addEventListener("message", async (ev) => {
-        window.mainApi.writeLog("Got DataChannel message: ", "Info", ev.data);
-
         await this.handleDataChannelMessage(ev.data);
       });
     });
