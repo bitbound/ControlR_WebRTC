@@ -38,6 +38,7 @@ public partial class RemoteDisplay : IAsyncDisposable
     private string _statusMessage = "Starting remote control session";
     private double _statusProgress = -1;
     private ElementReference _videoRef;
+    private ElementReference _contentArea;
     private ViewMode _viewMode = ViewMode.Stretch;
     private WindowState _windowState = WindowState.Maximized;
     private ControlMode _controlMode = ControlMode.Mouse;
@@ -45,6 +46,8 @@ public partial class RemoteDisplay : IAsyncDisposable
     private double _lastPinchDistance = -1;
     private ElementReference _virtualKeyboard;
     private bool _isMobileActionsMenuOpen;
+    private double _videoWidth;
+    private double _videoHeight;
 
 #nullable disable
     [Parameter, EditorRequired]
@@ -71,6 +74,18 @@ public partial class RemoteDisplay : IAsyncDisposable
     private IEnvironmentHelper EnvironmentHelper { get; init; }
 #nullable enable
 
+    private string VideoCss
+    {
+        get
+        {
+            if (_viewMode is ViewMode.Fit or ViewMode.Stretch || _videoHeight < 1 || _videoWidth < 1)
+            {
+                return string.Empty;
+            }
+            return $"width: {_videoWidth}px; height: {_videoHeight}px;";
+        }
+    }
+    
 
     public async ValueTask DisposeAsync()
     {
@@ -94,6 +109,7 @@ public partial class RemoteDisplay : IAsyncDisposable
         Logger.LogError("JS Log: {message}", message);
         return Task.CompletedTask;
     }
+
 
     [JSInvokable]
     public async Task OnPinchZoom(double zoomChange)
@@ -122,6 +138,8 @@ public partial class RemoteDisplay : IAsyncDisposable
         _statusMessage = message;
         await InvokeAsync(StateHasChanged);
     }
+
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
@@ -194,9 +212,13 @@ public partial class RemoteDisplay : IAsyncDisposable
 
     private async void HandleParameterlessMessage(ParameterlessMessageKind kind)
     {
-        if (kind == ParameterlessMessageKind.ShuttingDown)
+        switch (kind)
         {
-            await DisposeAsync();
+            case ParameterlessMessageKind.ShuttingDown:
+                await DisposeAsync();
+                break;
+            default:
+                break;
         }
     }
 
@@ -270,9 +292,14 @@ public partial class RemoteDisplay : IAsyncDisposable
         _lastPinchDistance = -1;
     }
 
-    private void OnTouchMove(TouchEventArgs ev)
+    private async void OnTouchMove(TouchEventArgs ev)
     {
         if (ev.Touches.Length != 2)
+        {
+            return;
+        }
+
+        if (_selectedDisplay is null)
         {
             return;
         }
@@ -288,13 +315,28 @@ public partial class RemoteDisplay : IAsyncDisposable
             _lastPinchDistance = pinchDistance;
             return;
         }
-
+        
         var pinchChange = pinchDistance - _lastPinchDistance;
 
         _viewMode = ViewMode.Original;
-        _videoScale = Math.Max(.5, Math.Min(_videoScale + pinchChange / 100, 3));
-        // TODO: Compare to selected display size.  Set CSS width/height.
+
+        _videoScale = Math.Max(.25, Math.Min(_videoScale + pinchChange / 100, 3));
+
+        var newWidth = _selectedDisplay.Width * _videoScale;
+        var widthChange = newWidth - _videoWidth;
+        _videoWidth = newWidth;
+
+        var newHeight = _selectedDisplay.Height * _videoScale;
+        var heightChange = newHeight - _videoHeight;
+        _videoHeight = newHeight;
+
         _lastPinchDistance = pinchDistance;
+        await InvokeAsync(StateHasChanged);
+
+        var pinchCenterX = (ev.Touches[0].ClientX + ev.Touches[1].ClientX) / 2;
+        var pinchCenterY = (ev.Touches[0].ClientY + ev.Touches[1].ClientY) / 2;
+
+        await _module!.InvokeVoidAsync("scrollTowardPinch", pinchCenterX, pinchCenterY, _contentArea, widthChange, heightChange);
     }
 
     private async Task OnVkInput(ChangeEventArgs args)
@@ -340,6 +382,11 @@ public partial class RemoteDisplay : IAsyncDisposable
 
             _displays = streamingSessionResult.Value.Displays;
             _selectedDisplay = _displays?.FirstOrDefault();
+            if (_selectedDisplay is not null)
+            {
+                _videoWidth = _selectedDisplay.Width;
+                _videoHeight = _selectedDisplay.Height;
+            }
 
             _statusMessage = "Getting ICE servers";
             await InvokeAsync(StateHasChanged);

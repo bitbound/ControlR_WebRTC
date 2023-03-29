@@ -89,6 +89,7 @@
         </div>
     </div>
     <div class="content-area"
+        @ref="_contentArea"
         @ontouchstart="OnTouchStart"
         @ontouchmove="OnTouchMove"
         @ontouchcancel="OnTouchCancel"
@@ -97,7 +98,8 @@
         <video id="@_videoId"
                @ref="_videoRef"
                autoplay="autoplay"
-               class="@($"{_viewMode.ToString().ToLower()} {_windowState.ToString().ToLower()} remote-screen")" />
+               class="@($"{_viewMode.ToString().ToLower()} {_windowState.ToString().ToLower()} remote-screen")"
+               style="@(VideoCss)"/>
 
         @if (!string.IsNullOrWhiteSpace(_statusMessage))
         {

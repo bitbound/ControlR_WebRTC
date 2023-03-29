@@ -21,6 +21,7 @@ using MudBlazor;
 using Microsoft.Maui.Controls;
 using ControlR.Shared.Extensions;
 using ControlR.Shared.Enums;
+using System.Runtime.CompilerServices;
 
 namespace ControlR.Viewer.Services;
 public interface IViewerHubConnection : IViewerHubClient, IHubConnectionBase
@@ -166,28 +167,40 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
 
     public async Task RequestDeviceUpdates()
     {
-        await WaitForConnection();
-        var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.DeviceUpdateRequest, _settings.PublicKey);
-        await Connection.InvokeAsync("SendSignedDtoToPublicKeyGroup", signedDto);
+        await TryInvoke(async () =>
+        {
+            await WaitForConnection();
+            var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.DeviceUpdateRequest, _settings.PublicKey);
+            await Connection.InvokeAsync("SendSignedDtoToPublicKeyGroup", signedDto);
+        });
     }
 
     public async Task SendIceCandidate(Guid sessionId, string iceCandidateJson)
     {
-        var signedDto = _appState.Encryptor.CreateSignedDto(iceCandidateJson, DtoType.RtcIceCandidate, _settings.PublicKey);
-        await Connection.InvokeAsync("SendSignedDtoToStreamer", sessionId, signedDto);
+        await TryInvoke(async () =>
+        {
+            var signedDto = _appState.Encryptor.CreateSignedDto(iceCandidateJson, DtoType.RtcIceCandidate, _settings.PublicKey);
+            await Connection.InvokeAsync("SendSignedDtoToStreamer", sessionId, signedDto);
+        });
     }
 
     public async Task SendPowerStateChange(DeviceDto device, PowerStateChangeType powerStateType)
     {
-        var powerDto = new PowerStateChangeDto(powerStateType);
-        var signedDto = _appState.Encryptor.CreateSignedDto(powerDto, DtoType.PowerStateChange, _settings.PublicKey);
-        await Connection.InvokeAsync("SendSignedDtoToAgent", device.ConnectionId, signedDto);
+        await TryInvoke(async () =>
+        {
+            var powerDto = new PowerStateChangeDto(powerStateType);
+            var signedDto = _appState.Encryptor.CreateSignedDto(powerDto, DtoType.PowerStateChange, _settings.PublicKey);
+            await Connection.InvokeAsync("SendSignedDtoToAgent", device.ConnectionId, signedDto);
+        });
     }
 
     public async Task SendRtcSessionDescription(Guid sessionId, RtcSessionDescription sessionDescription)
     {
-        var signedDto = _appState.Encryptor.CreateSignedDto(sessionDescription, DtoType.RtcSessionDescription, _settings.PublicKey);
-        await Connection.InvokeAsync("SendSignedDtoToStreamer", sessionId, signedDto);
+        await TryInvoke(async () =>
+        {
+            var signedDto = _appState.Encryptor.CreateSignedDto(sessionDescription, DtoType.RtcSessionDescription, _settings.PublicKey);
+            await Connection.InvokeAsync("SendSignedDtoToStreamer", sessionId, signedDto);
+        });
     }
 
     public async Task Start(CancellationToken cancellationToken)
@@ -259,6 +272,20 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
         _messenger.Send(new ToastMessage(reason, Severity.Error));
         return Task.CompletedTask;
     }
+
+    private async Task TryInvoke(Func<Task> func, [CallerMemberName] string callerName = "")
+    {
+        try
+        {
+            using var _ = _logger.BeginScope(callerName);
+            await func.Invoke();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while invoking hub method.");
+        }
+    }
+
     private class RetryPolicy : IRetryPolicy
     {
         public TimeSpan? NextRetryDelay(RetryContext retryContext)

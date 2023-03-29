@@ -1,5 +1,5 @@
 export async function setMediaStreams(sourceId: string, peerConnection: RTCPeerConnection) {
-    console.log("Getting stream for media source ID: ", sourceId);
+    window.mainApi.writeLog("Getting stream for media source ID: ", "Info", sourceId);
 
     const constraints = getDefaultConstraints();
     constraints.video.mandatory.chromeMediaSourceId = sourceId;
@@ -12,7 +12,7 @@ export async function setMediaStreams(sourceId: string, peerConnection: RTCPeerC
     }
     catch (ex) {
         console.warn(ex);
-        console.log("Failed to get media with audio constraints.  Dropping audio.");
+        window.mainApi.writeLog("Failed to get media with audio constraints.  Dropping audio.", "Warning");
         delete constraints.audio;
         stream = await navigator.mediaDevices.getUserMedia(constraints as MediaStreamConstraints);
         setTrack(stream, peerConnection);
@@ -42,12 +42,24 @@ function setTrack(stream: MediaStream, peerConnection: RTCPeerConnection) {
         const existingTracks = existingSenders.filter(x => x.track.kind == track.kind);
         if (existingTracks && existingTracks.length > 0) {
             existingTracks.forEach(x => {
-                console.log("Replacing existing track: ", x);
+                const trackObj = {
+                    kind: x.track.kind,
+                    id: x.track.id,
+                    label: x.track.label,
+                    readyState: x.track.readyState
+                }
+                window.mainApi.writeLog("Replacing existing track: ", "Info", trackObj);
                 x.replaceTrack(track);
             });
         }
         else {
-            console.log("Adding track: ", track);
+            const trackObj = {
+                kind: track.kind,
+                id: track.id,
+                label: track.label,
+                readyState: track.readyState
+            }
+            window.mainApi.writeLog("Adding track: ", "Info", trackObj);
             peerConnection.addTrack(track, stream);
         }
     });

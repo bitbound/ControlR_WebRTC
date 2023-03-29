@@ -49,7 +49,7 @@
     /** @type {string} */
     videoId;
 
-    /** @type {HTMLVideoElement} */
+    /** @returns {HTMLVideoElement} */
     videoElement;
 
     /** @type {WindowEventHandler[]} */
@@ -111,7 +111,7 @@ export async function dispose(videoId) {
  */
 export async function initialize(componentRef, videoId) {
     const state = getState(videoId);
-    console.log("Got new state: ", state);
+    console.log("Initializing with state: ", state);
 
     /** @type {HTMLVideoElement} */
     const video = document.getElementById(videoId);
@@ -261,8 +261,9 @@ export async function initialize(componentRef, videoId) {
         }
     });
 
-    video.addEventListener("loadedmetadata", () => {
-        video.play();
+    video.addEventListener("loadedmetadata", async () => {
+        await video.play();
+        invokeDotNet("LogInfo", videoId, "Loaded video metadata.  Playing.");
     });
 
     const onKeyDown = (ev) => {
@@ -374,6 +375,27 @@ export async function receiveRtcSessionDescription(sessionDescription, videoId) 
         console.error(ex);
         invokeDotNet("LogError", videoId, "Error while receiving session description: " + JSON.stringify(ex));
     }
+}
+
+/**
+ * 
+ * @param {number} pinchCenterX
+ * @param {number} pinchCenterY
+ * @param {HTMLDivElement} contentDiv
+ * @param {number} widthChange
+ * @param {number} heightChange
+ */
+export async function scrollTowardPinch(pinchCenterX, pinchCenterY, contentDiv, widthChange, heightChange) {
+    var clientAdjustedScrollLeftPercent = (contentDiv.scrollLeft + (contentDiv.clientWidth * .5)) / contentDiv.scrollWidth;
+    var clientAdjustedScrollTopPercent = (contentDiv.scrollTop + (contentDiv.clientHeight * .5)) / contentDiv.scrollHeight;
+
+    var pinchAdjustX = pinchCenterX / window.innerWidth - .5;
+    var pinchAdjustY = pinchCenterY / window.innerHeight - .5;
+
+    var scrollByX = widthChange * (clientAdjustedScrollLeftPercent + (pinchAdjustX * contentDiv.clientWidth / contentDiv.scrollWidth));
+    var scrollByY = heightChange * (clientAdjustedScrollTopPercent + (pinchAdjustY * contentDiv.clientHeight / contentDiv.scrollHeight));
+
+    contentDiv.scrollBy(scrollByX, scrollByY);
 }
 
 /**
@@ -521,8 +543,14 @@ function setPeerConnectionHandlers(peerConnection, videoId) {
     });
 
     peerConnection.addEventListener("icecandidateerror", ev => {
+        const err = {
+            errorCode: ev.errorCode,
+            errorText: ev.errorText,
+            port: ev.port,
+            url: ev.url
+        }
         console.log("ICE candidate error: ", ev);
-        invokeDotNet("LogInfo", videoId, "ICE candidate error: " + JSON.stringify(ev));
+        invokeDotNet("LogInfo", videoId, "ICE candidate error: " + JSON.stringify(err));
     });
 
     peerConnection.addEventListener("signalingstatechange", ev => {
@@ -531,18 +559,23 @@ function setPeerConnectionHandlers(peerConnection, videoId) {
     });
 
     peerConnection.addEventListener("track", async ev => {
-        ev.track.addEventListener("unmute", async () => {
-            console.log("Got track: ", ev.track);
-            await invokeDotNet("LogInfo", videoId, "Got track: " + JSON.stringify(ev.track));
-            state.videoElement.srcObject = ev.streams[0];
-            await invokeDotNet("SetStatusMessage", videoId, "");
-        })
+        console.log("Received track: ", ev.track);
+        const trackObj = {
+            kind: ev.track.kind,
+            id: ev.track.id,
+            label: ev.track.label,
+            readyState: ev.track.readyState
+        }
+        await invokeDotNet("LogInfo", videoId, "Received track: " + JSON.stringify(trackObj));
+        state.videoElement.srcObject = ev.streams[0];
+        await state.videoElement.play();
+        await invokeDotNet("SetStatusMessage", videoId, "");
     });
 
     peerConnection.addEventListener("negotiationneeded", async () => {
-        console.log("Negotiation needed.");
         try {
             state.isMakingOffer = true;
+            console.log("Negotiation needed.");
             await invokeDotNet("LogInfo", videoId, "Negotiation needed.");
             await peerConnection.setLocalDescription();
             await invokeDotNet("SendRtcDescription", videoId, peerConnection.localDescription);
@@ -554,7 +587,6 @@ function setPeerConnectionHandlers(peerConnection, videoId) {
         finally {
             state.isMakingOffer = false;
         }
-
     });
 
     peerConnection.addEventListener("icecandidate", async ev => {
@@ -564,8 +596,8 @@ function setPeerConnectionHandlers(peerConnection, videoId) {
             return;
         }
 
-        console.log("Ice candidate: ", ev.candidate);
-        invokeDotNet("LogInfo", videoId, "Ice candidate: " + JSON.stringify(ev.candidate));
+        console.log("Sending ICE candidate: ", ev.candidate);
+        invokeDotNet("LogInfo", videoId, "Sending ICE candidate: " + JSON.stringify(ev.candidate));
         await invokeDotNet("SendIceCandidate", videoId, JSON.stringify(ev.candidate));
     });
 }

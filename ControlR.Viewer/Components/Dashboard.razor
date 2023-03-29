@@ -172,7 +172,7 @@
     protected override async Task OnInitializedAsync()
     {
         using var _ = AppState.IncrementBusyCounter();
-        Messenger.RegisterParameterless(this, ParameterlessMessageKind.DevicesCacheUpdated, HandleDeviceCacheUpdated);
+        Messenger.RegisterParameterless(this, HandleParameterlessMessage);
 
         await base.OnInitializedAsync();
 
@@ -200,7 +200,7 @@
                     return;
                 }
 
-                var dialogParams = new DialogParameters() { ["Sessions"] = sessionResult.Value };
+                var dialogParams = new DialogParameters() { ["DeviceName"] = device.Name, ["Sessions"] = sessionResult.Value };
                 var dialogRef = await DialogService.ShowAsync<WindowsSessionSelectDialog>("Select Target Session", dialogParams);
                 var result = await dialogRef.Result;
                 if (result.Canceled)
@@ -253,10 +253,28 @@
         await ViewerHub.SendPowerStateChange(device, PowerStateChangeType.Shutdown);
     }
 
-    private void HandleDeviceCacheUpdated()
+
+    private async Task HandleParameterlessMessage(ParameterlessMessageKind kind)
     {
-        _loading = false;
-        Debouncer.Debounce(TimeSpan.FromSeconds(1), () => InvokeAsync(StateHasChanged));
+        switch (kind)
+        {
+            case ParameterlessMessageKind.DevicesCacheUpdated:
+                {
+                    _loading = false;
+                    Debouncer.Debounce(TimeSpan.FromSeconds(1), () => InvokeAsync(StateHasChanged));
+                }
+                break;
+            case ParameterlessMessageKind.HubConnectionStateChanged:
+                {
+                    if (ViewerHub.ConnectionState == Microsoft.AspNetCore.SignalR.Client.HubConnectionState.Connected)
+                    {
+                        await Refresh();
+                    }
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     private async Task Refresh()

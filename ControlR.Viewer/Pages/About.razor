@@ -1,4 +1,5 @@
 ﻿@page "/about"
+@inject IVersionTracking VersionTracking
 
 <PageTitle>About</PageTitle>
 
@@ -6,6 +7,19 @@
     About
 </MudText>
 
+
+<div class="about-grid">
+    <div>
+        <MudText Color="Color.Primary">
+            Version:
+        </MudText>
+    </div>
+    <div>
+        <MudText>
+            @(VersionTracking.CurrentVersion)
+        </MudText>
+    </div>
+</div>
 
 @code {
 

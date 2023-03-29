@@ -52,7 +52,7 @@ if ($BuildAgent){
 if ($BuildStreamer) {
     [string]$PackageJson = Get-Content -Path "$Root\ControlR.Streamer\package.json"
     $Package = $PackageJson | ConvertFrom-Json
-    $Package.version = $Now.ToString("yyyy.MM.dd")
+    $Package.version = $Now.ToString("yyyy.MM.ddHHmm")
     [string]$PackageJson = $Package | ConvertTo-Json
     [System.IO.File]::WriteAllText("$Root\ControlR.Streamer\package.json", $PackageJson)
     Push-Location "$Root\ControlR.Streamer"

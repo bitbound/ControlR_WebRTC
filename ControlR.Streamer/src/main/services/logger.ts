@@ -1,6 +1,31 @@
 import { platform, tmpdir, EOL } from "os";
-import { appendFileSync, statSync, readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { appendFileSync, statSync, readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync } from "fs";
 import path from "path";
+
+const maxLogAge = 1000 * 60 * 60 * 24 * 7; // 7 days
+
+export function cleanupLogs() {
+    try {
+        const logDir = getLogDir();
+        readdirSync(logDir).forEach(x => {
+            const xStat = statSync(x);
+            const now = Date.now()
+
+            if (xStat.isFile() && now - xStat.mtime.getTime() > maxLogAge) {
+                try {
+                    writeLog("Removing expired log file: ", "Info", x);
+                    rmSync(x);
+                }
+                catch (ex) {
+                    writeLog("Error while removing log file.", "Error", ex);
+                }
+            }
+        });
+    }
+    catch (ex) {
+        writeLog("Error while cleaning logs directory.", "Error", ex);
+    }
+}
 
 export function writeLog(message: string, level: LogLevel = "Info", ...args: any[]) {
     try {
@@ -10,21 +35,11 @@ export function writeLog(message: string, level: LogLevel = "Info", ...args: any
         else if (level == "Warning") {
             console.warn(message, args);
         }
-        else if (level == "Error"){
+        else if (level == "Error") {
             console.error(message, args);
         }
 
-        let logDir = path.join(tmpdir(), "ControlR", "Logs");
-        const rootDir = path.parse(logDir).root;
-    
-        if (platform() == "win32")
-        {
-            logDir = path.join(rootDir, "ProgramData", "ControlR", "Logs", "ControlR.Streamer");
-        }
-    
-        if (!existsSync(logDir)) {
-            mkdirSync(logDir, {recursive: true});
-        }
+        const logDir = getLogDir();
 
         const date = new Date();
         const year = date.getFullYear();
@@ -54,4 +69,18 @@ export function writeLog(message: string, level: LogLevel = "Info", ...args: any
         console.error("Failed to write to log file.", ex);
     }
 
+}
+
+function getLogDir() {
+    let logDir = path.join(tmpdir(), "ControlR", "Logs");
+    const rootDir = path.parse(logDir).root;
+
+    if (platform() == "win32") {
+        logDir = path.join(rootDir, "ProgramData", "ControlR", "Logs", "ControlR.Streamer");
+    }
+
+    if (!existsSync(logDir)) {
+        mkdirSync(logDir, { recursive: true });
+    }
+    return logDir;
 }

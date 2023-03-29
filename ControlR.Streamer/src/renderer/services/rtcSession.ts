@@ -141,7 +141,7 @@ class RtcSession {
         window.mainApi.writeLog("End of ICE candidates.");
         return;
       }
-      window.mainApi.writeLog("Sending ICE candidate: ", "Info", ev.candidate);
+      window.mainApi.writeLog("Sending ICE candidate: ", "Info", JSON.stringify(ev.candidate));
       await streamerHubConnection.sendIceCandidate(
         JSON.stringify(ev.candidate)
       );
