@@ -389,13 +389,10 @@ public partial class RemoteDisplay : IAsyncDisposable
             }
 
             _statusMessage = "Getting ICE servers";
+            Logger.LogInformation("Getting ICE servers.");
             await InvokeAsync(StateHasChanged);
 
-            Logger.LogInformation("Starting RTC offer");
-
             var iceServersResult = await ViewerHub.GetIceServers();
-
-            Logger.LogInformation("Getting ICE servers.");
 
             if (!iceServersResult.IsSuccess || !iceServersResult.Value.Any())
             {
@@ -404,6 +401,7 @@ public partial class RemoteDisplay : IAsyncDisposable
                 return;
             }
 
+            Logger.LogInformation("Starting RTC offer");
             _statusMessage = "Sending RTC offer";
             await InvokeAsync(StateHasChanged);
             await _module.InvokeVoidAsync("startRtcOffer", iceServersResult.Value.Cast<object>(), _videoId);
