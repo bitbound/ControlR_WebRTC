@@ -32,9 +32,7 @@ class RtcSession {
   
       if (remoteDescription.type == "offer") {
         window.mainApi.writeLog("Creating answer.");
-        await this.peerConnection.setLocalDescription(
-          await this.peerConnection.createAnswer()
-        );
+        await this.peerConnection.setLocalDescription();
   
         window.mainApi.writeLog("Sending RTC answer: ", "Info", this.peerConnection.localDescription);
         await streamerHubConnection.sendRtcSessionDescription(
