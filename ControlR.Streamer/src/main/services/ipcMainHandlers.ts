@@ -2,7 +2,7 @@ import { app, ipcMain, IpcMainInvokeEvent } from "electron";
 import { ipcRtmChannels } from "../../shared/ipcChannels";
 import appState from "./appState";
 import { verify, createPublicKey } from "crypto";
-import { getScreens } from "./mediaHelperMain";
+import { getDisplays } from "./mediaHelperMain";
 import { invokeKeyEvent, invokeMouseButtonEvent, movePointer, resetKeyboardState, scrollWheel } from "./inputSimulator";
 import { writeLog } from "./logger";
 
@@ -10,7 +10,7 @@ export async function registerIpcHandlers() {
   ipcMain.handle(ipcRtmChannels.getServerUri, () => appState.serverUri);
   ipcMain.handle(ipcRtmChannels.getSessionId, () => appState.sessionId);
   ipcMain.handle(ipcRtmChannels.verifyDto, verifyDto);
-  ipcMain.handle(ipcRtmChannels.getScreens, () => getScreens());
+  ipcMain.handle(ipcRtmChannels.getDisplays, () => getDisplays());
   ipcMain.handle(ipcRtmChannels.movePointer, (_, x, y) => movePointer(x, y));
   ipcMain.handle(ipcRtmChannels.exit, () => app.exit());
   ipcMain.handle(ipcRtmChannels.invokeKeyEvent, (_, key, isPressed) => invokeKeyEvent(key, isPressed));

@@ -47,6 +47,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton(_ => FileSystem.Current);
 		builder.Services.AddSingleton(_ => FilePicker.Default);
 
+		builder.Services.AddSingleton(_ => VersionTracking.Default);
         builder.Services.AddSingleton<IHttpConfigurer, HttpConfigurer>();
 		builder.Services.AddSingleton<IEncryptionSessionFactory, EncryptionSessionFactory>();
 		builder.Services.AddSingleton<IMessenger>(_ => WeakReferenceMessenger.Default);

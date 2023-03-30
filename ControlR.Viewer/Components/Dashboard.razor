@@ -284,5 +284,6 @@
         DeviceCache.Clear();
         await InvokeAsync(StateHasChanged);
         await ViewerHub.RequestDeviceUpdates();
+        Snackbar.Add("Device refresh requested", Severity.Success);
     }
 }

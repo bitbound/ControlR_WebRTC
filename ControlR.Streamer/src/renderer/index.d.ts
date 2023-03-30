@@ -6,7 +6,7 @@ declare interface MainApi {
   verifyDto(base64Payload: string, base64Signature: string, publicKey: string, publicKeyPem: string): Promise<boolean>;
   getServerUri(): Promise<string>;
   getSessionId(): Promise<string>;
-  getScreens(): Promise<MediaScreen[]>;
+  getDisplays(): Promise<MediaScreen[]>;
   movePointer(x: number, y: number): Promise<void>;
   invokeMouseButton(button: number, isPressed: boolean, x: number, y: number): Promise<void>;
   invokeKeyEvent(keyCode: string, isPressed: boolean): Promise<void>;

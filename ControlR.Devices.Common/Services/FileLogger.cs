@@ -146,7 +146,7 @@ public class FileLogger : ILogger
             $"[{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff}]\t";
 
         entry += scopeStack.Any() ?
-                    $"[{string.Join(" => ", scopeStack)} => {categoryName}]\t" :
+                    $"[{categoryName} => {string.Join(" => ", scopeStack)}]\t" :
                     $"[{categoryName}]\t";
 
         entry += $"{state}\t";

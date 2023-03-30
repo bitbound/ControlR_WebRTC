@@ -108,8 +108,9 @@ export async function dispose(videoId) {
  * event handlers for the video element.
  * @param {any} componentRef
  * @param {string} videoId
+ * @param {RTCIceServer[]} iceServers
  */
-export async function initialize(componentRef, videoId) {
+export async function initialize(componentRef, videoId, iceServers) {
     const state = getState(videoId);
     console.log("Initializing with state: ", state);
 
@@ -120,8 +121,16 @@ export async function initialize(componentRef, videoId) {
     state.videoId = videoId;
     state.videoElement = video;
 
+    console.log("Creating peer connection with ICE servers: ", iceServers);
+    invokeDotNet("LogInfo", videoId, "Creating peer connection with ICE servers: " + JSON.stringify(iceServers));
+    state.peerConnection = new RTCPeerConnection({
+        iceServers: iceServers
+    });
+    setPeerConnectionHandlers(state.peerConnection, videoId);
+
     video.addEventListener("pointerup", ev => {
         if (state.longPressStarted && !state.isDragging) {
+            sendMouseButtonEvent(ev.offsetX, ev.offsetY, true, 2, state);
             sendMouseButtonEvent(ev.offsetX, ev.offsetY, false, 2, state);
         }
 
@@ -264,6 +273,9 @@ export async function initialize(componentRef, videoId) {
     video.addEventListener("loadedmetadata", async () => {
         await video.play();
         invokeDotNet("LogInfo", videoId, "Loaded video metadata.  Playing.");
+
+        state.dataChannel = state.peerConnection.createDataChannel("input");
+        setDataChannelHandlers(state.dataChannel, videoId);
     });
 
     const onKeyDown = (ev) => {
@@ -379,6 +391,24 @@ export async function receiveRtcSessionDescription(sessionDescription, videoId) 
 
 /**
  * 
+ * @param {RTCIceServer[]} iceServers
+ * @param {string} videoId
+ */
+export async function resetPeerConnection(iceServers, videoId) {
+    const state = getState(videoId);
+
+    if (state.peerConnection) {
+        state.peerConnection.close();
+    }
+
+    state.peerConnection = new RTCPeerConnection({
+        iceServers: iceServers,
+    });
+    setPeerConnectionHandlers(state.peerConnection, videoId);
+}
+
+/**
+ * 
  * @param {number} pinchCenterX
  * @param {number} pinchCenterY
  * @param {HTMLDivElement} contentDiv
@@ -398,31 +428,6 @@ export async function scrollTowardPinch(pinchCenterX, pinchCenterY, contentDiv, 
     contentDiv.scrollBy(scrollByX, scrollByY);
 }
 
-/**
- * 
- * @param {RTCIceServer[]} iceServers
- * @param {string} videoId
- */
-export async function startRtcOffer(iceServers, videoId) {
-    const state = getState(videoId);
-
-    console.log("Creating peer connection with ICE servers: ", iceServers);
-    invokeDotNet("LogInfo", videoId, "Creating peer connection with ICE servers: " + JSON.stringify(iceServers));
-
-    if (state.peerConnection) {
-        state.peerConnection.close();
-    }
-
-    const pc = new RTCPeerConnection({
-        iceServers: iceServers,
-    });
-
-    state.peerConnection = pc;
-    setPeerConnectionHandlers(state.peerConnection, videoId);
-
-    state.dataChannel = pc.createDataChannel("input");
-    setDataChannelHandlers(state.dataChannel, videoId);
-}
 
 /**
  * @param {number} point1X
@@ -547,7 +552,8 @@ function setPeerConnectionHandlers(peerConnection, videoId) {
             errorCode: ev.errorCode,
             errorText: ev.errorText,
             port: ev.port,
-            url: ev.url
+            url: ev.url,
+            hostCandidate: ev.hostCandidate
         }
         console.log("ICE candidate error: ", ev);
         invokeDotNet("LogInfo", videoId, "ICE candidate error: " + JSON.stringify(err));
@@ -568,7 +574,6 @@ function setPeerConnectionHandlers(peerConnection, videoId) {
         }
         await invokeDotNet("LogInfo", videoId, "Received track: " + JSON.stringify(trackObj));
         state.videoElement.srcObject = ev.streams[0];
-        await state.videoElement.play();
         await invokeDotNet("SetStatusMessage", videoId, "");
     });
 

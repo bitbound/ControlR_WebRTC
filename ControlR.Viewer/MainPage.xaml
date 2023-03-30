@@ -6,7 +6,7 @@
              Title="ControlR Viewer"
              BackgroundColor="{DynamicResource PageBackgroundColor}">
 
-    <BlazorWebView x:Name="BlazorWebView" x:FieldModifier="Public" HostPage="wwwroot/index.html">
+    <BlazorWebView x:Name="BlazorWebView" HostPage="wwwroot/index.html">
         <BlazorWebView.RootComponents>
             <RootComponent Selector="#app" ComponentType="{x:Type local:Main}" />
         </BlazorWebView.RootComponents>

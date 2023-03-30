@@ -1,5 +1,5 @@
 import { Point } from "@nut-tree/nut-js";
-import { MediaScreen } from "../../shared/interfaces/mediaScreen";
+import { DisplayDto } from "../../shared/signalrDtos/displayDto";
 import streamerHubConnection from "./streamerHubConnection";
 import { setMediaStreams } from "./mediaHelperRenderer";
 
@@ -7,17 +7,36 @@ class RtcSession {
   peerConnection?: RTCPeerConnection;
   dataChannel?: RTCDataChannel;
   isMakingOffer: boolean;
-  currentScreen?: MediaScreen;
-  screens: MediaScreen[] = [];
+  currentScreen?: DisplayDto;
+  screens: DisplayDto[] = [];
+
+  async startRtcSession() {
+    window.mainApi.writeLog("Getting ICE servers.");
+  
+      const iceServers = await streamerHubConnection.getIceServers();
+      window.mainApi.writeLog("Got ICE servers: ", "Info", iceServers);
+  
+      this.peerConnection = new RTCPeerConnection({
+        iceServers: iceServers,
+      });
+  
+      this.setConnectionHandlers();
+  
+      window.mainApi.writeLog("Getting screens from main API.");
+      this.screens = await window.mainApi.getDisplays();
+      window.mainApi.writeLog("Found screens: ", "Info", this.screens);
+  
+      this.currentScreen = this.screens[0];
+      window.mainApi.writeLog("Getting stream for first screen: ", "Info", this.currentScreen);
+  
+      window.mainApi.writeLog("Adding tracks from stream.");
+      await setMediaStreams(this.currentScreen.mediaId, this.peerConnection);
+  }
 
   async receiveRtcSessionDescription(remoteDescription: RTCSessionDescription) {
     try {
       window.mainApi.writeLog("Received session description: ", "Info", remoteDescription);
 
-      if (!this.peerConnection) {
-        await this.initializePeerConnection();
-      }
-  
       const offerCollision =
         remoteDescription.type === "offer" &&
         (this.isMakingOffer || this.peerConnection.signalingState !== "stable");
@@ -70,29 +89,6 @@ class RtcSession {
     catch (ex) {
       window.mainApi.writeLog("Error while receiving ICE candidate: ", "Error", ex);
     }
-  }
-
-  private async initializePeerConnection(): Promise<void> {
-    window.mainApi.writeLog("Getting ICE servers.");
-
-    const iceServers = await streamerHubConnection.getIceServers();
-    window.mainApi.writeLog("Got ICE servers: ", "Info", iceServers);
-
-    this.peerConnection = new RTCPeerConnection({
-      iceServers: iceServers,
-    });
-
-    this.setConnectionHandlers();
-
-    window.mainApi.writeLog("Getting screens from main API.");
-    this.screens = await window.mainApi.getScreens();
-    window.mainApi.writeLog("Found screens: ", "Info", this.screens);
-
-    this.currentScreen = this.screens[0];
-    window.mainApi.writeLog("Getting stream for first screen: ", "Info", this.currentScreen);
-
-    window.mainApi.writeLog("Adding tracks from stream.");
-    await setMediaStreams(this.currentScreen.mediaId, this.peerConnection);
   }
 
   private setConnectionHandlers() {
@@ -231,12 +227,10 @@ class RtcSession {
     }
   }
   private getAbsoluteScreenPoint(percentX: number, percentY: number): Point {
-    const screenBounds = this.currentScreen.bounds;
-    const x = screenBounds.width * percentX + screenBounds.x;
-    const y = screenBounds.height * percentY + screenBounds.y;
+    const x = this.currentScreen.width * percentX + this.currentScreen.left;
+    const y = this.currentScreen.height * percentY + this.currentScreen.top;
     return { x: x, y: y };
   }
-  private getAbsoluteY() {}
 }
 
 const rtcSession = new RtcSession();

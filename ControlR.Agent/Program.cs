@@ -91,6 +91,11 @@ unInstallCommand.SetHandler(async () =>
 
 watchDesktopCommand.SetHandler(async (agentPipeName, parentProcessId) =>
 {
+    if (!OperatingSystem.IsWindows())
+    {
+        Console.WriteLine("This command is only available on Windows.");
+        return;
+    }
     var host = CreateHost(StartupMode.WatchDesktop);
     var desktopReporter = host.Services.GetRequiredService<IInputDesktopReporter>();
     await desktopReporter.Start(agentPipeName, parentProcessId);

@@ -8,7 +8,7 @@ export function cleanupLogs() {
     try {
         const logDir = getLogDir();
         readdirSync(logDir).forEach(x => {
-            const xStat = statSync(x);
+            const xStat = statSync(path.join(logDir, x));
             const now = Date.now()
 
             if (xStat.isFile() && now - xStat.mtime.getTime() > maxLogAge) {

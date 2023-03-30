@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld("mainApi", {
     "verifyDto": (base64Payload, base64Signature, publicKey, publicKeyPem) => 
         ipcRenderer.invoke(ipcRtmChannels.verifyDto, base64Payload, base64Signature, publicKey, publicKeyPem),
 
-    "getScreens": () => ipcRenderer.invoke(ipcRtmChannels.getScreens),
+    "getDisplays": () => ipcRenderer.invoke(ipcRtmChannels.getDisplays),
     "movePointer": (x, y) => ipcRenderer.invoke(ipcRtmChannels.movePointer, x, y),
     "exit": () => ipcRenderer.invoke(ipcRtmChannels.exit),
 

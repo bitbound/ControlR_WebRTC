@@ -1,8 +1,8 @@
 import { HubConnection, HubConnectionBuilder, JsonHubProtocol, LogLevel } from "@microsoft/signalr";
-import { MediaScreen } from "../../shared/interfaces/mediaScreen";
-import { Display } from "../../shared/interfaces/display";
+import { DisplayDto } from "../../shared/signalrDtos/displayDto";
 import { SignedPayloadDto } from "../../shared/signalrDtos/signedPayloadDto";
 import { receiveDto } from "./signalrDtoHandler";
+import rtcSession from "./rtcSession";
 
 class StreamerHubConnection {
     connection?: HubConnection;
@@ -32,20 +32,9 @@ class StreamerHubConnection {
         await this.connection.start();
 
         if (this.sessionId) {
-            const screens = await window.mainApi.getScreens();
-            const displays = screens.map(x => {
-                return {
-                    top: x.bounds.y,
-                    left: x.bounds.x,
-                    right: x.bounds.x + x.bounds.width,
-                    bottom: x.bounds.y + x.bounds.height,
-                    name: x.name,
-                    displayId: x.displayId,
-                    mediaId: x.mediaId,
-                    isPrimary: x.isPrimary
-                } as Display
-            })
-            await this.connection.invoke("setSessionDetails", this.sessionId, displays);
+            const screens = await window.mainApi.getDisplays();
+            await this.connection.invoke("setSessionDetails", this.sessionId, screens);
+            await rtcSession.startRtcSession();
         }
     }
 

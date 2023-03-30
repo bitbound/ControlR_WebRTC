@@ -2,7 +2,7 @@ export enum ipcRtmChannels {
     getServerUri = "getServerUri",
     getSessionId = "getSessionId",
     verifyDto = "verifyDto",
-    getScreens = "getScreens",
+    getDisplays = "getDisplays",
     movePointer = "movePointer",
     exit = "exit",
     invokeMouseButtonEvent = "invokeMouseButtonEvent",
