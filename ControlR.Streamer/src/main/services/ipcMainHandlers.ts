@@ -3,7 +3,7 @@ import { ipcRtmChannels } from "../../shared/ipcChannels";
 import appState from "./appState";
 import { verify, createPublicKey } from "crypto";
 import { getDisplays } from "./mediaHelperMain";
-import { invokeKeyEvent, invokeMouseButtonEvent, movePointer, resetKeyboardState, scrollWheel } from "./inputSimulator";
+import { invokeKeyEvent, invokeMouseButtonEvent, movePointer, resetKeyboardState, scrollWheel, invokeTypeText } from "./inputSimulator";
 import { writeLog } from "./logger";
 
 export async function registerIpcHandlers() {
@@ -13,10 +13,11 @@ export async function registerIpcHandlers() {
   ipcMain.handle(ipcRtmChannels.getDisplays, () => getDisplays());
   ipcMain.handle(ipcRtmChannels.movePointer, (_, x, y) => movePointer(x, y));
   ipcMain.handle(ipcRtmChannels.exit, () => app.exit());
-  ipcMain.handle(ipcRtmChannels.invokeKeyEvent, (_, key, isPressed) => invokeKeyEvent(key, isPressed));
+  ipcMain.handle(ipcRtmChannels.invokeKeyEvent, (_, key, isPressed, shouldRelease) => invokeKeyEvent(key, isPressed, shouldRelease));
   ipcMain.handle(ipcRtmChannels.invokeMouseButtonEvent, (_, button, isPressed, x, y) => invokeMouseButtonEvent(button, isPressed, x, y));
   ipcMain.handle(ipcRtmChannels.resetKeyboardState, (_) => resetKeyboardState());
   ipcMain.handle(ipcRtmChannels.invokeWheelScroll, (_, deltaX, deltaY, deltaZ) => scrollWheel(deltaX, deltaY, deltaZ));
+  ipcMain.handle(ipcRtmChannels.invokeTypeText, (_, text) => invokeTypeText(text));
   ipcMain.handle(ipcRtmChannels.writeLog, (_, message, level, args) => writeLog(message, level, args));
 }
 

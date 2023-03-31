@@ -13,9 +13,9 @@ class StreamerHubConnection {
         this.serverUri = await window.mainApi.getServerUri();
         this.sessionId = await window.mainApi.getSessionId();
 
-        console.log("Starting SignalR connection.");
-        console.log("ServerUri: ", this.serverUri);
-        console.log("Session ID: ", this.sessionId);
+        window.mainApi.writeLog("Starting SignalR connection.");
+        window.mainApi.writeLog("ServerUri: ", "Info", this.serverUri);
+        window.mainApi.writeLog("Session ID: ", "Info", this.sessionId);
 
         if (this.connection) {
             await this.connection.stop();

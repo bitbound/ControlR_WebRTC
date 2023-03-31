@@ -30,6 +30,7 @@ namespace ControlR.Viewer.Components;
 public partial class RemoteDisplay : IAsyncDisposable
 {
     private readonly string _videoId = $"video-{Guid.NewGuid()}";
+    private readonly SemaphoreSlim _typeLock = new(1, 1);
     private DotNetObjectReference<RemoteDisplay>? _componentRef;
     private ElementReference _contentArea;
     private ControlMode _controlMode = ControlMode.Mouse;
@@ -40,6 +41,7 @@ public partial class RemoteDisplay : IAsyncDisposable
     private double _lastPinchDistance = -1;
     private IJSObjectReference? _module;
     private Display? _selectedDisplay;
+    private bool _isStreamReady;
     private string _statusMessage = "Starting remote control session";
     private double _statusProgress = -1;
     private double _videoHeight;
@@ -49,6 +51,9 @@ public partial class RemoteDisplay : IAsyncDisposable
     private ViewMode _viewMode = ViewMode.Stretch;
     private ElementReference _virtualKeyboard;
     private WindowState _windowState = WindowState.Maximized;
+    private bool _isStreamLoaded;
+
+
 #nullable disable
     [Parameter, EditorRequired]
     public RemoteControlSession Session { get; set; }
@@ -70,7 +75,16 @@ public partial class RemoteDisplay : IAsyncDisposable
     [Inject]
     private ISnackbar Snackbar { get; init; }
 
-    private string VideoCss
+    private string VideoDisplayCss
+    {
+        get
+        {
+            return _isStreamLoaded ?
+                "display: unset;" :
+                "display: none;";
+        }
+    }
+    private string VideoSizeCss
     {
         get
         {
@@ -82,16 +96,46 @@ public partial class RemoteDisplay : IAsyncDisposable
         }
     }
 
+    private string VirtualKeyboardText
+    {
+        get
+        {
+            return string.Empty;
+        }
+        set
+        {
+
+            _ = TypeText(value);
+        }
+    }
+
     [Inject]
     private IViewerHubConnection ViewerHub { get; init; }
 #nullable enable
+
     public async ValueTask DisposeAsync()
     {
         await ViewerHub.CloseStreamingSession(Session.SessionId);
         Messenger.UnregisterAll(this);
         await _module!.InvokeVoidAsync("dispose", _videoId);
-        //_componentRef?.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    [JSInvokable]
+    public async Task NotifyStreamReady()
+    {
+        _isStreamReady = true;
+        _statusMessage = "Stream ready";
+        _statusProgress = 0;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task NotifyStreamLoaded()
+    {
+        _isStreamLoaded = true;
+        _statusMessage = string.Empty;
+        await InvokeAsync(StateHasChanged);
     }
 
     [JSInvokable]
@@ -106,13 +150,6 @@ public partial class RemoteDisplay : IAsyncDisposable
     {
         Logger.LogInformation("JS Log: {message}", message);
         return Task.CompletedTask;
-    }
-    [JSInvokable]
-    public async Task OnPinchZoom(double zoomChange)
-    {
-        _viewMode = ViewMode.Original;
-        _videoScale += zoomChange / 100;
-        await InvokeAsync(StateHasChanged);
     }
 
     [JSInvokable]
@@ -134,7 +171,6 @@ public partial class RemoteDisplay : IAsyncDisposable
         _statusMessage = message;
         await InvokeAsync(StateHasChanged);
     }
-
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -159,7 +195,7 @@ public partial class RemoteDisplay : IAsyncDisposable
             _iceServers = iceServersResult.Value;
             await _module.InvokeVoidAsync("initialize", _componentRef, _videoId, _iceServers);
 
-            await SetStatusMessage("Requesting streaming session");
+            await SetStatusMessage("Creating streaming session");
             await RequestStreamingSessionFromAgent();
         }
     }
@@ -352,22 +388,12 @@ public partial class RemoteDisplay : IAsyncDisposable
     {
         _lastPinchDistance = -1;
     }
-    private async Task OnVkInput(ChangeEventArgs args)
-    {
-        // TODO
-        Logger.LogInformation("VK input: {value}", args.Value);
-    }
 
     private async Task OnVkKeyDown(KeyboardEventArgs args)
     {
-        // TODO
-        if (args.Key == "Enter")
+        if (args.Key == "Enter" || args.Key == "Backspace")
         {
-
-        }
-        else if (args.Key == "Backspace")
-        {
-
+            await _module!.InvokeVoidAsync("sendKeyPress", args.Key, _videoId);
         }
     }
 
@@ -381,15 +407,14 @@ public partial class RemoteDisplay : IAsyncDisposable
                 return;
             }
 
-            Logger.LogInformation("Requesting streaming session");
+            Logger.LogInformation("Creating streaming session");
             var streamingSessionResult = await ViewerHub.GetStreamingSession(Session.Device.ConnectionId, Session.SessionId, Session.InitialSystemSession, desktopName);
 
-            await SetStatusMessage(string.Empty);
             _statusProgress = -1;
 
             if (!streamingSessionResult.IsSuccess)
             {
-                Snackbar.Add("Failed to create streaming session", Severity.Error);
+                Snackbar.Add(streamingSessionResult.Reason, Severity.Error);
                 await Close();
                 return;
             }
@@ -401,6 +426,8 @@ public partial class RemoteDisplay : IAsyncDisposable
                 _videoWidth = _selectedDisplay.Width;
                 _videoHeight = _selectedDisplay.Height;
             }
+
+            await SetStatusMessage("Negotiating RTC");
         }
         catch (Exception ex)
         {
@@ -414,5 +441,22 @@ public partial class RemoteDisplay : IAsyncDisposable
         _windowState = state;
         _videoScale = 1;
         Messenger.Send(new RemoteDisplayWindowStateMessage(Session.SessionId, state));
+    }
+
+    private async Task TypeText(string text)
+    {
+        await _typeLock.WaitAsync();
+        try
+        {
+            await _module!.InvokeVoidAsync("typeText", text, _videoId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error while sending text to type.");
+        }
+        finally
+        {
+            _typeLock.Release();
+        }
     }
 }

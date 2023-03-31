@@ -19,7 +19,7 @@ class RtcSession {
       this.peerConnection = new RTCPeerConnection({
         iceServers: iceServers,
       });
-  
+
       this.setConnectionHandlers();
   
       window.mainApi.writeLog("Getting screens from main API.");
@@ -31,6 +31,9 @@ class RtcSession {
   
       window.mainApi.writeLog("Adding tracks from stream.");
       await setMediaStreams(this.currentScreen.mediaId, this.peerConnection);
+
+      window.mainApi.writeLog("Creating data channel.");
+      this.setDataChannel(this.peerConnection.createDataChannel("input"));
   }
 
   async receiveRtcSessionDescription(remoteDescription: RTCSessionDescription) {
@@ -53,7 +56,7 @@ class RtcSession {
         window.mainApi.writeLog("Creating answer.");
         await this.peerConnection.setLocalDescription();
   
-        window.mainApi.writeLog("Sending RTC answer: ", "Info", this.peerConnection.localDescription);
+        window.mainApi.writeLog("Sending RTC answer: ", "Info", this.peerConnection.localDescription.toJSON());
         await streamerHubConnection.sendRtcSessionDescription(
           this.peerConnection.localDescription
         );
@@ -140,11 +143,23 @@ class RtcSession {
         JSON.stringify(ev.candidate)
       );
     });
+    this.peerConnection.addEventListener("icecandidateerror", async (ev: RTCPeerConnectionIceErrorEvent) => {
+      const err = {
+        errorCode: ev.errorCode,
+        errorText: ev.errorText,
+        port: ev.port,
+        url: ev.url,
+        address: ev.address
+    }
+      window.mainApi.writeLog("ICE candidate error: ", "Error", err);
+    });
     this.peerConnection.addEventListener("negotiationneeded", async () => {
       try {
         this.isMakingOffer = true;
         window.mainApi.writeLog("Negotiation needed. Creating new offer.");
         await this.peerConnection.setLocalDescription();
+
+        window.mainApi.writeLog("Sending RTC offer: ", "Info", this.peerConnection.localDescription.toJSON());
         await streamerHubConnection.sendRtcSessionDescription(
           this.peerConnection.localDescription
         );
@@ -157,24 +172,16 @@ class RtcSession {
       }
     });
     this.peerConnection.addEventListener("datachannel", (ev) => {
-      this.dataChannel = ev.channel;
-      this.dataChannel.addEventListener("close", () => {
-        window.mainApi.writeLog("DataChannel closed.");
-      });
-
-      this.dataChannel.addEventListener("error", () => {
-        window.mainApi.writeLog("DataChannel error.");
-      });
-
-      this.dataChannel.addEventListener("open", () => {
-        window.mainApi.writeLog("DataChannel opened.");
-      });
-
-      this.dataChannel.addEventListener("message", async (ev) => {
-        await this.handleDataChannelMessage(ev.data);
-      });
+      this.setDataChannel(ev.channel);
     });
   }
+
+  private getAbsoluteScreenPoint(percentX: number, percentY: number): Point {
+    const x = this.currentScreen.width * percentX + this.currentScreen.left;
+    const y = this.currentScreen.height * percentY + this.currentScreen.top;
+    return { x: x, y: y };
+  }
+
 
   private async handleDataChannelMessage(data: string) {
     const dto = JSON.parse(data) as BaseDto;
@@ -192,7 +199,7 @@ class RtcSession {
       case "keyEvent":
         {
           const keyDto = dto as KeyEventDto;
-          await window.mainApi.invokeKeyEvent(keyDto.keyCode, keyDto.isPressed);
+          await window.mainApi.invokeKeyEvent(keyDto.keyCode, keyDto.isPressed, keyDto.shouldRelease);
         }
         break;
       case "mouseButtonEvent":
@@ -221,15 +228,35 @@ class RtcSession {
             await window.mainApi.invokeWheelScroll(scrollDto.deltaX, scrollDto.deltaY, scrollDto.deltaZ);
         }
         break;
+      case "typeText": 
+        {
+          const typeDto = dto as TypeTextDto;
+          await window.mainApi.invokeTypeText(typeDto.text);
+        }
+        break;
       default:
         console.warn("Unhandled DTO type: ", dto.dtoType);
         break;
     }
   }
-  private getAbsoluteScreenPoint(percentX: number, percentY: number): Point {
-    const x = this.currentScreen.width * percentX + this.currentScreen.left;
-    const y = this.currentScreen.height * percentY + this.currentScreen.top;
-    return { x: x, y: y };
+
+  private setDataChannel(channel: RTCDataChannel){
+    this.dataChannel = channel;
+    this.dataChannel.addEventListener("close", () => {
+      window.mainApi.writeLog("DataChannel closed.");
+    });
+
+    this.dataChannel.addEventListener("error", () => {
+      window.mainApi.writeLog("DataChannel error.");
+    });
+
+    this.dataChannel.addEventListener("open", () => {
+      window.mainApi.writeLog("DataChannel opened.");
+    });
+
+    this.dataChannel.addEventListener("message", async (ev) => {
+      await this.handleDataChannelMessage(ev.data);
+    });
   }
 }
 

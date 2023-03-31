@@ -4,7 +4,13 @@
 @using System.Runtime.InteropServices.JavaScript;
 @using ControlR.Viewer.Components.RemoteDisplayComponents;
 
-<input @ref="_virtualKeyboard" class="virtual-keyboard" type="text" autocomplete="off" @oninput="OnVkInput" @onkeydown="OnVkKeyDown" />
+<input @ref="_virtualKeyboard" 
+    class="virtual-keyboard" 
+    type="password" 
+    autocomplete="off" 
+    @bind-value="VirtualKeyboardText" 
+    @bind-value:event="oninput"
+    @onkeydown="OnVkKeyDown" />
 
 <div class="display-wrapper @($"{_windowState}".ToLower())">
     <div class="title-bar p-2">
@@ -97,8 +103,10 @@
 
         <video id="@_videoId"
                @ref="_videoRef"
+               autoplay="autoplay"
+               muted
                class="@($"{_viewMode.ToString().ToLower()} {_windowState.ToString().ToLower()} remote-screen")"
-               style="@(VideoCss)"/>
+               style="@(VideoSizeCss) @(VideoDisplayCss)"/>
 
         @if (!string.IsNullOrWhiteSpace(_statusMessage))
         {
@@ -111,9 +119,14 @@
                 {
                     <MudProgressCircular Min="0" Max="1" Value="_statusProgress" Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Large" />
                 }
-                else
+                else if (_statusProgress < 0)
                 {
                     <MudProgressCircular Indeterminate Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Large" />
+                }
+
+                @if (_isStreamReady && !_isStreamLoaded)
+                {
+                    <MudIconButton Icon="@(Icons.Material.Outlined.PlayCircle)" Size="Size.Large" />
                 }
             </div>
         }

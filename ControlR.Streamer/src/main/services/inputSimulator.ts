@@ -1,8 +1,11 @@
 import { mouse, keyboard, Key } from "@nut-tree/nut-js";
 
-export async function invokeKeyEvent(keyCode: string, isPressed: boolean) {
+export async function invokeKeyEvent(keyCode: string, isPressed: boolean, shouldRelease: boolean) {
     if (isPressed){
         pressKey(keyCode);
+        if (shouldRelease){
+            releaseKey(keyCode);
+        }
     }
     else {
         releaseKey(keyCode);
@@ -18,6 +21,11 @@ export async function invokeMouseButtonEvent(button: number, isPressed: boolean,
         releaseMouseButton(button);
     }
 }
+
+export async function invokeTypeText(text: string) {
+    await keyboard.type(text);
+}
+
 export async function movePointer(x: number, y: number) {
     await mouse.setPosition({ x: x, y: y});
 }

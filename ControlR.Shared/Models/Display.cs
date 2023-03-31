@@ -5,13 +5,12 @@ namespace ControlR.Shared.Models;
 [DataContract]
 public class Display
 {
-    [DataMember]
-    public int Bottom { get; init; }
 
     [DataMember]
     public string DisplayId { get; init; } = string.Empty;
 
-    public int Height => Bottom - Top;
+    [DataMember]
+    public int Height { get; init; }
 
     [DataMember]
     public bool IsPrimary { get; init; }
@@ -26,10 +25,8 @@ public class Display
     public string Name { get; init; } = string.Empty;
 
     [DataMember]
-    public int Right { get; init; }
-
-    [DataMember]
     public int Top { get; init; }
 
-    public int Width => Right - Left;
+    [DataMember]
+    public int Width { get; init; }
 }

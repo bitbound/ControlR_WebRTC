@@ -9,5 +9,6 @@ export enum ipcRtmChannels {
     invokeKeyEvent = "InvokeKeyEvent",
     resetKeyboardState = "resetKeyboardState",
     invokeWheelScroll = "invokeWheelScroll",
+    invokeTypeText = "invokeTypeText",
     writeLog = "writeLog"
 }

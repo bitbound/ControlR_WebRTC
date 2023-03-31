@@ -49,7 +49,7 @@
     /** @type {string} */
     videoId;
 
-    /** @returns {HTMLVideoElement} */
+    /** @type {HTMLVideoElement} */
     videoElement;
 
     /** @type {WindowEventHandler[]} */
@@ -121,11 +121,15 @@ export async function initialize(componentRef, videoId, iceServers) {
     state.videoId = videoId;
     state.videoElement = video;
 
+    video.muted = true;
+    video.defaultMuted = true;
+
     console.log("Creating peer connection with ICE servers: ", iceServers);
     invokeDotNet("LogInfo", videoId, "Creating peer connection with ICE servers: " + JSON.stringify(iceServers));
     state.peerConnection = new RTCPeerConnection({
         iceServers: iceServers
     });
+
     setPeerConnectionHandlers(state.peerConnection, videoId);
 
     video.addEventListener("pointerup", ev => {
@@ -194,11 +198,7 @@ export async function initialize(componentRef, videoId, iceServers) {
         if (!isDataChannelReady(videoId) || video.classList.contains("minimized")) {
             return;
         }
-
-        if (!isDataChannelReady(videoId)) {
-            return;
-        }
-
+     
         const now = Date.now();
         if (now - state.lastPointerMove < 50) {
             if (state.mouseMoveTimeout > -1) {
@@ -272,10 +272,8 @@ export async function initialize(componentRef, videoId, iceServers) {
 
     video.addEventListener("loadedmetadata", async () => {
         await video.play();
-        invokeDotNet("LogInfo", videoId, "Loaded video metadata.  Playing.");
-
-        state.dataChannel = state.peerConnection.createDataChannel("input");
-        setDataChannelHandlers(state.dataChannel, videoId);
+        await invokeDotNet("LogInfo", videoId, "Loaded video metadata.  Playing.");
+        await invokeDotNet("NotifyStreamLoaded");
     });
 
     const onKeyDown = (ev) => {
@@ -377,9 +375,9 @@ export async function receiveRtcSessionDescription(sessionDescription, videoId) 
         if (sessionDescription.type == "offer") {
             console.log("Creating RTC answer.");
             invokeDotNet("LogInfo", videoId, "Creating RTC answer.");
-            await state.peerConnection.setLocalDescription(await state.peerConnection.createAnswer());
-            console.log("Sending RTC answer.");
-            invokeDotNet("LogInfo", videoId, "Sending RTC answer.");
+            await state.peerConnection.setLocalDescription();
+            console.log("Sending RTC answer.", state.peerConnection.localDescription);
+            invokeDotNet("LogInfo", videoId, "Sending RTC answer: " + JSON.stringify(state.peerConnection.localDescription));
             await invokeDotNet("SendRtcDescription", videoId, state.peerConnection.localDescription);
         }
     }
@@ -428,6 +426,37 @@ export async function scrollTowardPinch(pinchCenterX, pinchCenterY, contentDiv, 
     contentDiv.scrollBy(scrollByX, scrollByY);
 }
 
+/**
+ * 
+ * @param {string} key
+ * @param {string} videoId
+ */
+export async function sendKeyPress(key, videoId) {
+    const state = getState(videoId);
+
+    const keyPressDto = {
+        dtoType: "keyEvent",
+        isPressed: true,
+        shouldRelease: true,
+        keyCode: key
+    };
+    state.dataChannel.send(JSON.stringify(keyPressDto));
+}
+
+/**
+ * 
+ * @param {string} text
+ * @param {string} videoId
+ */
+export async function typeText(text, videoId) {
+    const state = getState(videoId);
+
+    const typeDto = {
+        dtoType: "typeText",
+        text: text
+    };
+    state.dataChannel.send(JSON.stringify(typeDto));
+}
 
 /**
  * @param {number} point1X
@@ -535,7 +564,6 @@ function setPeerConnectionHandlers(peerConnection, videoId) {
                 invokeDotNet("SetStatusMessage", videoId, "Connection failed");
                 break;
             case "connected":
-                invokeDotNet("SetStatusMessage", videoId, "");
                 break;
             default:
                 break;
@@ -553,7 +581,7 @@ function setPeerConnectionHandlers(peerConnection, videoId) {
             errorText: ev.errorText,
             port: ev.port,
             url: ev.url,
-            hostCandidate: ev.hostCandidate
+            address: ev.address
         }
         console.log("ICE candidate error: ", ev);
         invokeDotNet("LogInfo", videoId, "ICE candidate error: " + JSON.stringify(err));
@@ -566,6 +594,9 @@ function setPeerConnectionHandlers(peerConnection, videoId) {
 
     peerConnection.addEventListener("track", async ev => {
         console.log("Received track: ", ev.track);
+
+        state.videoElement.srcObject = ev.streams[0];
+
         const trackObj = {
             kind: ev.track.kind,
             id: ev.track.id,
@@ -573,9 +604,34 @@ function setPeerConnectionHandlers(peerConnection, videoId) {
             readyState: ev.track.readyState
         }
         await invokeDotNet("LogInfo", videoId, "Received track: " + JSON.stringify(trackObj));
-        state.videoElement.srcObject = ev.streams[0];
-        await invokeDotNet("SetStatusMessage", videoId, "");
+    
+        const playInterval = window.setInterval(async () => {
+            if (!ev.streams[0].active) {
+                await invokeDotNet("LogInfo", videoId, "Stream inactive.  Exiting watch loop.");
+                window.clearInterval(playInterval);
+                return;
+            }
+
+            if (state.videoElement.played.length > 0) {
+                await invokeDotNet("NotifyStreamLoaded", videoId);
+                await state.videoElement.play();
+                window.clearInterval(playInterval);
+                return;
+            }
+
+            if (state.videoElement.readyState == 4) {
+                await invokeDotNet("NotifyStreamReady", videoId);
+                await state.videoElement.play();
+            }
+        }, 100)
     });
+
+    peerConnection.addEventListener("datachannel", async ev => {
+        console.log("Received data channel: ", ev);
+        await invokeDotNet("LogInfo", videoId, "Received data channel: " + JSON.stringify(ev.channel));
+        state.dataChannel = ev.channel;
+        setDataChannelHandlers(state.dataChannel, videoId);
+    })
 
     peerConnection.addEventListener("negotiationneeded", async () => {
         try {
@@ -583,6 +639,7 @@ function setPeerConnectionHandlers(peerConnection, videoId) {
             console.log("Negotiation needed.");
             await invokeDotNet("LogInfo", videoId, "Negotiation needed.");
             await peerConnection.setLocalDescription();
+            await invokeDotNet("LogInfo", videoId, "Sending RTC offer: " + JSON.stringify(peerConnection.localDescription));
             await invokeDotNet("SendRtcDescription", videoId, peerConnection.localDescription);
         }
         catch (ex) {
@@ -626,7 +683,6 @@ function setDataChannelHandlers(dataChannel, videoId) {
     dataChannel.addEventListener("open", async () => {
         console.log("DataChannel opened");
         invokeDotNet("LogInfo", videoId, "DataChannel opened.");
-        await invokeDotNet("SetStatusMessage", videoId, "");
     });
 
     dataChannel.addEventListener("message", ev => {
@@ -640,7 +696,7 @@ function setDataChannelHandlers(dataChannel, videoId) {
  * @param {string} videoId
  * @returns {Promise<any>}
  */
-function invokeDotNet(methodName, videoId, ...args) {
+function invokeDotNet(methodName, videoId, args) {
     const state = getState(videoId);
-    return state.componentRef.invokeMethodAsync(methodName, ...args);
+    return state.componentRef.invokeMethodAsync(methodName, args);
 }

@@ -7,4 +7,5 @@ export interface DisplayDto {
     mediaId: string;
     width: number;
     height: number;
+    label: string;
 }

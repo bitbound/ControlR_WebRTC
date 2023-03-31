@@ -21,7 +21,7 @@ export async function receiveDto(dto: SignedPayloadDto) {
             await rtcSession.receiveIceCandidate(iceCandidate);
             break;
         case "CloseStreamingSession":
-            console.log("Received exit request. Shutting down.");
+            window.mainApi.writeLog("Received exit request. Shutting down.");
             await window.mainApi.exit();
             break;
         default:

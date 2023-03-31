@@ -38,6 +38,7 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<RemoteControlLauncherWindows> _logger;
     private readonly string _watcherBinaryPath;
+    private readonly SemaphoreSlim _createSessionLock = new(1, 1);
 
     public RemoteControlLauncherWindows(
         IFileSystem fileSystem,
@@ -71,91 +72,106 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
      string targetDesktop = "",
      Func<double, Task>? onDownloadProgress = null)
     {
-        var startupDir = _environment.StartupDirectory;
-        var remoteControlDir = Path.Combine(startupDir, "RemoteControl");
-        _fileSystem.CreateDirectory(remoteControlDir);
-        var binaryPath = Path.Combine(remoteControlDir, AppConstants.RemoteControlFileName);
+        await _createSessionLock.WaitAsync();
 
-        if (!_fileSystem.FileExists(binaryPath))
+        try
         {
-            var result = await DownloadRemoteControl(remoteControlDir, onDownloadProgress);
-            if (!result.IsSuccess)
+            var startupDir = _environment.StartupDirectory;
+            var remoteControlDir = Path.Combine(startupDir, "RemoteControl");
+            _fileSystem.CreateDirectory(remoteControlDir);
+            var binaryPath = Path.Combine(remoteControlDir, AppConstants.RemoteControlFileName);
+
+            if (!_fileSystem.FileExists(binaryPath))
             {
-                return Result.Fail(result.Reason);
-            }
-        }
-
-        var session = new StreamingSession(sessionId, authorizedKey, targetWindowsSession, targetDesktop);
-
-        var watcherResult = await LaunchNewWatcherProcess(session);
-        if (!watcherResult.IsSuccess)
-        {
-            _logger.LogResult(watcherResult);
-            return Result.Fail("Failed to start desktop watcher process.");
-        }
-       
-        if (_processes.GetCurrentProcess().SessionId == 0)
-        {
-            Win32.CreateInteractiveSystemProcess(
-                $"\"{binaryPath}\" --session-id={sessionId} --authorized-key={authorizedKey}",
-                targetSessionId: targetWindowsSession,
-                forceConsoleSession: false,
-                desktopName: session.LastDesktop,
-                hiddenWindow: false,
-                out var procInfo);
-
-
-            if (procInfo.dwProcessId == -1)
-            {
-                return Result.Fail("Failed to start remote control process.");
-            }
-            else
-            {
-                _processes.GetProcessById(procInfo.dwProcessId);
-                session.StreamerProcess = _processes.GetProcessById(procInfo.dwProcessId);
-            }
-
-        }
-        else
-        {
-            var args = $"--session-id={sessionId} --authorized-key={authorizedKey}";
-
-            if (_environment.IsDebug)
-            {
-                args += " --dev";
-            }
-
-            var solutionDirReult = GetSolutionDir(Environment.CurrentDirectory);
-
-            if (solutionDirReult.IsSuccess)
-            {
-                var desktopDir = Path.Combine(solutionDirReult.Value, "ControlR.Streamer");
-                var psi = new ProcessStartInfo()
+                var result = await DownloadRemoteControl(remoteControlDir, onDownloadProgress);
+                if (!result.IsSuccess)
                 {
-                    FileName = "cmd.exe",
-                    Arguments = $"/k npm run start -- -- {args}",
-                    WorkingDirectory = desktopDir,
-                    UseShellExecute = true
-                };
-                session.StreamerProcess = _processes.Start(psi);
+                    return Result.Fail(result.Reason);
+                }
+            }
+
+            var session = new StreamingSession(sessionId, authorizedKey, targetWindowsSession, targetDesktop);
+
+            var watcherResult = await LaunchNewWatcherProcess(session);
+            if (!watcherResult.IsSuccess)
+            {
+                _logger.LogResult(watcherResult);
+                return Result.Fail("Failed to start desktop watcher process.");
+            }
+       
+            if (_processes.GetCurrentProcess().SessionId == 0)
+            {
+                Win32.CreateInteractiveSystemProcess(
+                    $"\"{binaryPath}\" --session-id={sessionId} --authorized-key={authorizedKey}",
+                    targetSessionId: targetWindowsSession,
+                    forceConsoleSession: false,
+                    desktopName: session.LastDesktop,
+                    hiddenWindow: false,
+                    out var procInfo);
+
+
+                if (procInfo.dwProcessId == -1)
+                {
+                    return Result.Fail("Failed to start remote control process.");
+                }
+                else
+                {
+                    _processes.GetProcessById(procInfo.dwProcessId);
+                    session.StreamerProcess = _processes.GetProcessById(procInfo.dwProcessId);
+                }
+
             }
             else
             {
-                session.StreamerProcess = _processes.Start(binaryPath, args);
+                var args = $"--session-id={sessionId} --authorized-key={authorizedKey}";
+
+                if (_environment.IsDebug)
+                {
+                    args += " --dev";
+                }
+
+                var solutionDirReult = GetSolutionDir(Environment.CurrentDirectory);
+
+                if (solutionDirReult.IsSuccess)
+                {
+                    var desktopDir = Path.Combine(solutionDirReult.Value, "ControlR.Streamer");
+                    var psi = new ProcessStartInfo()
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = $"/k npm run start -- -- {args}",
+                        WorkingDirectory = desktopDir,
+                        UseShellExecute = true
+                    };
+                    session.StreamerProcess = _processes.Start(psi);
+                }
+                else
+                {
+                    session.StreamerProcess = _processes.Start(binaryPath, args);
+                }
+
+                if (session.StreamerProcess is null)
+                {
+                    return Result.Fail("Failed to start remote control process.");
+                }
             }
 
-            if (session.StreamerProcess is null)
-            {
-                return Result.Fail("Failed to start remote control process.");
-            }
+            _streamingSessionCache.Sessions.AddOrUpdate(
+               sessionId,
+               session,
+               (k, v) => session);
+
+            return Result.Ok();
+
         }
-
-        _streamingSessionCache.Sessions.AddOrUpdate(
-           sessionId,
-           session,
-           (k, v) => session);
-
-        return Result.Ok();
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while creating remote control session.");
+            return Result.Fail("An error occurred while starting remote control.");
+        }
+        finally
+        {
+            _createSessionLock.Release();
+        }
     }
 
 

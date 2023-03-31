@@ -76,7 +76,7 @@ public class ViewerHub : Hub<IViewerHubClient>
 
             if (!sessionSuccess)
             {
-                return Result.Fail<StreamerHubSession>("Failed to acquire desktop session.");
+                return Result.Fail<StreamerHubSession>("Failed to acquire streaming session.");
             }
 
             await WaitHelper.WaitForAsync(
@@ -85,7 +85,7 @@ public class ViewerHub : Hub<IViewerHubClient>
 
             if (!_streamerSessionCache.TryGetValue(streamingSessionId, out var session))
             {
-                return Result.Fail<StreamerHubSession>("Failed to acquire desktop session.");
+                return Result.Fail<StreamerHubSession>("Timed out while waiting for streaming to start.");
             }
 
             session.AgentConnectionId = agentConnectionId;

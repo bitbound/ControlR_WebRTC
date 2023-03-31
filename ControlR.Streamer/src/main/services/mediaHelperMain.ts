@@ -30,7 +30,8 @@ export async function getDisplays() : Promise<DisplayDto[]> {
                 left: display.bounds.x,
                 top: display.bounds.y,
                 width: display.bounds.width,
-                height: display.bounds.height
+                height: display.bounds.height,
+                label: display.label
             } as DisplayDto
         });
     
