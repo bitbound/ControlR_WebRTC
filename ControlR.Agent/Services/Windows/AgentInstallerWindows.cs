@@ -85,24 +85,6 @@ internal class AgentInstallerWindows : AgentInstallerBase, IAgentInstaller
                 await TryHelper.Retry(
                     () =>
                     {
-                        _logger.LogInformation("Copying {source} to {dest}.", exePath, targetPath);
-                        _fileSystem.CopyFile(exePath, targetPath, true);
-                        return Task.CompletedTask;
-                    },
-                    tryCount: 5,
-                    retryDelay: TimeSpan.FromSeconds(3));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unable to copy app to install directory.  Aborting.");
-                return;
-            }
-
-            try
-            {
-                await TryHelper.Retry(
-                    () =>
-                    {
                         if (_fileSystem.DirectoryExists(Path.Combine(_installDir, "RemoteControl")))
                         {
                             _fileSystem.DeleteDirectory(Path.Combine(_installDir, "RemoteControl"), true);
@@ -118,6 +100,23 @@ internal class AgentInstallerWindows : AgentInstallerBase, IAgentInstaller
                 return;
             }
 
+            try
+            {
+                await TryHelper.Retry(
+                    () =>
+                    {
+                        _logger.LogInformation("Copying {source} to {dest}.", exePath, targetPath);
+                        _fileSystem.CopyFile(exePath, targetPath, true);
+                        return Task.CompletedTask;
+                    },
+                    tryCount: 5,
+                    retryDelay: TimeSpan.FromSeconds(3));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unable to copy app to install directory.  Aborting.");
+                return;
+            }
 
             await AddAuthorizedKey(_installDir, authorizedPublicKey);
             await WriteEtag(_installDir);
