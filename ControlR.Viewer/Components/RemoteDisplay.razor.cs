@@ -427,7 +427,7 @@ public partial class RemoteDisplay : IAsyncDisposable
                 _videoHeight = _selectedDisplay.Height;
             }
 
-            await SetStatusMessage("Negotiating RTC");
+            await SetStatusMessage("Connecting");
         }
         catch (Exception ex)
         {

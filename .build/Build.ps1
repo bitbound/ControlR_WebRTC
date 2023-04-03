@@ -15,7 +15,9 @@ param (
 
     [switch]$BuildViewer,
 
-    [switch]$BuildStreamer
+    [switch]$BuildStreamer,
+
+    [switch]$IncrementAndroidVersion
 )
 
 $InstallerDir = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
@@ -61,18 +63,20 @@ if ($BuildStreamer) {
 }
 
 if ($BuildViewer) {
-    $Csproj = Select-Xml -XPath "/" -Path "$Root\ControlR.Viewer\ControlR.Viewer.csproj"
-    $AppVersion = $Csproj.Node.SelectNodes("//ApplicationVersion")
-    $AppVersionInt = [int]::Parse($AppVersion[0].InnerText)
-    $AppVersionInt++
-    $AppVersion[0].InnerText = $AppVersionInt;
-
-    $DisplayVersion = $Csproj.Node.SelectNodes("//ApplicationDisplayVersion")
-    $DisplayVersionObj = [System.Version]::Parse($DisplayVersion[0].InnerText)
-    $DisplayVersionObj = [System.Version]::new($DisplayVersionObj.Major, $AppVersionInt)
-    $DisplayVersion[0].InnerText = $DisplayVersionObj.ToString(2)
-
-    Set-Content -Path  "$Root\ControlR.Viewer\ControlR.Viewer.csproj" -Value $Csproj.Node.OuterXml.Trim()
+    if ($IncrementAndroidVersion) {
+        $Csproj = Select-Xml -XPath "/" -Path "$Root\ControlR.Viewer\ControlR.Viewer.csproj"
+        $AppVersion = $Csproj.Node.SelectNodes("//ApplicationVersion")
+        $AppVersionInt = [int]::Parse($AppVersion[0].InnerText)
+        $AppVersionInt++
+        $AppVersion[0].InnerText = $AppVersionInt;
+    
+        $DisplayVersion = $Csproj.Node.SelectNodes("//ApplicationDisplayVersion")
+        $DisplayVersionObj = [System.Version]::Parse($DisplayVersion[0].InnerText)
+        $DisplayVersionObj = [System.Version]::new($DisplayVersionObj.Major, $AppVersionInt)
+        $DisplayVersion[0].InnerText = $DisplayVersionObj.ToString(2)
+    
+        Set-Content -Path  "$Root\ControlR.Viewer\ControlR.Viewer.csproj" -Value $Csproj.Node.OuterXml.Trim()
+    }
 
     $Manifest = Select-Xml -XPath "/" -Path "$Root\ControlR.Viewer\Platforms\Windows\Package.appxmanifest"
     $Version = [System.Version]::Parse($Manifest.Node.Package.Identity.Version)
