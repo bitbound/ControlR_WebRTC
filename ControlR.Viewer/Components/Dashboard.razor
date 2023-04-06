@@ -25,7 +25,7 @@
              Filterable="true">
 
     <ToolBarContent>
-    
+
         <MudSpacer />
         <MudTextField @bind-Value="_searchText" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
                       AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
@@ -40,26 +40,26 @@
     </ToolBarContent>
 
     <Columns>
-      
+
         <TemplateColumn T="DeviceDto"
-                Sortable="false"
-                Filterable="false"
-                ShowColumnOptions="false"
-                Title="Actions">
+                        Sortable="false"
+                        Filterable="false"
+                        ShowColumnOptions="false"
+                        Title="Actions">
 
             <CellTemplate>
-                @if (context.Item.IsOnline)
-                {
-                    <MudTooltip Text="Actions">
-                        <MudMenu Variant="Variant.Filled" Color="Color.Primary" Icon="@(Icons.Material.Filled.MoreVert)">
-                            <MudMenuItem Icon="@(Icons.Material.Filled.ScreenShare)" 
-                                        IconColor="Color.Info" 
-                                        OnClick="@(() => RemoteControlClicked(context.Item))">
+                <MudTooltip Text="Actions">
+                    <MudMenu Variant="Variant.Filled" Color="Color.Primary" Icon="@(Icons.Material.Filled.MoreVert)">
+                        @if (context.Item.IsOnline)
+                        {
+                            <MudMenuItem Icon="@(Icons.Material.Filled.ScreenShare)"
+                                     IconColor="Color.Info"
+                                     OnClick="@(() => RemoteControlClicked(context.Item))">
                                 Remote Control
                             </MudMenuItem>
-                            <MudMenuItem Icon="@(Icons.Material.Filled.PowerOff)" 
-                                        IconColor="Color.Error"
-                                        OnClick="@(() => ShutdownClicked(context.Item))">
+                            <MudMenuItem Icon="@(Icons.Material.Filled.PowerOff)"
+                                     IconColor="Color.Error"
+                                     OnClick="@(() => ShutdownClicked(context.Item))">
                                 Shutdown
                             </MudMenuItem>
                             <MudMenuItem Icon="@(Icons.Material.Filled.RestartAlt)"
@@ -67,15 +67,23 @@
                                      OnClick="@(() => RestartClicked(context.Item))">
                                 Restart
                             </MudMenuItem>
-                        </MudMenu>
-                    </MudTooltip>
-                }
+                        }
+                        else
+                        {
+                            <MudMenuItem Icon="@(Icons.Material.Filled.Delete)"
+                                     IconColor="Color.Error"
+                                     OnClick="@(() => RemoveDevice(context.Item))">
+                                Remove
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                </MudTooltip>
             </CellTemplate>
         </TemplateColumn>
 
         <TemplateColumn T="DeviceDto"
-                StickyLeft="true"
-                Title="Name">
+                        StickyLeft="true"
+                        Title="Name">
             <CellTemplate>
                 @if (string.IsNullOrWhiteSpace(context.Item.Alias))
                 {
@@ -89,8 +97,8 @@
         </TemplateColumn>
 
         <TemplateColumn T="DeviceDto"
-                Field="@(nameof(DeviceDto.IsOnline))"
-                Title="Online">
+                        Field="@(nameof(DeviceDto.IsOnline))"
+                        Title="Online">
             <CellTemplate>
                 @if (context.Item.IsOnline)
                 {
@@ -110,6 +118,8 @@
         <PropertyColumn Property="x => x!.CurrentUser" Title="Current User" />
 
         <PropertyColumn Property="x => x!.AgentVersion" Title="Agent Version" />
+
+        <PropertyColumn Property="x => x!.LastOnline" Title="Last Online" />
 
         <PropertyColumn Property="x => x!.Platform" Title="Platform" />
 
@@ -215,6 +225,11 @@
 
     }
 
+    private async Task RemoveDevice(DeviceDto device)
+    {
+        await DeviceCache.Remove(device);
+        Snackbar.Add("Device removed.", Severity.Success);
+    }
     private async Task RestartClicked(DeviceDto device)
     {
         var result = await DialogService.ShowMessageBox(
@@ -273,7 +288,7 @@
     private async Task Refresh()
     {
         using var _ = AppState.IncrementBusyCounter();
-        DeviceCache.SetAllOffline();
+        await DeviceCache.SetAllOffline();
         await InvokeAsync(StateHasChanged);
         await ViewerHub.RequestDeviceUpdates();
         Snackbar.Add("Device refresh requested", Severity.Success);

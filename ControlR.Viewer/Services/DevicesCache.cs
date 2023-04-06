@@ -15,7 +15,9 @@ internal interface IDeviceCache
 {
     IEnumerable<DeviceDto> Devices { get; }
 
-    Task AddOrUpdate(string key, DeviceDto device);
+    Task AddOrUpdate(DeviceDto device);
+    Task Remove(DeviceDto device);
+
     Task SetAllOffline();
 }
 
@@ -38,12 +40,18 @@ internal class DeviceCache : IDeviceCache
 
     public IEnumerable<DeviceDto> Devices => _cache.Values;
 
-    public async Task AddOrUpdate(string key, DeviceDto device)
+    public async Task AddOrUpdate(DeviceDto device)
     {
-        _cache.AddOrUpdate(key, device, (k, v) => device);
+        _cache.AddOrUpdate(device.Id, device, (k, v) => device);
         await TrySaveCache();
     }
-
+    public async Task Remove(DeviceDto device)
+    {
+        if (_cache.Remove(device.Id, out _))
+        {
+            await TrySaveCache();
+        }
+    }
     public async Task SetAllOffline()
     {
         foreach (var device in _cache.Values)
