@@ -21,6 +21,10 @@ public class Device
     public string Alias { get; set; } = string.Empty;
 
     [DataMember]
+    [Display(Name = "Authorized Keys")]
+    public IEnumerable<string> AuthorizedKeys { get; set; } = Array.Empty<string>();
+
+    [DataMember]
     [Display(Name = "CPU Utilization")]
     public double CpuUtilization { get; set; }
 
@@ -32,9 +36,10 @@ public class Device
     [Display(Name = "Drives")]
     public List<Drive> Drives { get; set; } = new();
 
+
     [DataMember]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public int Id { get; set; }
+    [Display(Name = "Device Id")]
+    public string Id { get; set; } = string.Empty;
 
     [DataMember]
     [Display(Name = "64-bit")]
@@ -106,8 +111,4 @@ public class Device
     [JsonIgnore]
     [Display(Name = "Storage Used %")]
     public double UsedStoragePercent => UsedStorage / TotalStorage;
-
-    [DataMember]
-    [Display(Name = "Authorized Keys")]
-    public IEnumerable<string> AuthorizedKeys { get; set; } = Array.Empty<string>();
 }

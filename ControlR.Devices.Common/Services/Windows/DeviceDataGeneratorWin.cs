@@ -21,9 +21,9 @@ internal class DeviceDataGeneratorWin : DeviceDataGeneratorBase, IDeviceDataGene
         _logger = logger;
     }
 
-    public async Task<Device> CreateDevice(double cpuUtilization, IEnumerable<string> authorizedKeys)
+    public async Task<Device> CreateDevice(double cpuUtilization, IEnumerable<string> authorizedKeys, string deviceId)
     {
-        var device = GetDeviceBase(authorizedKeys);
+        var device = GetDeviceBase(authorizedKeys, deviceId);
 
         try
         {

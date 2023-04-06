@@ -170,7 +170,8 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
 
             var device = await _deviceCreator.CreateDevice(
                 _cpuSampler.CurrentUtilization,
-                _appOptions.CurrentValue.AuthorizedKeys);
+                _appOptions.CurrentValue.AuthorizedKeys,
+                _appOptions.CurrentValue.DeviceId);
 
             await Connection.InvokeAsync("UpdateDevice", device);
         }

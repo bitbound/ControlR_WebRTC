@@ -176,15 +176,9 @@
 
         await base.OnInitializedAsync();
 
-        await ViewerHub.RequestDeviceUpdates();
+        await Refresh();
 
-        await WaitHelper.WaitForAsync(() => DeviceCache.Devices.Any(), TimeSpan.FromSeconds(5));
         _loading = false;
-        if (!DeviceCache.Devices.Any())
-        {
-            Snackbar.Add("No devices online", Severity.Info);
-            await InvokeAsync(StateHasChanged);
-        }
     }
 
     private async Task RemoteControlClicked(DeviceDto device)
@@ -260,7 +254,6 @@
         {
             case ParameterlessMessageKind.DevicesCacheUpdated:
                 {
-                    _loading = false;
                     Debouncer.Debounce(TimeSpan.FromSeconds(1), () => InvokeAsync(StateHasChanged));
                 }
                 break;
@@ -280,8 +273,7 @@
     private async Task Refresh()
     {
         using var _ = AppState.IncrementBusyCounter();
-        _loading = true;
-        DeviceCache.Clear();
+        DeviceCache.SetAllOffline();
         await InvokeAsync(StateHasChanged);
         await ViewerHub.RequestDeviceUpdates();
         Snackbar.Add("Device refresh requested", Severity.Success);

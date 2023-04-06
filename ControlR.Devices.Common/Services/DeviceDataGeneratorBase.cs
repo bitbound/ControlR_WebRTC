@@ -54,11 +54,12 @@ internal class DeviceDataGeneratorBase
         }
     }
 
-    public Device GetDeviceBase(IEnumerable<string> authorizedKeys)
+    public Device GetDeviceBase(IEnumerable<string> authorizedKeys, string deviceId)
     {
 
         return new Device()
         {
+            Id = deviceId,
             AuthorizedKeys = authorizedKeys,
             Name = Environment.MachineName,
             Platform = _environmentHelper.Platform,

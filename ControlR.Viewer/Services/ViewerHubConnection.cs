@@ -141,8 +141,7 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
 
     public Task ReceiveDeviceUpdate(DeviceDto device)
     {
-        var key = device.ConnectionId;
-        _devicesCache.AddOrUpdate(key, device);
+        _devicesCache.AddOrUpdate(device.Id, device);
         _messenger.SendParameterlessMessage(ParameterlessMessageKind.DevicesCacheUpdated);
         return Task.CompletedTask;
     }

@@ -37,7 +37,7 @@ internal class AgentInstallerWindows : AgentInstallerBase, IAgentInstaller
         IEnvironmentHelper environmentHelper,
         IDownloadsApi downloadsApi,
         ILogger<AgentInstallerWindows> logger)
-        : base(fileSystem, downloadsApi, environmentHelper, logger)
+        : base(fileSystem, downloadsApi, logger)
     {
         _lifetime = lifetime;
         _processes = processes;
@@ -118,7 +118,7 @@ internal class AgentInstallerWindows : AgentInstallerBase, IAgentInstaller
                 return;
             }
 
-            await AddAuthorizedKey(_installDir, authorizedPublicKey);
+            await UpdateAppSettings(_installDir, authorizedPublicKey);
             await WriteEtag(_installDir);
 
             var createString = $"sc.exe create {_serviceName} binPath= \"\\\"{targetPath}\\\" run\" start= auto";

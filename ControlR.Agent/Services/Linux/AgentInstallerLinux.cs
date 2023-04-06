@@ -33,7 +33,7 @@ internal class AgentInstallerLinux : AgentInstallerBase, IAgentInstaller
         IDownloadsApi downloadsApi,
         IOptions<AppOptions> appOptions,
         ILogger<AgentInstallerLinux> logger)
-        : base(fileSystem, downloadsApi, environmentHelper, logger)
+        : base(fileSystem, downloadsApi, logger)
     {
         _lifetime = lifetime;
         _fileSystem = fileSystem;
@@ -76,7 +76,7 @@ internal class AgentInstallerLinux : AgentInstallerBase, IAgentInstaller
             var serviceFilePath = "/etc/systemd/system/control.agent.service";
 
             await _fileSystem.WriteAllTextAsync(serviceFilePath, serviceFile);
-            await AddAuthorizedKey(_installDir, authorizedPublicKey);
+            await UpdateAppSettings(_installDir, authorizedPublicKey);
             await WriteEtag(_installDir);
 
             await _processInvoker

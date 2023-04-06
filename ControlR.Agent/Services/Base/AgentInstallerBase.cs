@@ -1,6 +1,7 @@
 ﻿using ControlR.Agent.Models;
 using ControlR.Devices.Common.Services;
 using ControlR.Shared.Extensions;
+using ControlR.Shared.Helpers;
 using ControlR.Shared.Services;
 using ControlR.Shared.Services.Http;
 using Microsoft.Extensions.Logging;
@@ -17,23 +18,20 @@ internal abstract class AgentInstallerBase
 {
     private readonly IFileSystem _fileSystem;
     private readonly IDownloadsApi _downloadsApi;
-    private readonly IEnvironmentHelper _environmentHelper;
     private readonly ILogger<AgentInstallerBase> _logger;
     private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
 
     public AgentInstallerBase(
         IFileSystem fileSystem,
         IDownloadsApi downloadsApi,
-        IEnvironmentHelper environmentHelper,
         ILogger<AgentInstallerBase> logger)
     {
         _fileSystem = fileSystem;
         _downloadsApi = downloadsApi;
-        _environmentHelper = environmentHelper;
         _logger = logger;
     }
 
-    protected async Task AddAuthorizedKey(string installDir, string? authorizedKey)
+    protected async Task UpdateAppSettings(string installDir, string? authorizedKey)
     {
         using var _ = _logger.BeginMemberScope();
 
@@ -71,6 +69,12 @@ internal abstract class AgentInstallerBase
         _logger.LogInformation("Removing empties.");
         appSettings.AppOptions.AuthorizedKeys.RemoveAll(string.IsNullOrWhiteSpace);
         _logger.LogInformation("Key Count: {num}", appSettings.AppOptions.AuthorizedKeys.Count);
+
+        if (string.IsNullOrWhiteSpace(appSettings.AppOptions.DeviceId))
+        {
+            _logger.LogInformation("DeviceId is empty.  Generating new one.");
+            appSettings.AppOptions.DeviceId = RandomGenerator.CreateDeviceToken();
+        }
 
         _logger.LogInformation("Writing results to disk.");
         await _fileSystem.WriteAllTextAsync(appsettingsPath, JsonSerializer.Serialize(appSettings, _jsonOptions));

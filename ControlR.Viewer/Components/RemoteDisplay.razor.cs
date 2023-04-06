@@ -1,14 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices.JavaScript;
-using System.Text;
-using System.Threading.Tasks;
 using ControlR.Viewer.Models;
-using System.Drawing;
 using Microsoft.Extensions.Logging;
 using System.Runtime.Versioning;
 using ControlR.Viewer.Services;
@@ -18,7 +11,6 @@ using CommunityToolkit.Mvvm.Messaging;
 using ControlR.Viewer.Models.Messages;
 using ControlR.Viewer.Enums;
 using ControlR.Viewer.Extensions;
-using ControlR.Shared.Extensions;
 using TouchEventArgs = Microsoft.AspNetCore.Components.Web.TouchEventArgs;
 using ControlR.Shared.Helpers;
 using ControlR.Shared.Services;
@@ -378,8 +370,8 @@ public partial class RemoteDisplay : IAsyncDisposable
         _lastPinchDistance = pinchDistance;
         await InvokeAsync(StateHasChanged);
 
-        var pinchCenterX = (ev.Touches[0].ClientX + ev.Touches[1].ClientX) / 2;
-        var pinchCenterY = (ev.Touches[0].ClientY + ev.Touches[1].ClientY) / 2;
+        var pinchCenterX = (ev.Touches[0].ScreenX + ev.Touches[1].ScreenX) / 2;
+        var pinchCenterY = (ev.Touches[0].ScreenY + ev.Touches[1].ScreenY) / 2;
 
         await _module!.InvokeVoidAsync("scrollTowardPinch", pinchCenterX, pinchCenterY, _contentArea, widthChange, heightChange);
     }
