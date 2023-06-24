@@ -19,3 +19,5 @@ This means that the agent doesn't implicitly trust anything coming from the serv
 ![controlr2](.github/media/controlr2.png)
 
 ![controlr3](.github/media/controlr3.png)
+
+https://github.com/lucent-sea/ControlR/assets/20995508/66c38755-3745-4b26-9b92-8f5e9a391af7
