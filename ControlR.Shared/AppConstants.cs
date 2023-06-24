@@ -62,7 +62,6 @@ public static partial class AppConstants
     {
         get
         {
-            return "http://192.168.0.2:5007";
             var envUri = Environment.GetEnvironmentVariable("ControlRServerUri");
             if (!string.IsNullOrWhiteSpace(envUri))
             {
@@ -73,8 +72,7 @@ public static partial class AppConstants
             {
                 return "http://localhost:5120";
             }
-            //return "https://controlr.app";
-            return "http://192.168.0.2:5007";
+            return "https://controlr.jaredg.dev";
         }
     }
 

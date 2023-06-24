@@ -89,9 +89,8 @@ function setCspHandler(){
         ...details.responseHeaders,
             "Content-Security-Policy": [
               "default-src 'self' 'unsafe-inline' 'unsafe-eval' "+
-              "http://localhost:5120 ws://localhost:5120 " + 
-              "http://192.168.0.2:5007 ws://192.168.0.2:5007 " +
-              "https://controlr.app wss://controlr.app data: https://fonts.googleapis.com; " +
+              "http://localhost:5120/ ws://localhost:5120/ " + 
+              "https://controlr.jaredg.dev/ wss://controlr.jaredg.dev/ data: https://fonts.googleapis.com; " +
               "font-src https://fonts.googleapis.com https://fonts.gstatic.com;"
         ]
       }
