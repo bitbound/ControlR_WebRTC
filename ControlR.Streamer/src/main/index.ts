@@ -48,7 +48,7 @@ const createMainWindow = (): void => {
   }
   
   if (appState.isUnattended && !appState.isDev) {
-    var currentScreen = screen.getDisplayMatching(mainWindow.getBounds());
+    const currentScreen = screen.getDisplayMatching(mainWindow.getBounds());
     mainWindow.setPosition(currentScreen.workArea.width - windowWidth, currentScreen.workArea.height - windowHeight);
   }
   else {

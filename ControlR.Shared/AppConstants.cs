@@ -1,11 +1,7 @@
 ﻿using ControlR.Shared.Enums;
 using ControlR.Shared.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace ControlR.Shared;
 
@@ -63,12 +59,12 @@ public static partial class AppConstants
         get
         {
             var envUri = Environment.GetEnvironmentVariable("ControlRServerUri");
-            if (!string.IsNullOrWhiteSpace(envUri))
+            if (Uri.TryCreate(envUri, UriKind.Absolute, out _))
             {
                 return envUri;
             }
 
-            if (EnvironmentHelper.Instance.IsDebug)
+            if (OperatingSystem.IsWindows() && Debugger.IsAttached)
             {
                 return "http://localhost:5120";
             }
