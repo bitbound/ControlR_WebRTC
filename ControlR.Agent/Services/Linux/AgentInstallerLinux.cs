@@ -148,15 +148,15 @@ internal class AgentInstallerLinux : AgentInstallerBase, IAgentInstaller
     private string GetServiceFile()
     {
         return
-            $"[Unit]" +
-            "Description=ControlR provides zero-trust remote control and administration.\n" +
-            "[Service]" +
-            $"WorkingDirectory={_installDir}" +
-            $"ExecStart={_installDir}/{AppConstants.AgentFileName} run" +
-            "Restart=always" +
-            "StartLimitIntervalSec=0" +
-            "RestartSec=10\n" +
-            "[Install]" +
+            $"[Unit]\n" +
+            "Description=ControlR provides zero-trust remote control and administration.\n\n" +
+            "[Service]\n" +
+            $"WorkingDirectory={_installDir}\n" +
+            $"ExecStart={_installDir}/{AppConstants.AgentFileName} run\n" +
+            "Restart=always\n" +
+            "StartLimitIntervalSec=0\n" +
+            "RestartSec=10\n\n" +
+            "[Install]\n" +
             "WantedBy=graphical.target";
     }
 }
