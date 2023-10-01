@@ -9,7 +9,7 @@ using ControlR.Devices.Common.Services.Linux;
 using ControlR.Devices.Common.Services.Windows;
 using ControlR.Shared.Services;
 using ControlR.Shared.Services.Http;
-using EasyIpc;
+using SimpleIpc;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -83,7 +83,7 @@ internal static class IHostBuilderExtensions
             services.AddSingleton<IProcessInvoker, ProcessInvoker>();
             services.AddTransient<IHubConnectionBuilder, HubConnectionBuilder>();
             services.AddSingleton<IEncryptionSessionFactory, EncryptionSessionFactory>();
-            services.AddEasyIpc();
+            services.AddSimpleIpc();
 
             if (OperatingSystem.IsWindows())
             {

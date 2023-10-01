@@ -2,7 +2,7 @@
 using ControlR.Devices.Common.Native.Windows;
 using ControlR.Devices.Common.Services;
 using ControlR.Shared;
-using EasyIpc;
+using SimpleIpc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Runtime.Versioning;

@@ -1,5 +1,5 @@
 ﻿using ControlR.Shared.Helpers;
-using EasyIpc;
+using SimpleIpc;
 using System.Diagnostics;
 
 namespace ControlR.Agent.Models;

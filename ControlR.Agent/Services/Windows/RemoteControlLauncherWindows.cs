@@ -7,7 +7,7 @@ using ControlR.Shared;
 using ControlR.Shared.Extensions;
 using ControlR.Shared.Services;
 using ControlR.Shared.Services.Http;
-using EasyIpc;
+using SimpleIpc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
