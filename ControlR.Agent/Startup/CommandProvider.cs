@@ -30,7 +30,6 @@ internal class CommandProvider
             await host.RunAsync();
         }, authorizedKeyOption);
 
-        installCommand.AddOption(authorizedKeyOption);
         return installCommand;
 
     }
