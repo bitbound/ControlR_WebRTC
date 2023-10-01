@@ -1,14 +1,14 @@
-﻿using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using ControlR.Agent.Interfaces;
+﻿using ControlR.Agent.Interfaces;
+using ControlR.Agent.Models;
+using ControlR.Agent.Services.Base;
 using ControlR.Devices.Common.Native.Linux;
 using ControlR.Devices.Common.Services;
-using Microsoft.Extensions.Options;
 using ControlR.Shared;
 using ControlR.Shared.Services;
 using ControlR.Shared.Services.Http;
-using ControlR.Agent.Services.Base;
-using ControlR.Agent.Models;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace ControlR.Agent.Services.Linux;
 
@@ -70,8 +70,8 @@ internal class AgentInstallerLinux : AgentInstallerBase, IAgentInstaller
                 _fileSystem.DeleteDirectory(Path.Combine(_installDir, "RemoteControl"), true);
             }
 
-            var serviceFile = GetServiceFile(targetPath).Trim();
-            var serviceFilePath = "/etc/systemd/system/control.agent.service";
+            var serviceFile = GetServiceFile().Trim();
+            var serviceFilePath = "/etc/systemd/system/controlr.agent.service";
 
             await _fileSystem.WriteAllTextAsync(serviceFilePath, serviceFile);
             await UpdateAppSettings(_installDir, authorizedPublicKey);
@@ -82,7 +82,7 @@ internal class AgentInstallerLinux : AgentInstallerBase, IAgentInstaller
                 .WaitForExitAsync(_lifetime.ApplicationStopping);
 
             await _processInvoker
-                .Start("sudo", "systemctl restart control.agent.service")
+                .Start("sudo", "systemctl restart controlr.agent.service")
                 .WaitForExitAsync(_lifetime.ApplicationStopping);
 
             _logger.LogInformation("Install completed.");
@@ -123,7 +123,7 @@ internal class AgentInstallerLinux : AgentInstallerBase, IAgentInstaller
                 .Start("sudo", "systemctl disable controlr.agent.service")
                 .WaitForExitAsync(_lifetime.ApplicationStopping);
 
-            var serviceFilePath = "/etc/systemd/system/control.agent.service";
+            var serviceFilePath = "/etc/systemd/system/controlr.agent.service";
             _fileSystem.DeleteFile(serviceFilePath);
 
             await _processInvoker
@@ -145,21 +145,18 @@ internal class AgentInstallerLinux : AgentInstallerBase, IAgentInstaller
         }
     }
 
-    private string GetServiceFile(string serverUrl)
+    private string GetServiceFile()
     {
-        return @$"
-                [Unit]
-                Description=ControlR provides zero-trust remote control and administration.
-
-                [Service]
-                WorkingDirectory={_installDir}
-                ExecStart={_installDir}/{AppConstants.AgentFileName} run -s {serverUrl}
-                Restart=always
-                StartLimitIntervalSec=0
-                RestartSec=10
-
-                [Install]
-                WantedBy=graphical.target
-            ";
+        return
+            $"[Unit]\n" +
+            "Description=ControlR provides zero-trust remote control and administration.\n\n" +
+            "[Service]\n" +
+            $"WorkingDirectory={_installDir}\n" +
+            $"ExecStart={_installDir}/{AppConstants.AgentFileName} run\n" +
+            "Restart=always\n" +
+            "StartLimitIntervalSec=0\n" +
+            "RestartSec=10\n\n" +
+            "[Install]\n" +
+            "WantedBy=graphical.target";
     }
 }

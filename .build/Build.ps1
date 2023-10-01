@@ -47,6 +47,7 @@ if (!(Test-Path -Path "$Root\ControlR.sln")) {
 
 if ($BuildAgent){
     dotnet publish --configuration Release -p:PublishProfile=win-x86 -p:Version=$CurrentVersion -p:FileVersion=$CurrentVersion -p:IncludeAllContentForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:IncludeAppSettingsInSingleFile=true  "$Root\ControlR.Agent\"
+    dotnet publish --configuration Release -p:PublishProfile=ubuntu-x64 -p:Version=$CurrentVersion -p:FileVersion=$CurrentVersion -p:IncludeAllContentForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:IncludeAppSettingsInSingleFile=true  "$Root\ControlR.Agent\"
     Start-Sleep -Seconds 1
     &"$SignToolPath" sign /fd SHA256 /f "$CertificatePath" /p $CertificatePassword /t http://timestamp.digicert.com "$Root\ControlR.Server\wwwroot\downloads\ControlR.Agent.exe"
 }
@@ -58,6 +59,7 @@ if ($BuildStreamer) {
     [string]$PackageJson = $Package | ConvertTo-Json
     [System.IO.File]::WriteAllText("$Root\ControlR.Streamer\package.json", $PackageJson)
     Push-Location "$Root\ControlR.Streamer"
+    npm install
     npm run make-pwsh
     Pop-Location
 }

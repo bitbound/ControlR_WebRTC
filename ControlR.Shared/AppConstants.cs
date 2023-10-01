@@ -58,17 +58,16 @@ public static partial class AppConstants
         get
         {
             var envUri = Environment.GetEnvironmentVariable("ControlRServerUri");
-            if (!string.IsNullOrWhiteSpace(envUri))
+            if (Uri.TryCreate(envUri, UriKind.Absolute, out _))
             {
                 return envUri;
             }
 
-            if (EnvironmentHelper.Instance.IsDebug)
+            if (OperatingSystem.IsWindows() && Debugger.IsAttached)
             {
                 return "http://localhost:5120";
             }
-            //return "https://controlr.app";
-            return "http://192.168.0.2:5007";
+            return "https://controlr.jaredg.dev";
         }
     }
 
