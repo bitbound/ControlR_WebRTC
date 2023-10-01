@@ -5,7 +5,7 @@ internal interface IRemoteControlLauncher
 {
     Task<Result> CreateSession(
      Guid sessionId,
-     string authorizedKey,
+     byte[] authorizedKey,
      int targetWindowsSession = -1,
      string targetDesktop = "",
      Func<double, Task>? onDownloadProgress = null);

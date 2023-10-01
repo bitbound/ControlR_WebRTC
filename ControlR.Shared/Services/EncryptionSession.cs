@@ -10,17 +10,17 @@ public interface IEncryptionSession : IDisposable
 {
     UserKeyPair? CurrentState { get; }
 
-    SignedPayloadDto CreateRandomSignedDto(DtoType dtoType, string publicKey);
+    SignedPayloadDto CreateRandomSignedDto(DtoType dtoType, byte[] publicKey);
 
-    SignedPayloadDto CreateSignedDto<T>(T payload, DtoType dtoType, string publicKey);
+    SignedPayloadDto CreateSignedDto<T>(T payload, DtoType dtoType, byte[] publicKey);
     Result<KeypairExport> ExportKeypair(string username);
 
     UserKeyPair GenerateKeys(string password);
 
     Result<UserKeyPair> ImportPrivateKey(string password, byte[] encryptedKey);
-    void ImportPublicKey(byte[] publicBytes);
+    void ImportPublicKey(byte[] publicKey);
 
-    void ImportPublicKey(string publicKey);
+    void ImportPublicKey(string publicKeyBase64);
 
     void Reset();
 
@@ -51,13 +51,13 @@ public class EncryptionSession : IEncryptionSession
 
     public UserKeyPair? CurrentState => _currentKeys;
 
-    public SignedPayloadDto CreateRandomSignedDto(DtoType dtoType, string publicKey)
+    public SignedPayloadDto CreateRandomSignedDto(DtoType dtoType, byte[] publicKey)
     {
         var payload = RandomNumberGenerator.GetBytes(256);
         return CreateSignedDtoImpl(payload, dtoType, publicKey);
     }
 
-    public SignedPayloadDto CreateSignedDto<T>(T payload, DtoType dtoType, string publicKey)
+    public SignedPayloadDto CreateSignedDto<T>(T payload, DtoType dtoType, byte[] publicKey)
     {
         var payloadBytes = MessagePackSerializer.Serialize(payload);
         return CreateSignedDtoImpl(payloadBytes, dtoType, publicKey);
@@ -77,8 +77,8 @@ public class EncryptionSession : IEncryptionSession
 
         var export = new KeypairExport()
         {
-            EncryptedPrivateKeyBase64 = _currentKeys.EncryptedPrivateKeyBase64,
-            PublicKeyBase64 = _currentKeys.PublicKeyBase64,
+            EncryptedPrivateKey = _currentKeys.EncryptedPrivateKey,
+            PublicKey = _currentKeys.PublicKey,
             Username = username
         };
         return Result.Ok(export);
@@ -167,7 +167,7 @@ public class EncryptionSession : IEncryptionSession
         var result = _rsa.VerifyData(payload, signature, HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
         if (!result)
         {
-            _logger.LogCritical("Verification failed for signature: {sig}", Convert.ToBase64String(signature));
+            _logger.LogCritical("Verification failed for signature: {Signature}", Convert.ToBase64String(signature));
         }
         return result;
     }
@@ -179,20 +179,19 @@ public class EncryptionSession : IEncryptionSession
 
     public bool Verify(SignedPayloadDto signedDto)
     {
-        ImportPublicKey(Convert.FromBase64String(signedDto.PublicKey));
+        ImportPublicKey(signedDto.PublicKey);
         return Verify(signedDto.Payload, signedDto.Signature);
     }
 
-    private SignedPayloadDto CreateSignedDtoImpl(byte[] payload, DtoType dtoType, string publicKey)
+    private SignedPayloadDto CreateSignedDtoImpl(byte[] payload, DtoType dtoType, byte[] publicKey)
     {
         var signature = Sign(payload);
         return new SignedPayloadDto()
         {
             DtoType = dtoType,
-            Payload = Convert.ToBase64String(payload),
-            Signature = Convert.ToBase64String(signature),
-            PublicKey = publicKey,
-            PublicKeyPem = _rsa.ExportSubjectPublicKeyInfoPem()
+            Payload = payload,
+            Signature = signature,
+            PublicKey = publicKey
         };
     }
 }

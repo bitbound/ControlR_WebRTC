@@ -57,7 +57,6 @@ public static partial class AppConstants
     {
         get
         {
-            return "http://192.168.0.2:5007";
             var envUri = Environment.GetEnvironmentVariable("ControlRServerUri");
             if (!string.IsNullOrWhiteSpace(envUri))
             {

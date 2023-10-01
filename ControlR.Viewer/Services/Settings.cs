@@ -9,18 +9,14 @@ namespace ControlR.Viewer.Services;
 internal interface ISettings
 {
     string KeypairExportPath { get; set; }
-    string PrivateKey { get; set; }
-    byte[] PrivateKeyBytes { get; set; }
-    string PublicKey { get; set; }
+    byte[] PrivateKey { get; set; }
+    byte[] PublicKey { get; set; }
+    string PublicKeyBase64 { get; }
     bool RememberPassphrase { get; set; }
     string Username { get; set; }
-    Task<string> GetEncryptedPrivateKey();
-    Task<byte[]> GetEncryptedPrivateKeyBytes();
+    Task<byte[]> GetEncryptedPrivateKey();
     Task<string> GetPassphrase();
-    Task SetEncryptedPrivateKey(string value);
-
-    Task SetEncryptedPrivateKeyBytes(byte[] value);
-
+    Task SetEncryptedPrivateKey(byte[] value);
     Task SetPassphrase(string passphrase);
     Task UpdateKeypair(string username, UserKeyPair keypair);
     Task UpdateKeypair(KeypairExport export);
@@ -31,7 +27,7 @@ internal class Settings : ISettings
     private readonly IMessenger _messenger;
     private readonly IPreferences _preferences;
     private readonly ISecureStorage _secureStorage;
-    private string _privateKey = string.Empty;
+    private byte[] _privateKey = Array.Empty<byte>();
 
     public Settings(
         ISecureStorage secureStorage,
@@ -49,32 +45,22 @@ internal class Settings : ISettings
         set => _preferences.Set(nameof(KeypairExportPath), value);
     }
 
-    public string PrivateKey
+    public byte[] PrivateKey
     {
         get => _privateKey;
         set => _privateKey = value;
     }
 
-    public byte[] PrivateKeyBytes
+    public byte[] PublicKey
     {
-        get
-        {
-            if (string.IsNullOrWhiteSpace(_privateKey))
-            {
-                return Array.Empty<byte>();
-            }
-            return Convert.FromBase64String(_privateKey);
-        }
-        set
-        {
-            _privateKey = Convert.ToBase64String(value);
-        }
+        get => Convert.FromBase64String(PublicKeyBase64);
+        set => PublicKeyBase64 = Convert.ToBase64String(value);
     }
 
-    public string PublicKey
+    public string PublicKeyBase64
     {
-        get => _preferences.Get(nameof(PublicKey), string.Empty);
-        set => _preferences.Set(nameof(PublicKey), value);
+        get => _preferences.Get(nameof(PublicKeyBase64), string.Empty);
+        set => _preferences.Set(nameof(PublicKeyBase64), value);
     }
 
     public bool RememberPassphrase
@@ -90,13 +76,7 @@ internal class Settings : ISettings
         get => _preferences.Get(nameof(Username), string.Empty);
         set => _preferences.Set(nameof(Username), value);
     }
-
-    public async Task<string> GetEncryptedPrivateKey()
-    {
-        return await _secureStorage.GetAsync("EncryptedPrivateKey");
-    }
-
-    public async Task<byte[]> GetEncryptedPrivateKeyBytes()
+    public async Task<byte[]> GetEncryptedPrivateKey()
     {
         var stored = await _secureStorage.GetAsync("EncryptedPrivateKey");
         if (string.IsNullOrWhiteSpace(stored))
@@ -110,11 +90,8 @@ internal class Settings : ISettings
     {
         return await _secureStorage.GetAsync("Passphrase");
     }
-    public async Task SetEncryptedPrivateKey(string value)
-    {
-        await _secureStorage.SetAsync("EncryptedPrivateKey", value);
-    }
-    public async Task SetEncryptedPrivateKeyBytes(byte[] value)
+
+    public async Task SetEncryptedPrivateKey(byte[] value)
     {
         await _secureStorage.SetAsync("EncryptedPrivateKey", Convert.ToBase64String(value));
     }
@@ -127,17 +104,17 @@ internal class Settings : ISettings
     public async Task UpdateKeypair(string username, UserKeyPair keypair)
     {
         Username = username;
-        PublicKey = keypair.PublicKeyBase64;
-        PrivateKey = keypair.PrivateKeyBase64;
-        await SetEncryptedPrivateKey(keypair.EncryptedPrivateKeyBase64);
+        PublicKey = keypair.PublicKey;
+        PrivateKey = keypair.PrivateKey;
+        await SetEncryptedPrivateKey(keypair.EncryptedPrivateKey);
         _messenger.SendParameterlessMessage(ParameterlessMessageKind.AuthStateChanged);
     }
 
     public async Task UpdateKeypair(KeypairExport export)
     {
         Username = export.Username;
-        PublicKey = export.PublicKeyBase64;
-        await SetEncryptedPrivateKey(export.EncryptedPrivateKeyBase64);
+        PublicKey = export.PublicKey;
+        await SetEncryptedPrivateKey(export.EncryptedPrivateKey);
         _messenger.SendParameterlessMessage(ParameterlessMessageKind.AuthStateChanged);
     }
 }

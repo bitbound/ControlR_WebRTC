@@ -26,7 +26,7 @@
                                       HelperText="Enter your PIN or password."
                                       Immediate="true"
                                       InputType="InputType.Password"
-                                      OnKeyPress="PassphraseInputKeypress"
+                                      OnKeyDown="PassphraseInputKeyDown"
                                       Required />
 
                         <MudCheckBox @bind-Checked="RememberPassphrase"
@@ -80,7 +80,7 @@
         }
     }
 
-    private async Task PassphraseInputKeypress(KeyboardEventArgs args)
+    private async Task PassphraseInputKeyDown(KeyboardEventArgs args)
     {
         if (args.Key == "Enter")
         {
@@ -108,13 +108,13 @@
             InvokeAsync(StateHasChanged);
         });
 
-        var privateKey = await Settings.GetEncryptedPrivateKeyBytes();
+        var privateKey = await Settings.GetEncryptedPrivateKey();
         var result = AppState.Encryptor.ImportPrivateKey(_passphrase, privateKey);
         if (result.IsSuccess)
         {
             var keyDto = new PublicKeyDto()
                 {
-                    PublicKey = result.Value.PublicKeyBase64,
+                    PublicKey = result.Value.PublicKey,
                     Username = Settings.Username
                 };
             HttpConfigurer.UpdateClientAuthorizations(keyDto);

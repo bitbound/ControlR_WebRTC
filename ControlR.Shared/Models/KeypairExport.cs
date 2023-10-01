@@ -6,11 +6,11 @@ namespace ControlR.Shared.Models;
 public class KeypairExport
 {
     [DataMember]
-    public string EncryptedPrivateKeyBase64 { get; init; } = string.Empty;
+    public required byte[] EncryptedPrivateKey { get; init; }
 
     [DataMember]
-    public string PublicKeyBase64 { get; init; } = string.Empty;
+    public required byte[] PublicKey { get; init; }
 
     [DataMember]
-    public string Username { get; init; } = string.Empty;
+    public required string Username { get; init; }
 }

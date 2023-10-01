@@ -159,7 +159,7 @@
             var keypair = AppState.Encryptor.GenerateKeys(_passphrase);
             var keyDto = new PublicKeyDto()
                 {
-                    PublicKey = keypair.PublicKeyBase64,
+                    PublicKey = keypair.PublicKey,
                     Username = _username
                 };
 

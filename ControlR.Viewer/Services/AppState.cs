@@ -51,7 +51,7 @@ internal class AppState : IAppState
     {
         get
         {
-            if (string.IsNullOrWhiteSpace(_settings.PublicKey))
+            if (!_settings.PublicKey.Any())
             {
                 return AuthenticationState.NoKeysPresent;
             }

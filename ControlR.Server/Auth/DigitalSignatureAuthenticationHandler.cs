@@ -82,15 +82,14 @@ public class DigitalSignatureAuthenticationHandler : AuthenticationHandler<Authe
         var encryptionFactory = scope.ServiceProvider.GetRequiredService<IEncryptionSessionFactory>();
         using var encryptor = encryptionFactory.CreateSession();
 
-        var account = MessagePackSerializer.Deserialize<PublicKeyDto>(Convert.FromBase64String(signedDto.Payload));
+        var account = MessagePackSerializer.Deserialize<PublicKeyDto>(signedDto.Payload);
         var publicKey = account.PublicKey;
 
-        if (string.IsNullOrWhiteSpace(publicKey))
+        if (!publicKey.Any())
         {
             return AuthenticateResult.Fail("No public key found in the payload.");
         }
-        var publicBytes = Convert.FromBase64String(publicKey);
-        encryptor.ImportPublicKey(publicBytes);
+        encryptor.ImportPublicKey(publicKey);
         var result = encryptor.Verify(signedDto.Payload, signedDto.Signature);
 
         if (!result)
@@ -100,7 +99,7 @@ public class DigitalSignatureAuthenticationHandler : AuthenticationHandler<Authe
 
         var claims = new Claim[]
         {
-            new Claim(ClaimNames.PublicKey, publicKey),
+            new Claim(ClaimNames.PublicKey, signedDto.PublicKeyBase64),
             new Claim(ClaimNames.Username, account.Username),
         };
 

@@ -10,11 +10,8 @@ public class UserKeyPair : ICloneable
     }
 
     public byte[] EncryptedPrivateKey { get; private set; } = Array.Empty<byte>();
-    public string EncryptedPrivateKeyBase64 => Convert.ToBase64String(EncryptedPrivateKey);
     public byte[] PrivateKey { get; private set; }
-    public string PrivateKeyBase64 => Convert.ToBase64String(PrivateKey);
     public byte[] PublicKey { get; private set; }
-    public string PublicKeyBase64 => Convert.ToBase64String(PublicKey);
 
     public object Clone()
     {

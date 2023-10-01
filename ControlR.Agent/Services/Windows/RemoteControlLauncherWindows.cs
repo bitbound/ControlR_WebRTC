@@ -57,12 +57,12 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
         _watcherBinaryPath = _environment.StartupExePath;
     }
 
-    public async Task<Shared.Result> CreateSession(
-     Guid sessionId,
-     string authorizedKey,
-     int targetWindowsSession = -1,
-     string targetDesktop = "",
-     Func<double, Task>? onDownloadProgress = null)
+    public async Task<Result> CreateSession(
+        Guid sessionId,
+        byte[] authorizedKey,
+        int targetWindowsSession = -1,
+        string targetDesktop = "",
+        Func<double, Task>? onDownloadProgress = null)
     {
         await _createSessionLock.WaitAsync();
 
@@ -189,7 +189,7 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
     }
 
     // For debugging.
-    private Shared.Result<string> GetSolutionDir(string currentDir)
+    private Result<string> GetSolutionDir(string currentDir)
     {
         var dirInfo = new DirectoryInfo(currentDir);
         if (!dirInfo.Exists)
@@ -210,7 +210,7 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
         return Result.Fail<string>("Not found.");
     }
 
-    private async Task<Shared.Result> LaunchNewSidecarProcess(StreamingSession session)
+    private async Task<Result> LaunchNewSidecarProcess(StreamingSession session)
     {
         if (_processes.GetCurrentProcess().SessionId == 0)
         {

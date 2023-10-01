@@ -5,7 +5,7 @@ using System.Diagnostics;
 namespace ControlR.Agent.Models;
 internal class StreamingSession : IDisposable
 {
-    public StreamingSession(Guid sessionId, string authorizedKey, int targetWindowsSession, string targetDesktop)
+    public StreamingSession(Guid sessionId, byte[] authorizedKey, int targetWindowsSession, string targetDesktop)
     {
         SessionId = sessionId;
         AuthorizedKey = authorizedKey;
@@ -17,7 +17,7 @@ internal class StreamingSession : IDisposable
     public Process? StreamerProcess { get; set; }
     public Guid SessionId { get; }
     public int TargetWindowsSession { get; }
-    public string AuthorizedKey { get; }
+    public byte[] AuthorizedKey { get; }
     public Process? WatcherProcess { get; set; }
     public string LastDesktop { get; set; } = "Default";
     public IIpcServer? IpcServer { get; set; }

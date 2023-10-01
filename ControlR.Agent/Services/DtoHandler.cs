@@ -48,7 +48,7 @@ internal class DtoHandler : IHostedService
             return;
         }
 
-        if (!_appOptions.CurrentValue.AuthorizedKeys.Contains(dto.PublicKey))
+        if (!_appOptions.CurrentValue.AuthorizedKeys.Contains(dto.PublicKeyBase64))
         {
             _logger.LogCritical("Public key does not exist in authorized keys: {key}", dto.PublicKey);
             return;
@@ -60,7 +60,7 @@ internal class DtoHandler : IHostedService
                 await _agentHub.SendDeviceHeartbeat();
                 break;
             case DtoType.PowerStateChange:
-                var powerDto = MessagePackSerializer.Deserialize<PowerStateChangeDto>(Convert.FromBase64String(dto.Payload));
+                var powerDto = MessagePackSerializer.Deserialize<PowerStateChangeDto>(dto.Payload);
                 await _powerControl.ChangeState(powerDto.Type);
                 break;
             default:

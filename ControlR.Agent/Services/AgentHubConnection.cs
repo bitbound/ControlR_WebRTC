@@ -78,7 +78,7 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
                 return false;
             }
 
-            var dto = MessagePackSerializer.Deserialize<StreamerSessionRequestDto>(Convert.FromBase64String(signedDto.Payload));
+            var dto = MessagePackSerializer.Deserialize<StreamerSessionRequestDto>(signedDto.Payload);
 
             double downloadProgress = 0;
 
@@ -93,7 +93,11 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
                     {
                         downloadProgress = progress;
                         await Connection
-                            .InvokeAsync("SendRemoteControlDownloadProgress", dto.StreamingSessionId, dto.ViewerConnectionId, downloadProgress)
+                            .InvokeAsync(
+                                "SendRemoteControlDownloadProgress", 
+                                dto.StreamingSessionId, 
+                                dto.ViewerConnectionId, 
+                                downloadProgress)
                             .ConfigureAwait(false);
                     }
                 })
@@ -219,7 +223,7 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
             return false;
         }
 
-        if (!_appOptions.CurrentValue.AuthorizedKeys.Contains(signedDto.PublicKey))
+        if (!_appOptions.CurrentValue.AuthorizedKeys.Contains(signedDto.PublicKeyBase64))
         {
             _logger.LogCritical("Public key does not exist in authorized keys list: {key}", signedDto.PublicKey);
             return false;

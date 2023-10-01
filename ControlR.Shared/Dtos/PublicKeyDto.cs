@@ -6,8 +6,8 @@ namespace ControlR.Shared.Dtos;
 public class PublicKeyDto
 {
     [DataMember]
-    public string Username { get; init; } = string.Empty;
+    public required string Username { get; init; }
 
     [DataMember]
-    public string PublicKey { get; init; } = string.Empty;
+    public required byte[] PublicKey { get; init; }
 }
