@@ -1,18 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
 using ControlR.Shared;
-using ControlR.Shared.DbEntities;
-using ControlR.Shared.Dtos;
-using ControlR.Shared.Interfaces;
 using ControlR.Shared.Models;
 using ControlR.Viewer.Extensions;
 using ControlR.Viewer.Models.Messages;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ControlR.Viewer.Services;
 

@@ -1,19 +1,14 @@
-using ControlR.Server.Api;
 using ControlR.Server.Auth;
 using ControlR.Server.Data;
 using ControlR.Server.Hubs;
 using ControlR.Server.Models;
 using ControlR.Server.Services;
 using ControlR.Shared;
-using ControlR.Shared.Models;
 using ControlR.Shared.Services;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 

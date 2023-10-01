@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
 using ControlR.Shared;
-using ControlR.Shared.Collections;
 using ControlR.Shared.Dtos;
 using ControlR.Shared.Services;
 using ControlR.Viewer.Enums;

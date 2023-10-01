@@ -2,16 +2,9 @@
 using ControlR.Devices.Common.Services;
 using ControlR.Shared.Extensions;
 using ControlR.Shared.Helpers;
-using ControlR.Shared.Services;
 using ControlR.Shared.Services.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace ControlR.Agent.Services.Base;
 internal abstract class AgentInstallerBase

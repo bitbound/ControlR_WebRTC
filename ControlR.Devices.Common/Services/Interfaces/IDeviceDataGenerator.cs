@@ -1,9 +1,4 @@
 ﻿using ControlR.Shared.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ControlR.Devices.Common.Services.Interfaces;
 public interface IDeviceDataGenerator

@@ -1,11 +1,6 @@
 ﻿using ControlR.Agent.Interfaces;
 using ControlR.Devices.Common.Services;
 using ControlR.Shared.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ControlR.Agent.Services.Windows;
 internal class PowerControlWindows : IPowerControl

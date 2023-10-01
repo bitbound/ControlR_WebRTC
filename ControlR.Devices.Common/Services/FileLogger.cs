@@ -1,7 +1,6 @@
 ﻿using ControlR.Shared.Services;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 
 namespace ControlR.Devices.Common.Services;
 

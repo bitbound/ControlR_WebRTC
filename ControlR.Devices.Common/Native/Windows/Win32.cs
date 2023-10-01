@@ -1,13 +1,7 @@
 ﻿using ControlR.Shared.Models;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Security.Permissions;
 using System.Security;
-using System.Text;
-using System.Threading.Tasks;
 using PInvoke;
 using static PInvoke.Kernel32;
 

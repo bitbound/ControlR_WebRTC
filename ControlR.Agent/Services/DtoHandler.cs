@@ -2,17 +2,11 @@
 using ControlR.Agent.Models;
 using ControlR.Shared.Dtos;
 using ControlR.Shared.Extensions;
-using ControlR.Shared.Interfaces;
 using ControlR.Shared.Services;
 using MessagePack;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ControlR.Agent.Services;
 internal class DtoHandler : IHostedService

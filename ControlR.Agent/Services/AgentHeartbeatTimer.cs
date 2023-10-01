@@ -1,37 +1,36 @@
 ﻿using Microsoft.Extensions.Hosting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Timers;
+using Microsoft.Extensions.Logging;
 using Timer = System.Timers.Timer;
 
 namespace ControlR.Agent.Services;
-internal class AgentHeartbeatTimer : IHostedService
+internal class AgentHeartbeatTimer : BackgroundService
 {
     private readonly Timer _timer = new(TimeSpan.FromMinutes(5));
     private readonly IAgentHubConnection _hubConnection;
+    private readonly ILogger<AgentHeartbeatTimer> _logger;
 
-    public AgentHeartbeatTimer(IAgentHubConnection hubConnection)
+    public AgentHeartbeatTimer(
+        IAgentHubConnection hubConnection,
+        ILogger<AgentHeartbeatTimer> logger)
     {
         _hubConnection = hubConnection;
+        _logger = logger;
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _timer.Elapsed += Timer_Elapsed;
-        return Task.CompletedTask;
-    }
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(5));
 
-    private void Timer_Elapsed(object? sender, ElapsedEventArgs e)
-    {
-        _hubConnection.SendDeviceHeartbeat();
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        _timer.Dispose();
-        return Task.CompletedTask;
+        while (await timer.WaitForNextTickAsync(stoppingToken))
+        {
+            try
+            {
+                await _hubConnection.SendDeviceHeartbeat();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while sending agent heartbeat.");
+            }
+        }
     }
 }

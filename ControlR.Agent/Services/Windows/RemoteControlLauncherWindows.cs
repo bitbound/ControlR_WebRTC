@@ -11,16 +11,9 @@ using EasyIpc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using PInvoke;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Compression;
-using System.Linq;
-using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using System.Text;
-using System.Threading.Tasks;
 using Result = ControlR.Shared.Result;
 
 namespace ControlR.Agent.Services.Windows;
@@ -64,7 +57,6 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
         _watcherBinaryPath = _environment.StartupExePath;
     }
 
-
     public async Task<Shared.Result> CreateSession(
      Guid sessionId,
      string authorizedKey,
@@ -92,7 +84,8 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
 
             var session = new StreamingSession(sessionId, authorizedKey, targetWindowsSession, targetDesktop);
 
-            var watcherResult = await LaunchNewWatcherProcess(session);
+            var watcherResult = await LaunchNewSidecarProcess(session);
+
             if (!watcherResult.IsSuccess)
             {
                 _logger.LogResult(watcherResult);
@@ -217,13 +210,13 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
         return Result.Fail<string>("Not found.");
     }
 
-    private async Task<Shared.Result> LaunchNewWatcherProcess(StreamingSession session)
+    private async Task<Shared.Result> LaunchNewSidecarProcess(StreamingSession session)
     {
         if (_processes.GetCurrentProcess().SessionId == 0)
         {
             var args = $"--parent-id {Environment.ProcessId} --agent-pipe \"{session.AgentPipeName}\"";
             Win32.CreateInteractiveSystemProcess(
-                $"\"{_watcherBinaryPath}\" watch-desktop {args}",
+                $"\"{_watcherBinaryPath}\" sidecar {args}",
                 targetSessionId: session.TargetWindowsSession,
                 forceConsoleSession: false,
                 desktopName: session.LastDesktop,
@@ -242,7 +235,7 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
         }
         else
         {
-            var args = $"watch-desktop --parent-id {Environment.ProcessId} --agent-pipe \"{session.AgentPipeName}\"";
+            var args = $"sidecar --parent-id {Environment.ProcessId} --agent-pipe \"{session.AgentPipeName}\"";
             var process = _processes.Start(_watcherBinaryPath, args);
             session.WatcherProcess = process;
 
@@ -268,7 +261,11 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
             if (!string.IsNullOrWhiteSpace(desktopName) &&
                 !string.Equals(session.LastDesktop, desktopName, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogInformation("Desktop has changed from {last} to {current}.  Notifying viewer.", session.LastDesktop, desktopName);
+                _logger.LogInformation(
+                    "Desktop has changed from {LastDesktop} to {CurrentDesktop}.  Notifying viewer.", 
+                    session.LastDesktop, 
+                    desktopName);
+
                 session.LastDesktop = desktopName;
                 await agentHub.NotifyViewerDesktopChanged(session.SessionId, desktopName);
             }

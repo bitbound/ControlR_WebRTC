@@ -1,12 +1,10 @@
 ﻿using ControlR.Server.Models;
 using ControlR.Server.Services;
-using ControlR.Shared;
 using ControlR.Shared.Extensions;
 using ControlR.Shared.Interfaces.HubClients;
 using ControlR.Shared.Models;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
-using System.Text.Json;
 
 namespace ControlR.Server.Hubs;
 

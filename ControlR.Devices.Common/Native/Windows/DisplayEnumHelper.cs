@@ -23,8 +23,6 @@
 //  ---------------------------------------------------------------------------------
 
 using ControlR.Shared.Models;
-using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.InteropServices;

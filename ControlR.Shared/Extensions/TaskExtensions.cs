@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ControlR.Shared.Extensions;
+﻿namespace ControlR.Shared.Extensions;
 public static class TaskExtensions
 {
     public static Task OrCompleted<T>(this T? value)

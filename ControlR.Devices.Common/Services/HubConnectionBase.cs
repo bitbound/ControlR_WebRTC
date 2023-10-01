@@ -1,20 +1,9 @@
-﻿using ControlR.Shared;
-using ControlR.Shared.Dtos;
-using ControlR.Shared.Enums;
+﻿using ControlR.Shared.Dtos;
 using ControlR.Shared.Helpers;
-using ControlR.Shared.Interfaces;
-using MessagePack;
 using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ControlR.Devices.Common.Services;
 public interface IHubConnectionBase

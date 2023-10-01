@@ -3,11 +3,6 @@ using ControlR.Devices.Common.Services.Interfaces;
 using ControlR.Shared.Models;
 using ControlR.Shared.Services;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ControlR.Devices.Common.Services.Windows;
 internal class DeviceDataGeneratorWin : DeviceDataGeneratorBase, IDeviceDataGenerator

@@ -8,4 +8,4 @@ export const assetsPath = app.isPackaged
 
 export function getAssetsPath(...paths: string[]): string {
   return path.join(assetsPath, ...paths);
-};
+}

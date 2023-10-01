@@ -1,8 +1,5 @@
 ﻿using ControlR.Shared;
-using ControlR.Shared.DbEntities;
 using ControlR.Shared.Dtos;
-using ControlR.Shared.Interfaces;
-using ControlR.Shared.Services;
 using MessagePack;
 using System.Collections.Concurrent;
 using System.Net.Http.Headers;

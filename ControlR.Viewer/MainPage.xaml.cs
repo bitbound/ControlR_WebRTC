@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-
-namespace ControlR.Viewer;
+﻿namespace ControlR.Viewer;
 
 public partial class MainPage : ContentPage
 {

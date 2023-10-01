@@ -5,15 +5,12 @@ using System.Security.Principal;
 using ControlR.Agent.Interfaces;
 using ControlR.Devices.Common.Services;
 using ControlR.Shared.Extensions;
-using System.Text.Json;
-using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using ControlR.Shared.Services;
 using ControlR.Shared.Services.Http;
 using ControlR.Agent.Services.Base;
 using Microsoft.Win32;
 using ControlR.Shared;
-using PInvoke;
 using System.ServiceProcess;
 using ControlR.Shared.Helpers;
 

@@ -1,8 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using ControlR.Shared.Extensions;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
-using ControlR.Shared.Dtos;
 using ControlR.Shared.Services;
 using ControlR.Shared.Models;
 

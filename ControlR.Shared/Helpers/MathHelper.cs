@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-
-namespace ControlR.Shared.Helpers;
+﻿namespace ControlR.Shared.Helpers;
 public static class MathHelper
 {
     public static double GetDistanceBetween(double point1X, double point1Y, double point2X, double point2Y)

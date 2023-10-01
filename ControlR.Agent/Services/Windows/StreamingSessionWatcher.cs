@@ -1,23 +1,7 @@
-﻿using ControlR.Agent.Interfaces;
-using ControlR.Agent.Models;
-using ControlR.Agent.Models.IpcDtos;
-using ControlR.Devices.Common.Native.Windows;
-using ControlR.Devices.Common.Services;
-using ControlR.Shared;
-using ControlR.Shared.Services;
-using EasyIpc;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO.MemoryMappedFiles;
-using System.Linq;
 using System.Runtime.Versioning;
-using System.Text;
-using System.Threading.Tasks;
 using System.Timers;
-using static System.Collections.Specialized.BitVector32;
 using Timer = System.Timers.Timer;
 
 namespace ControlR.Agent.Services.Windows;

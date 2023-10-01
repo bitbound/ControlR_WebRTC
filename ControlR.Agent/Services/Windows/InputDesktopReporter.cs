@@ -2,19 +2,10 @@
 using ControlR.Devices.Common.Native.Windows;
 using ControlR.Devices.Common.Services;
 using ControlR.Shared;
-using ControlR.Shared.Helpers;
 using EasyIpc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using PInvoke;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO.MemoryMappedFiles;
-using System.Linq;
 using System.Runtime.Versioning;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ControlR.Agent.Services.Windows;
 
@@ -93,7 +84,7 @@ internal class InputDesktopReporter : IInputDesktopReporter
             _logger.LogWarning("Failed to switch to initial input desktop.");
         }
 
-        _logger.LogInformation("Creating IPC client for pipe name: {name}", _agentPipeName);
+        _logger.LogInformation("Creating IPC client for pipe name: {AgentPipeName}", _agentPipeName);
         var client = await _ipcFactory.CreateClient(".", _agentPipeName);
         var connected = await client.Connect(10_000);
 
@@ -124,7 +115,7 @@ internal class InputDesktopReporter : IInputDesktopReporter
 
                 if (parentProcess.HasExited)
                 {
-                    _logger.LogInformation("Parent ID {id} no longer exists.  Exiting watcher process.", _parentId);
+                    _logger.LogInformation("Parent ID {ParentProcessId} no longer exists.  Exiting watcher process.", _parentId);
                     return;
                 }
 
@@ -151,7 +142,10 @@ internal class InputDesktopReporter : IInputDesktopReporter
                     !string.IsNullOrWhiteSpace(threadDesktop) &&
                     !string.Equals(inputDesktop, threadDesktop, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogInformation("Desktop has changed from {last} to {current}.  Sending to agent.", threadDesktop, inputDesktop);
+                    _logger.LogInformation(
+                        "Desktop has changed from {LastDesktop} to {CurrentDesktop}.  Sending to agent.", 
+                        threadDesktop, 
+                        inputDesktop);
                     await client.Send(new DesktopChangeDto(inputDesktop));
                     if (!Win32.SwitchToInputDesktop())
                     {
@@ -167,7 +161,7 @@ internal class InputDesktopReporter : IInputDesktopReporter
             }
         }
 
-        _logger.LogInformation("Exiting desktop watcher for pipe name: {name}", _agentPipeName);
+        _logger.LogInformation("Exiting desktop watcher for pipe name: {AgentPipeName}", _agentPipeName);
         _hostLifetime.StopApplication();
     }
 

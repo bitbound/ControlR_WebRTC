@@ -1,7 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.Messaging.Messages;
 using ControlR.Viewer.Models.Messages;
-using System;
 
 namespace ControlR.Viewer.Extensions;
 

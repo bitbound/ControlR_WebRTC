@@ -3,8 +3,6 @@ using ControlR.Shared.Services;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Net;
-using ControlR.Devices.Common;
-using ControlR.Agent.Interfaces;
 using ControlR.Devices.Common.Services;
 using ControlR.Shared;
 using ControlR.Shared.Services.Http;

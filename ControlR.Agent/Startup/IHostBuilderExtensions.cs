@@ -72,7 +72,7 @@ internal static class IHostBuilderExtensions
                 services.AddSingleton<IAgentHubConnection, AgentHubConnection>();
             }
 
-            if (startupMode == StartupMode.WatchDesktop && OperatingSystem.IsWindows())
+            if (startupMode == StartupMode.Sidecar && OperatingSystem.IsWindows())
             {
                 services.AddSingleton<IInputDesktopReporter, InputDesktopReporter>();
             }

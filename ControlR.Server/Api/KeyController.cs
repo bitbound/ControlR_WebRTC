@@ -1,14 +1,5 @@
-﻿using ControlR.Server.Auth;
-using ControlR.Server.Data;
-using ControlR.Server.Extensions;
-using ControlR.Shared;
-using ControlR.Shared.DbEntities;
-using ControlR.Shared.Dtos;
-using ControlR.Shared.Models;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.EntityFrameworkCore;
 
 namespace ControlR.Server.Api;
 

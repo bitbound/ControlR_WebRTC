@@ -1,5 +1,4 @@
 ﻿using ControlR.Server.Models;
-using ControlR.Shared.Dtos;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 

@@ -2,9 +2,6 @@
 using CommunityToolkit.Mvvm.Messaging;
 using ControlR.Viewer.Extensions;
 using ControlR.Viewer.Services;
-using Microsoft.AspNetCore.Components.WebView.Maui;
-using Microsoft.Extensions.Logging;
-using System.Reflection;
 
 namespace ControlR.Viewer;
 

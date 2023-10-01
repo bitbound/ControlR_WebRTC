@@ -24,7 +24,6 @@ in this Software without prior written authorization from The Open Group.
 
 */
 
-using System;
 using System.Runtime.InteropServices;
 
 namespace ControlR.Devices.Common.Native.Linux;

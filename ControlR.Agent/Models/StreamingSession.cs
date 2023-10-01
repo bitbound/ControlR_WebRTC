@@ -1,7 +1,6 @@
 ﻿using ControlR.Shared.Helpers;
 using EasyIpc;
 using System.Diagnostics;
-using System.IO.MemoryMappedFiles;
 
 namespace ControlR.Agent.Models;
 internal class StreamingSession : IDisposable

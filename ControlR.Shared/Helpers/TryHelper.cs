@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ControlR.Shared.Helpers;
+﻿namespace ControlR.Shared.Helpers;
 public static class TryHelper
 {
     public static async Task Retry(Func<Task> func, int tryCount, TimeSpan retryDelay)

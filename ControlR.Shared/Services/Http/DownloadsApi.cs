@@ -1,11 +1,5 @@
-﻿using ControlR.Shared.Interfaces;
-using ControlR.Shared.IO;
+﻿using ControlR.Shared.IO;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ControlR.Shared.Services.Http;
 

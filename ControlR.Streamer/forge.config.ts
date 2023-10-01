@@ -13,25 +13,7 @@ import fs from 'fs';
 const config: ForgeConfig = {
   packagerConfig: {
     icon: "./assets/appicon",
-    beforeCopyExtraResources: [
-      (buildPath, electronVersion, platform, arch, callback) => {
-        if (!fs.existsSync("./artifacts")) {
-          fs.mkdirSync("./artifacts");
-        }
-        if (!fs.existsSync("./artifacts/ControlR_Sidecar.exe")){
-          fs.createWriteStream("./artifacts/ControlR_Sidecar.exe").close();
-        }
-
-        if (!fs.existsSync("./artifacts/ControlR_Sidecar")){
-          fs.createWriteStream("./artifacts/ControlR_Sidecar").close();
-        }
-
-        callback();
-      }
-    ],
     extraResource: [
-      "./artifacts/ControlR_Sidecar.exe",
-      "./artifacts/ControlR_Sidecar",
       "./assets/appicon.icns",
       "./assets/appicon.ico",
       "./assets/appicon.png"

@@ -1,13 +1,4 @@
-﻿using ControlR.Shared.DbEntities;
-using ControlR.Shared.Dtos;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Json;
-using System.Security.Principal;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.Extensions.Logging;
 
 namespace ControlR.Shared.Services.Http;
 
