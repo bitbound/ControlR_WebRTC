@@ -28,7 +28,7 @@ internal class DownloadsApi : IDownloadsApi
     {
         try
         {
-            using var webStream = await _client.GetStreamAsync($"{AppConstants.ServerUri}/downloads/{AppConstants.AgentFileName}");
+            using var webStream = await _client.GetStreamAsync($"{AppConstants.DownloadsHostUri}/downloads/{AppConstants.AgentFileName}");
             using var fs = new FileStream(destinationPath, FileMode.Create);
             await webStream.CopyToAsync(fs);
             return Result.Ok();
@@ -46,7 +46,7 @@ internal class DownloadsApi : IDownloadsApi
         {
             using var request = new HttpRequestMessage(
                 HttpMethod.Head,
-                $"{AppConstants.ServerUri}/downloads/{AppConstants.AgentFileName}");
+                $"{AppConstants.DownloadsHostUri}/downloads/{AppConstants.AgentFileName}");
 
             using var response = await _client.SendAsync(request);
             var etag = response.Headers.ETag?.Tag;
@@ -69,7 +69,7 @@ internal class DownloadsApi : IDownloadsApi
     {
         try
         {
-            using var webStream = await _client.GetStreamAsync($"{AppConstants.ServerUri}/downloads/{AppConstants.RemoteControlFileName}");
+            using var webStream = await _client.GetStreamAsync($"{AppConstants.DownloadsHostUri}/downloads/{AppConstants.RemoteControlFileName}");
             using var fs = new FileStream(destinationPath, FileMode.Create);
             await webStream.CopyToAsync(fs);
             return Result.Ok();
@@ -85,7 +85,7 @@ internal class DownloadsApi : IDownloadsApi
     {
         try
         {
-            var zipUrl = $"{AppConstants.ServerUri}/downloads/{AppConstants.RemoteControlZipFileName}";
+            var zipUrl = $"{AppConstants.DownloadsHostUri}/downloads/{AppConstants.RemoteControlZipFileName}";
 
             using var message = new HttpRequestMessage(HttpMethod.Head, zipUrl);
             using var response = await _client.SendAsync(message);

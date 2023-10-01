@@ -56,7 +56,7 @@ internal class AgentUpdater : IAgentUpdater
         {
             _logger.LogInformation("Beginning version check.");
 
-            var downloadUrl = $"{AppConstants.ServerUri}/downloads/{AppConstants.AgentFileName}";
+            var downloadUrl = $"{AppConstants.DownloadsHostUri}/downloads/{AppConstants.AgentFileName}";
             var etagPath = Path.Combine(_environmentHelper.StartupDirectory, "etag.txt");
 
             using var request = new HttpRequestMessage(HttpMethod.Head, downloadUrl);

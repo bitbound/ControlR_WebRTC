@@ -68,9 +68,23 @@ public static partial class AppConstants
             {
                 return "http://localhost:5120";
             }
-            return "https://controlr.jaredg.dev";
+            return "https://app.controlr.app";
         }
     }
+
+    public static string DownloadsHostUri
+    {
+        get
+        {
+            if (Debugger.IsAttached)
+            {
+                return "http://localhost:5173";
+            }
+            return "https://controlr.app";
+        }
+    }
+
+
 
     [GeneratedRegex("[^A-Za-z0-9_-]")]
     public static partial Regex UsernameValidator();

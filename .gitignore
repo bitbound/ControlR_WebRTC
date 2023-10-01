@@ -364,5 +364,5 @@ FodyWeavers.xsd
 /ControlR.Server/App.db
 /ControlR.Server/App.db-shm
 /ControlR.Server/App.db-wal
-/ControlR.Server/wwwroot/Downloads/**
+/ControlR.Website/public/downloads/**
 /ControlR.Viewer/controlr.keystore

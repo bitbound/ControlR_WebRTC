@@ -11,7 +11,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BFF05A82-6635-4DBD-BA89-3D26B2C7AEC7}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
-		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ControlR.Agent", "ControlR.Agent\ControlR.Agent.csproj", "{85932781-AB64-48C9-9789-884D3BB32437}"
@@ -25,6 +24,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ControlR.Devices.Common.Tests", "Tests\ControlR.Devices.Common.Tests\ControlR.Devices.Common.Tests.csproj", "{8E0D0D8D-9342-4A55-9547-2AE4FC122DA8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ControlR.Agent.Tests", "tests\ControlR.Agent.Tests\ControlR.Agent.Tests.csproj", "{DEEABDBB-6362-40FE-8F20-8F2C6E3761FD}"
+EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "ControlR.Website", "ControlR.Website\ControlR.Website.esproj", "{14BABACA-6831-47FD-B1E1-71201BA669AE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -66,6 +67,12 @@ Global
 		{DEEABDBB-6362-40FE-8F20-8F2C6E3761FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DEEABDBB-6362-40FE-8F20-8F2C6E3761FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DEEABDBB-6362-40FE-8F20-8F2C6E3761FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{14BABACA-6831-47FD-B1E1-71201BA669AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14BABACA-6831-47FD-B1E1-71201BA669AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14BABACA-6831-47FD-B1E1-71201BA669AE}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{14BABACA-6831-47FD-B1E1-71201BA669AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14BABACA-6831-47FD-B1E1-71201BA669AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{14BABACA-6831-47FD-B1E1-71201BA669AE}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
