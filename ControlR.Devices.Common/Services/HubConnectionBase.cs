@@ -72,10 +72,7 @@ public abstract class HubConnectionBase : IHubConnectionBase
             {
                 optionsConfig(options);
             })
-            .AddJsonProtocol(options =>
-            {
-                options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
-            })
+            .AddMessagePackProtocol()
             .WithAutomaticReconnect(new RetryPolicy())
             .Build();
 

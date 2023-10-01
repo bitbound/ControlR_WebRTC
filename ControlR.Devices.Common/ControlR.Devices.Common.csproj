@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Http.Connections.Client" Version="7.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="7.0.11" />
     <PackageReference Include="PInvoke.AdvApi32" Version="0.7.124" />
     <PackageReference Include="PInvoke.Kernel32" Version="0.7.124" />
     <PackageReference Include="PInvoke.User32" Version="0.7.124" />

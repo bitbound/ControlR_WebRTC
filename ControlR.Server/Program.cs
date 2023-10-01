@@ -63,12 +63,9 @@ builder.Services
     {
         options.EnableDetailedErrors = builder.Environment.IsDevelopment();
         options.MaximumReceiveMessageSize = 100_000;
-        options.MaximumParallelInvocationsPerClient = 10;
+        options.MaximumParallelInvocationsPerClient = 5;
     })
-    .AddJsonProtocol(options =>
-    {
-        options.PayloadSerializerOptions.PropertyNameCaseInsensitive = true;
-    });
+    .AddMessagePackProtocol();
 
 builder.Services.AddServerSideBlazor();
 

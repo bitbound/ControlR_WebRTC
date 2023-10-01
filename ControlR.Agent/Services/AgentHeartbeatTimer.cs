@@ -5,7 +5,6 @@ using Timer = System.Timers.Timer;
 namespace ControlR.Agent.Services;
 internal class AgentHeartbeatTimer : BackgroundService
 {
-    private readonly Timer _timer = new(TimeSpan.FromMinutes(5));
     private readonly IAgentHubConnection _hubConnection;
     private readonly ILogger<AgentHeartbeatTimer> _logger;
 
