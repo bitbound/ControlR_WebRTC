@@ -26,7 +26,7 @@ $InstallerDir = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
 $VsWhere = "$InstallerDir\vswhere.exe"
 $MSBuildPath = (&"$VsWhere" -latest -products * -find "\MSBuild\Current\Bin\MSBuild.exe").Trim()
 $Root = (Get-Item -Path $PSScriptRoot).Parent.FullName
-$DownloadsFolder = "$Root\ControlR.Website\public\downloads\"
+$DownloadsFolder = "$Root\ControlR.Website\public\downloads"
 $Now = [System.DateTime]::UtcNow
 $CurrentVersion = $Now.ToString("yyyy.MM.dd.HHmm")
 
@@ -52,7 +52,6 @@ if ($BuildAgent){
     dotnet publish --configuration Release -p:PublishProfile=ubuntu-x64 -p:Version=$CurrentVersion -p:FileVersion=$CurrentVersion -p:IncludeAllContentForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:IncludeAppSettingsInSingleFile=true  "$Root\ControlR.Agent\"
     Start-Sleep -Seconds 1
     &"$SignToolPath" sign /fd SHA256 /f "$CertificatePath" /p $CertificatePassword /t http://timestamp.digicert.com "$DownloadsFolder\ControlR.Agent.exe"
-    &"$SignToolPath" sign /fd SHA256 /f "$CertificatePath" /p $CertificatePassword /t http://timestamp.digicert.com "$DownloadsFolder\ControlR.Agent"
 }
 
 if ($BuildStreamer) {

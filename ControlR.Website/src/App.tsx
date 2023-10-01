@@ -1,3 +1,4 @@
+import "./App.css"
 import controlrIcon from "/assets/appicon.svg";
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
@@ -106,15 +107,17 @@ const HeaderRow = styled('div')({
 
 const HeaderPaper = styled(Paper)({
   display: 'inline-block',
-  padding: '1.5rem 4rem 2rem 4rem',
+  padding: '1.5rem 3rem 2rem 3rem',
   marginTop: '4rem'
 })
 
 const Logo = styled('img')({
-  transform: 'translateY(-0.25em)',
+  transform: 'translate(0.1em, -0.25em)',
   position: 'absolute',
-  height: '1.5em',
-  width: '1.5em'
+  height: '1em',
+  width: '1em',
+  backgroundColor: "rgb(15,15,15)",
+  borderRadius: "25%",
 })
 
 const ButtonWrapper = styled('div')({

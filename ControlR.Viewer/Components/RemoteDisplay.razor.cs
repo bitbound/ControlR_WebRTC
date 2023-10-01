@@ -276,7 +276,7 @@ public partial class RemoteDisplay : IAsyncDisposable
         }
         else
         {
-            _statusMessage = string.Empty;
+            _statusMessage = "Extracting and starting streamer";
             _downloadProgress = -1;
         }
         _statusProgress = message.DownloadProgress;

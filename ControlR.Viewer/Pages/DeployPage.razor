@@ -73,14 +73,14 @@
     {
         return
             "$ProgressPreference = \"SilentlyContinue\"; " +
-            $"Invoke-WebRequest -Uri \"{AppConstants.ServerUri}/downloads/ControlR.Agent.exe\" -OutFile \"$env:TEMP/ControlR.Agent.exe\" -UseBasicParsing; " +
+            $"Invoke-WebRequest -Uri \"{AppConstants.DownloadsHostUri}/downloads/ControlR.Agent.exe\" -OutFile \"$env:TEMP/ControlR.Agent.exe\" -UseBasicParsing; " +
             $"Start-Process -FilePath \"$env:TEMP/ControlR.Agent.exe\" -ArgumentList \"install -a {publicKey}\" -Verb RunAs;";
     }
 
     private string CreateUbuntuScript(string publicKey)
     {
         return
-            $"wget -q -O /tmp/ControlR.Agent {AppConstants.ServerUri}/downloads/ControlR.Agent && " +
+            $"wget -q -O /tmp/ControlR.Agent {AppConstants.DownloadsHostUri}/downloads/ControlR.Agent && " +
             "sudo chmod +x /tmp/ControlR.Agent && " +
             $"sudo /tmp/ControlR.Agent install -a {publicKey}";
     }
