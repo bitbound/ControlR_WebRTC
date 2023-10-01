@@ -16,7 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace ControlR.Agent.Configuration;
+namespace ControlR.Agent.Startup;
 internal static class IHostBuilderExtensions
 {
     internal static IHostBuilder AddControlRAgent(this IHostBuilder builder, StartupMode startupMode)

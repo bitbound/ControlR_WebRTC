@@ -1,5 +1,4 @@
-﻿using ControlR.Agent.Configuration;
-using ControlR.Agent.Interfaces;
+﻿using ControlR.Agent.Interfaces;
 using ControlR.Agent.Models;
 using ControlR.Agent.Services;
 using ControlR.Agent.Services.Windows;
