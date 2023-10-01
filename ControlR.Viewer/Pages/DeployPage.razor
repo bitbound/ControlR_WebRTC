@@ -51,8 +51,8 @@
 
     protected override void OnInitialized()
     {
-        _windowsDeployScript = CreateWindowsScript(Settings.PublicKey);
-        _ubuntuDeployScript = CreateUbuntuScript(Settings.PublicKey);
+        _windowsDeployScript = CreateWindowsScript(Settings.PublicKeyBase64);
+        _ubuntuDeployScript = CreateUbuntuScript(Settings.PublicKeyBase64);
 
         base.OnInitialized();
     }
