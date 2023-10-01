@@ -1,5 +1,6 @@
 ﻿using ControlR.Shared.Enums;
 using ControlR.Shared.Services;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace ControlR.Shared;
