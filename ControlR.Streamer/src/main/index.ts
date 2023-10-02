@@ -90,7 +90,7 @@ function setCspHandler(){
             "Content-Security-Policy": [
               "default-src 'self' 'unsafe-inline' 'unsafe-eval' "+
               "http://localhost:5120/ ws://localhost:5120/ " + 
-              "https://controlr.jaredg.dev/ wss://controlr.jaredg.dev/ data: https://fonts.googleapis.com; " +
+              "https://app.controlr.app/ wss://app.controlr.app/ data: https://fonts.googleapis.com; " +
               "font-src https://fonts.googleapis.com https://fonts.gstatic.com;"
         ]
       }

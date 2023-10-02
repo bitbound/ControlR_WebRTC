@@ -1,8 +1,12 @@
 ﻿@page "/keys"
 
+@inject NavigationManager NavManager
 @inject ISettings Settings
 @inject ISnackbar Snackbar
 @inject IDialogService Dialogs
+@inject IHttpConfigurer HttpConfigurer
+@inject IAppState AppState
+@inject IMessenger Messenger
 
 
 <PageTitle>Key Management</PageTitle>
@@ -35,6 +39,14 @@
     </MudButton>
 </div>
 
+<div class="mt-10">
+    <MudText Typo="Typo.h6" Color="Color.Primary" GutterBottom>
+        Remove
+    </MudText>
+    <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="RemoveKeypair">
+        Remove Keypair
+    </MudButton>
+</div>
 
 @code {
     private string _publicKey = string.Empty;
@@ -64,5 +76,24 @@
         {
             Snackbar.Add("Exported keys successfully", Severity.Success);
         }
+    }
+
+    private async Task RemoveKeypair()
+    {
+        var result = await Dialogs.ShowMessageBox(
+            "Confirm Removal",
+            "Are you sure you want to remove your keys?  This cannot be undone.",
+            yesText: "Yes",
+            noText: "No"
+        );
+
+        if (result != true)
+        {
+            return;
+        }
+
+        AppState.Encryptor.Reset();
+        await Settings.Clear();
+        NavManager.NavigateTo(string.Empty, false);
     }
 }

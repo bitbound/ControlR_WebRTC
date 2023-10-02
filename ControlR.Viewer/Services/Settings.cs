@@ -14,6 +14,8 @@ internal interface ISettings
     string PublicKeyBase64 { get; }
     bool RememberPassphrase { get; set; }
     string Username { get; set; }
+    Task Clear();
+
     Task<byte[]> GetEncryptedPrivateKey();
     Task<string> GetPassphrase();
     Task SetEncryptedPrivateKey(byte[] value);
@@ -76,6 +78,17 @@ internal class Settings : ISettings
         get => _preferences.Get(nameof(Username), string.Empty);
         set => _preferences.Set(nameof(Username), value);
     }
+
+    public Task Clear()
+    {
+        RememberPassphrase = false;
+        PrivateKey = Array.Empty<byte>();
+        PublicKey = Array.Empty<byte>();
+        _secureStorage.RemoveAll();
+        _messenger.SendParameterlessMessage(ParameterlessMessageKind.AuthStateChanged);
+        return Task.CompletedTask;
+    }
+
     public async Task<byte[]> GetEncryptedPrivateKey()
     {
         var stored = await _secureStorage.GetAsync("EncryptedPrivateKey");

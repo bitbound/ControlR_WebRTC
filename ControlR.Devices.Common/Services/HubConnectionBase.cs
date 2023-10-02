@@ -18,8 +18,8 @@ public interface IHubConnectionBase
 
 public abstract class HubConnectionBase : IHubConnectionBase
 {
-    private readonly ILogger<HubConnectionBase> _baseLogger;
-    private readonly IServiceScopeFactory _scopeFactory;
+    protected readonly ILogger<HubConnectionBase> _logger;
+    protected readonly IServiceScopeFactory _scopeFactory;
     private CancellationToken _cancellationToken;
     private Func<string, Task> _onConnectFailure = reason => Task.CompletedTask;
     private HubConnection? _connection;
@@ -29,7 +29,7 @@ public abstract class HubConnectionBase : IHubConnectionBase
         ILogger<HubConnectionBase> logger)
     {
         _scopeFactory = scopeFactory;
-        _baseLogger = logger;
+        _logger = logger;
     }
 
     public event EventHandler<SignedPayloadDto>? DtoReceived;
@@ -83,6 +83,7 @@ public abstract class HubConnectionBase : IHubConnectionBase
 
         connectionConfig.Invoke(_connection);
 
+        _logger.LogInformation("Starting connection to {HubUrl}.", hubUrl);
         await StartConnection();
     }
 
@@ -117,21 +118,21 @@ public abstract class HubConnectionBase : IHubConnectionBase
         await WaitHelper.WaitForAsync(() => IsConnected, TimeSpan.MaxValue);
     }
 
- 
+
     private Task HubConnection_Closed(Exception? arg)
     {
-        _baseLogger.LogWarning(arg, "Hub connection closed.");
+        _logger.LogWarning(arg, "Hub connection closed.");
         return Task.CompletedTask;
     }
     private Task HubConnection_Reconnected(string? arg)
     {
-        _baseLogger.LogInformation("Reconnected to desktop hub.  New connection ID: {id}", arg);
+        _logger.LogInformation("Reconnected to desktop hub.  New connection ID: {id}", arg);
         return Task.CompletedTask;
     }
 
     private Task HubConnection_Reconnecting(Exception? arg)
     {
-        _baseLogger.LogInformation(arg, "Reconnecting to desktop hub.");
+        _logger.LogInformation(arg, "Reconnecting to desktop hub.");
         return Task.CompletedTask;
     }
 
@@ -139,7 +140,7 @@ public abstract class HubConnectionBase : IHubConnectionBase
     {
         if (_connection is null)
         {
-            _baseLogger.LogWarning("Connection shouldn't be null here.");
+            _logger.LogWarning("Connection shouldn't be null here.");
             return;
         }
 
@@ -147,22 +148,22 @@ public abstract class HubConnectionBase : IHubConnectionBase
         {
             try
             {
-                _baseLogger.LogInformation("Connecting to server.");
+                _logger.LogInformation("Connecting to server.");
 
                 await _connection.StartAsync(_cancellationToken);
 
-                _baseLogger.LogInformation("Connected to server.");
+                _logger.LogInformation("Connected to server.");
 
                 break;
             }
             catch (HttpRequestException ex)
             {
-                _baseLogger.LogWarning(ex, "Failed to connect to server.  Status Code: {code}", ex.StatusCode);
+                _logger.LogWarning(ex, "Failed to connect to server.  Status Code: {code}", ex.StatusCode);
                 await _onConnectFailure.Invoke($"Communication failure.  Status Code: {ex.StatusCode}");
             }
             catch (Exception ex)
             {
-                _baseLogger.LogError(ex, "Error in hub connection.");
+                _logger.LogError(ex, "Error in hub connection.");
                 await _onConnectFailure.Invoke($"Connection error.  Message: {ex.Message}");
             }
             await Task.Delay(3_000, _cancellationToken);

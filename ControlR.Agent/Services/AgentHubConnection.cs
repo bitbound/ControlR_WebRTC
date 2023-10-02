@@ -1,23 +1,23 @@
-﻿using MessagePack;
+﻿using ControlR.Agent.Interfaces;
+using ControlR.Agent.Models;
+using ControlR.Devices.Common.Native.Windows;
+using ControlR.Devices.Common.Services;
+using ControlR.Devices.Common.Services.Interfaces;
+using ControlR.Shared;
+using ControlR.Shared.Dtos;
+using ControlR.Shared.Enums;
+using ControlR.Shared.Extensions;
+using ControlR.Shared.Interfaces.HubClients;
+using ControlR.Shared.Models;
+using ControlR.Shared.Services;
+using MessagePack;
+using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ControlR.Shared.Dtos;
-using ControlR.Shared.Enums;
-using ControlR.Shared.Extensions;
-using ControlR.Shared.Services;
-using ControlR.Devices.Common.Services.Interfaces;
-using ControlR.Devices.Common.Services;
-using ControlR.Devices.Common.Native.Windows;
-using ControlR.Shared;
-using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.Extensions.Options;
-using ControlR.Shared.Interfaces.HubClients;
-using ControlR.Shared.Models;
 using System.Runtime.Versioning;
-using ControlR.Agent.Interfaces;
-using ControlR.Agent.Models;
 
 namespace ControlR.Agent.Services;
 
@@ -39,7 +39,6 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
     private readonly IAgentUpdater _updater;
     private readonly IEnvironmentHelper _environmentHelper;
     private readonly IFileSystem _fileSystem;
-    private readonly ILogger<AgentHubConnection> _logger;
     private readonly IProcessInvoker _processes;
     public AgentHubConnection(
          IHostApplicationLifetime appLifetime,
@@ -66,7 +65,6 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
         _encryptionFactory = encryptionFactory;
         _remoteControlLauncher = remoteControlLauncher;
         _updater = updater;
-        _logger = logger;
     }
 
     public async Task<bool> GetStreamingSession(SignedPayloadDto signedDto)
@@ -83,7 +81,7 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
             double downloadProgress = 0;
 
             var result = await _remoteControlLauncher.CreateSession(
-                dto.StreamingSessionId, 
+                dto.StreamingSessionId,
                 signedDto.PublicKey,
                 dto.TargetSystemSession,
                 dto.TargetDesktop ?? string.Empty,
@@ -94,9 +92,9 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
                         downloadProgress = progress;
                         await Connection
                             .InvokeAsync(
-                                "SendRemoteControlDownloadProgress", 
-                                dto.StreamingSessionId, 
-                                dto.ViewerConnectionId, 
+                                "SendRemoteControlDownloadProgress",
+                                dto.StreamingSessionId,
+                                dto.ViewerConnectionId,
                                 downloadProgress)
                             .ConfigureAwait(false);
                     }

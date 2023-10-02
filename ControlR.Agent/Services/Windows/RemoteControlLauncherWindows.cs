@@ -7,10 +7,10 @@ using ControlR.Shared;
 using ControlR.Shared.Extensions;
 using ControlR.Shared.Services;
 using ControlR.Shared.Services.Http;
-using SimpleIpc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using SimpleIpc;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Runtime.Versioning;
@@ -68,6 +68,7 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
 
         try
         {
+            var authorizedKeyBase64 = Convert.ToBase64String(authorizedKey);
             var startupDir = _environment.StartupDirectory;
             var remoteControlDir = Path.Combine(startupDir, "RemoteControl");
             _fileSystem.CreateDirectory(remoteControlDir);
@@ -91,11 +92,11 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
                 _logger.LogResult(watcherResult);
                 return Result.Fail("Failed to start desktop watcher process.");
             }
-       
+
             if (_processes.GetCurrentProcess().SessionId == 0)
             {
                 Win32.CreateInteractiveSystemProcess(
-                    $"\"{binaryPath}\" --session-id={sessionId} --authorized-key={authorizedKey}",
+                    $"\"{binaryPath}\" --session-id={sessionId} --authorized-key={authorizedKeyBase64}",
                     targetSessionId: targetWindowsSession,
                     forceConsoleSession: false,
                     desktopName: session.LastDesktop,
@@ -116,7 +117,7 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
             }
             else
             {
-                var args = $"--session-id={sessionId} --authorized-key={authorizedKey}";
+                var args = $"--session-id={sessionId} --authorized-key={authorizedKeyBase64}";
 
                 if (_environment.IsDebug)
                 {
@@ -262,8 +263,8 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
                 !string.Equals(session.LastDesktop, desktopName, StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogInformation(
-                    "Desktop has changed from {LastDesktop} to {CurrentDesktop}.  Notifying viewer.", 
-                    session.LastDesktop, 
+                    "Desktop has changed from {LastDesktop} to {CurrentDesktop}.  Notifying viewer.",
+                    session.LastDesktop,
                     desktopName);
 
                 session.LastDesktop = desktopName;

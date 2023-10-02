@@ -1,8 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using ControlR.Shared.Dtos;
 using ControlR.Shared.Models;
-using System.Security.Cryptography;
-using ControlR.Shared.Dtos;
 using MessagePack;
+using Microsoft.Extensions.Logging;
+using System.Security.Cryptography;
 
 namespace ControlR.Shared.Services;
 

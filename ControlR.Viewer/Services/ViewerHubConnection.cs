@@ -1,18 +1,18 @@
-﻿using ControlR.Shared.Dtos;
-using ControlR.Shared.Models;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using ControlR.Devices.Common.Services;
 using ControlR.Shared;
+using ControlR.Shared.Dtos;
+using ControlR.Shared.Enums;
+using ControlR.Shared.Extensions;
+using ControlR.Shared.Helpers;
+using ControlR.Shared.Interfaces.HubClients;
+using ControlR.Shared.Models;
+using ControlR.Viewer.Extensions;
+using ControlR.Viewer.Models.Messages;
 using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
-using ControlR.Devices.Common.Services;
-using CommunityToolkit.Mvvm.Messaging;
-using ControlR.Viewer.Extensions;
-using ControlR.Shared.Interfaces.HubClients;
-using ControlR.Shared.Helpers;
-using ControlR.Viewer.Models.Messages;
 using MudBlazor;
-using ControlR.Shared.Extensions;
-using ControlR.Shared.Enums;
 using System.Runtime.CompilerServices;
 
 namespace ControlR.Viewer.Services;
@@ -37,7 +37,6 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
     private readonly IAppState _appState;
     private readonly IDeviceCache _devicesCache;
     private readonly IHttpConfigurer _httpConfigurer;
-    private readonly ILogger<ViewerHubConnection> _logger;
     private readonly IMessenger _messenger;
     private readonly ISettings _settings;
     public ViewerHubConnection(
@@ -55,7 +54,6 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
         _messenger = messenger;
         _settings = settings;
         _devicesCache = devicesCache;
-        _logger = logger;
     }
 
     public async Task CloseStreamingSession(Guid sessionId)

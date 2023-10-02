@@ -5,7 +5,7 @@ const authorizedKey = app.commandLine.getSwitchValue("authorized-key");
 const isDev = app.commandLine.hasSwitch("dev");
 
 const serverUri = !isDev ?
-    "https://controlr.jaredg.dev" :
+    "https://app.controlr.app" :
     "http://localhost:5120";
 
     
