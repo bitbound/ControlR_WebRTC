@@ -1,33 +1,34 @@
-﻿using MessagePack;
-using System.Runtime.Serialization;
+﻿using ControlR.Shared.Dtos;
+using ControlR.Shared.Serialization;
+using MessagePack;
 using System.Text.Json.Serialization;
 
 namespace ControlR.Shared.Models;
 
-[DataContract]
+[MessagePackObject]
 public class StreamerHubSession
 {
     [SerializationConstructor]
     [JsonConstructor]
-    public StreamerHubSession(Guid sessionId, Display[] displays, string streamerConnectionId)
+    public StreamerHubSession(Guid sessionId, DisplayDto[] displays, string streamerConnectionId)
     {
         SessionId = sessionId;
         StreamerConnectionId = streamerConnectionId;
         Displays = displays;
     }
 
-    [DataMember]
+    [MsgPackKey]
     public string StreamerConnectionId { get; init; }
 
-    [DataMember]
-    public Display[] Displays { get; init; }
+    [MsgPackKey]
+    public DisplayDto[] Displays { get; init; }
 
-    [DataMember]
+    [MsgPackKey]
     public string? AgentConnectionId { get; set; }
 
-    [DataMember]
+    [MsgPackKey]
     public Guid SessionId { get; init; }
 
-    [DataMember]
+    [MsgPackKey]
     public string? ViewerConnectionId { get; set; }
 }

@@ -1,16 +1,17 @@
-﻿using System.Runtime.Serialization;
+﻿using ControlR.Shared.Serialization;
+using MessagePack;
 
 namespace ControlR.Shared.Models;
 
-[DataContract]
+[MessagePackObject]
 public class KeypairExport
 {
-    [DataMember]
+    [MsgPackKey]
     public required byte[] EncryptedPrivateKey { get; init; }
 
-    [DataMember]
+    [MsgPackKey]
     public required byte[] PublicKey { get; init; }
 
-    [DataMember]
+    [MsgPackKey]
     public required string Username { get; init; }
 }

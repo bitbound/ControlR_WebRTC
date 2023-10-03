@@ -69,19 +69,7 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
         try
         {
             var authorizedKeyBase64 = Convert.ToBase64String(authorizedKey);
-            var startupDir = _environment.StartupDirectory;
-            var remoteControlDir = Path.Combine(startupDir, "RemoteControl");
-            _fileSystem.CreateDirectory(remoteControlDir);
-            var binaryPath = Path.Combine(remoteControlDir, AppConstants.RemoteControlFileName);
 
-            if (!_fileSystem.FileExists(binaryPath))
-            {
-                var result = await DownloadRemoteControl(remoteControlDir, onDownloadProgress);
-                if (!result.IsSuccess)
-                {
-                    return Result.Fail(result.Reason);
-                }
-            }
 
             var session = new StreamingSession(sessionId, authorizedKey, targetWindowsSession, targetDesktop);
 
@@ -95,6 +83,20 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
 
             if (_processes.GetCurrentProcess().SessionId == 0)
             {
+                var startupDir = _environment.StartupDirectory;
+                var remoteControlDir = Path.Combine(startupDir, "RemoteControl");
+                _fileSystem.CreateDirectory(remoteControlDir);
+                var binaryPath = Path.Combine(remoteControlDir, AppConstants.RemoteControlFileName);
+
+                if (!_fileSystem.FileExists(binaryPath))
+                {
+                    var result = await DownloadRemoteControl(remoteControlDir, onDownloadProgress);
+                    if (!result.IsSuccess)
+                    {
+                        return Result.Fail(result.Reason);
+                    }
+                }
+
                 Win32.CreateInteractiveSystemProcess(
                     $"\"{binaryPath}\" --session-id={sessionId} --authorized-key={authorizedKeyBase64}",
                     targetSessionId: targetWindowsSession,
@@ -137,10 +139,6 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
                         UseShellExecute = true
                     };
                     session.StreamerProcess = _processes.Start(psi);
-                }
-                else
-                {
-                    session.StreamerProcess = _processes.Start(binaryPath, args);
                 }
 
                 if (session.StreamerProcess is null)

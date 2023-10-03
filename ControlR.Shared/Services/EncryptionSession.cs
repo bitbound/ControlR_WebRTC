@@ -191,7 +191,8 @@ public class EncryptionSession : IEncryptionSession
             DtoType = dtoType,
             Payload = payload,
             Signature = signature,
-            PublicKey = publicKey
+            PublicKey = publicKey,
+            PublicKeyPem = _rsa.ExportSubjectPublicKeyInfoPem()
         };
     }
 }

@@ -1,30 +1,31 @@
-﻿using System.Runtime.Serialization;
+﻿using ControlR.Shared.Serialization;
+using MessagePack;
 using System.Text.Json.Serialization;
 
 namespace ControlR.Shared.Models;
 
-[DataContract]
+[MessagePackObject]
 public class Drive
 {
-    [DataMember]
+    [MsgPackKey]
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public DriveType DriveType { get; set; }
 
-    [DataMember]
+    [MsgPackKey]
     public string RootDirectory { get; set; } = string.Empty;
 
-    [DataMember]
+    [MsgPackKey]
     public string Name { get; set; } = string.Empty;
 
-    [DataMember]
+    [MsgPackKey]
     public string DriveFormat { get; set; } = string.Empty;
 
-    [DataMember]
+    [MsgPackKey]
     public double FreeSpace { get; set; }
 
-    [DataMember]
+    [MsgPackKey]
     public double TotalSize { get; set; }
 
-    [DataMember]
+    [MsgPackKey]
     public string VolumeLabel { get; set; } = string.Empty;
 }

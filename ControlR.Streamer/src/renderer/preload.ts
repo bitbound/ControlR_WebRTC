@@ -10,8 +10,8 @@ contextBridge.exposeInMainWorld("mainApi", {
     "getServerUri": () => ipcRenderer.invoke(ipcRtmChannels.getServerUri),
     "getSessionId": () => ipcRenderer.invoke(ipcRtmChannels.getSessionId),
 
-    "verifyDto": (base64Payload, base64Signature, publicKey, publicKeyPem) =>
-        ipcRenderer.invoke(ipcRtmChannels.verifyDto, base64Payload, base64Signature, publicKey, publicKeyPem),
+    "verifyDto": (payload, signature, publicKey, publicKeyPem) =>
+        ipcRenderer.invoke(ipcRtmChannels.verifyDto, payload, signature, publicKey, publicKeyPem),
 
     "getDisplays": () => ipcRenderer.invoke(ipcRtmChannels.getDisplays),
     "movePointer": (x, y) => ipcRenderer.invoke(ipcRtmChannels.movePointer, x, y),

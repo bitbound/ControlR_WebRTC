@@ -23,31 +23,37 @@ export async function registerIpcHandlers() {
 
 const verifyDto = (
   event: IpcMainInvokeEvent,
-  base64Payload: string,
-  base64Signature: string,
-  publicKey: string,
+  payload: Uint8Array,
+  signature: Uint8Array,
+  publicKey: Uint8Array,
   publicKeyPem: string
 ): boolean => {
+
   console.log("Verifying DTO signature.");
 
-  if (publicKey != appState.authorizedKey) {
-    console.error("Public key from DTO does not match the authorized key.");
+  const publicKeyBase64 = Buffer.from(publicKey).toString('base64');
+
+  writeLog(`Comparing public key ${publicKeyBase64}`);
+
+  if (publicKeyBase64 != appState.authorizedKey) {
+    writeLog("Public key from DTO does not match the authorized key.", 'Error');
     return false;
   }
-
-  const payload = Buffer.from(base64Payload, "base64");
-  const signature = Buffer.from(base64Signature, "base64");
 
   const publicKeyObject = createPublicKey({
     key: publicKeyPem,
     type: "pkcs1",
     format: "pem"
   });
-
-  const result = verify("RSA-SHA512", payload, publicKeyObject, signature);
+  
+  const result = verify(
+    "RSA-SHA512", 
+    payload, 
+    publicKeyObject, 
+    signature);
 
   if (!result) {
-    console.error("Public key from DTO does not pass verification!");
+    writeLog("Public key from DTO does not pass verification!", 'Error');
     return false;
   }
 

@@ -1,9 +1,9 @@
 import { SignalrDtoType } from "./signalrDtoTypes";
 
 export interface SignedPayloadDto {
-    payload: string;
-    signature: string;
+    payload: Uint8Array;
+    signature: Uint8Array;
     dtoType: SignalrDtoType;
-    publicKey: string;
+    publicKey: Uint8Array;
     publicKeyPem: string;
 }

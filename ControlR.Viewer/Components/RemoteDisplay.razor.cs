@@ -1,20 +1,21 @@
-﻿using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
-using ControlR.Viewer.Models;
-using Microsoft.Extensions.Logging;
-using System.Runtime.Versioning;
-using ControlR.Viewer.Services;
-using MudBlazor;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using ControlR.Shared.Dtos;
+using ControlR.Shared.Enums;
+using ControlR.Shared.Helpers;
 using ControlR.Shared.Models;
-using CommunityToolkit.Mvvm.Messaging;
-using ControlR.Viewer.Models.Messages;
+using ControlR.Shared.Services;
 using ControlR.Viewer.Enums;
 using ControlR.Viewer.Extensions;
+using ControlR.Viewer.Models;
+using ControlR.Viewer.Models.Messages;
+using ControlR.Viewer.Services;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
+using MudBlazor;
+using System.Runtime.Versioning;
 using TouchEventArgs = Microsoft.AspNetCore.Components.Web.TouchEventArgs;
-using ControlR.Shared.Helpers;
-using ControlR.Shared.Services;
-using ControlR.Shared.Enums;
 
 namespace ControlR.Viewer.Components;
 
@@ -26,13 +27,12 @@ public partial class RemoteDisplay : IAsyncDisposable
     private DotNetObjectReference<RemoteDisplay>? _componentRef;
     private ElementReference _contentArea;
     private ControlMode _controlMode = ControlMode.Mouse;
-    private Display[] _displays = Array.Empty<Display>();
-    private double _downloadProgress;
+    private DisplayDto[] _displays = Array.Empty<DisplayDto>();
     private IceServer[] _iceServers = Array.Empty<IceServer>();
     private bool _isMobileActionsMenuOpen;
     private double _lastPinchDistance = -1;
     private IJSObjectReference? _module;
-    private Display? _selectedDisplay;
+    private DisplayDto? _selectedDisplay;
     private bool _isStreamReady;
     private string _statusMessage = "Starting remote control session";
     private double _statusProgress = -1;
@@ -109,7 +109,10 @@ public partial class RemoteDisplay : IAsyncDisposable
     {
         await ViewerHub.CloseStreamingSession(Session.SessionId);
         Messenger.UnregisterAll(this);
-        await _module!.InvokeVoidAsync("dispose", _videoId);
+        if (_module is not null)
+        {
+            await _module.InvokeVoidAsync("dispose", _videoId);
+        }
         GC.SuppressFinalize(this);
     }
 
@@ -229,7 +232,7 @@ public partial class RemoteDisplay : IAsyncDisposable
 
         Session.CreateNewSessionId();
 
-        await _module!.InvokeVoidAsync("resetPeerConnection", _iceServers, _videoId);
+        await _module.InvokeVoidAsync("resetPeerConnection", _iceServers, _videoId);
 
         await RequestStreamingSessionFromAgent(message.DesktopName);
     }
@@ -270,16 +273,17 @@ public partial class RemoteDisplay : IAsyncDisposable
             return;
         }
 
-        if (_downloadProgress < 1)
+        _statusProgress = message.DownloadProgress;
+
+        if (_statusProgress < 1)
         {
             _statusMessage = "Downloading streamer on remote device";
         }
         else
         {
             _statusMessage = "Extracting and starting streamer";
-            _downloadProgress = -1;
+            _statusProgress = -1;
         }
-        _statusProgress = message.DownloadProgress;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -370,10 +374,15 @@ public partial class RemoteDisplay : IAsyncDisposable
         _lastPinchDistance = pinchDistance;
         await InvokeAsync(StateHasChanged);
 
+        if (_module is null)
+        {
+            return;
+        }
+
         var pinchCenterX = (ev.Touches[0].ScreenX + ev.Touches[1].ScreenX) / 2;
         var pinchCenterY = (ev.Touches[0].ScreenY + ev.Touches[1].ScreenY) / 2;
 
-        await _module!.InvokeVoidAsync("scrollTowardPinch", pinchCenterX, pinchCenterY, _contentArea, widthChange, heightChange);
+        await _module.InvokeVoidAsync("scrollTowardPinch", pinchCenterX, pinchCenterY, _contentArea, widthChange, heightChange);
     }
 
     private void OnTouchStart(TouchEventArgs ev)
@@ -383,9 +392,14 @@ public partial class RemoteDisplay : IAsyncDisposable
 
     private async Task OnVkKeyDown(KeyboardEventArgs args)
     {
+        if (_module is null)
+        {
+            return;
+        }
+
         if (args.Key == "Enter" || args.Key == "Backspace")
         {
-            await _module!.InvokeVoidAsync("sendKeyPress", args.Key, _videoId);
+            await _module.InvokeVoidAsync("sendKeyPress", args.Key, _videoId);
         }
     }
 
@@ -437,10 +451,15 @@ public partial class RemoteDisplay : IAsyncDisposable
 
     private async Task TypeText(string text)
     {
+        if (_module is null)
+        {
+            return;
+        }
+
         await _typeLock.WaitAsync();
         try
         {
-            await _module!.InvokeVoidAsync("typeText", text, _videoId);
+            await _module.InvokeVoidAsync("typeText", text, _videoId);
         }
         catch (Exception ex)
         {

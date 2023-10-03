@@ -1,10 +1,10 @@
-﻿using MessagePack;
-using System.Runtime.Serialization;
+﻿using ControlR.Shared.Serialization;
+using MessagePack;
 using System.Text.Json.Serialization;
 
 namespace ControlR.Shared.Dtos;
 
-[DataContract]
+[MessagePackObject]
 public class StreamerSessionRequestDto
 {
     [JsonConstructor]
@@ -17,15 +17,15 @@ public class StreamerSessionRequestDto
         ViewerConnectionId = viewerConnectionId;
     }
 
-    [DataMember]
+    [MsgPackKey]
     public Guid StreamingSessionId { get; init; }
 
-    [DataMember]
+    [MsgPackKey]
     public int TargetSystemSession { get; init; }
 
-    [DataMember]
+    [MsgPackKey]
     public string? ViewerConnectionId { get; init; }
 
-    [DataMember]
+    [MsgPackKey]
     public string? TargetDesktop { get; init; }
 }

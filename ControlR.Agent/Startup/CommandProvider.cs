@@ -60,8 +60,11 @@ internal class CommandProvider
             if (!File.Exists(appSettingsPath))
             {
                 using var mrs = Assembly.GetExecutingAssembly().GetManifestResourceStream("ControlR.Agent.appsettings.json");
-                using var fs = new FileStream(appSettingsPath, FileMode.Create);
-                await mrs!.CopyToAsync(fs);
+                if (mrs is not null)
+                {
+                    using var fs = new FileStream(appSettingsPath, FileMode.Create);
+                    await mrs.CopyToAsync(fs);
+                }
             }
 
             var hubConnection = host.Services.GetRequiredService<IAgentHubConnection>();

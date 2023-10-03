@@ -17,8 +17,6 @@ param (
 
     [switch]$BuildStreamer,
 
-    [switch]$BuildWebsite,
-
     [switch]$IncrementAndroidVersion
 )
 
@@ -98,11 +96,9 @@ if ($BuildViewer) {
     Get-ChildItem -Path "$Root\ControlR.Viewer\bin\publish\" -Recurse -Include "*Signed.apk" | Select-Object -First 1 | Copy-Item -Destination "$DownloadsFolder\ControlR.Viewer.apk"
 }
 
-if ($BuildWebsite) {
-    Push-Location "$Root\ControlR.Website"
-    npm install
-    npm run build
-    Pop-Location
-}
+Push-Location "$Root\ControlR.Website"
+npm install
+npm run build
+Pop-Location
 
 dotnet publish -p:ExcludeApp_Data=true --runtime ubuntu-x64 --configuration Release --output "$Root\ControlR.Server\bin\publish" --self-contained true "$Root\ControlR.Server\"

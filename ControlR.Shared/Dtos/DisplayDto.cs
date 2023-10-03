@@ -1,32 +1,33 @@
-﻿using System.Runtime.Serialization;
+﻿using ControlR.Shared.Serialization;
+using MessagePack;
 
-namespace ControlR.Shared.Models;
+namespace ControlR.Shared.Dtos;
 
-[DataContract]
-public class Display
+[MessagePackObject]
+public class DisplayDto
 {
 
-    [DataMember]
+    [MsgPackKey]
     public string DisplayId { get; init; } = string.Empty;
 
-    [DataMember]
+    [MsgPackKey]
     public int Height { get; init; }
 
-    [DataMember]
+    [MsgPackKey]
     public bool IsPrimary { get; init; }
 
-    [DataMember]
+    [MsgPackKey]
     public int Left { get; init; }
 
-    [DataMember]
+    [MsgPackKey]
     public string MediaId { get; init; } = string.Empty;
 
-    [DataMember]
+    [MsgPackKey]
     public string Name { get; init; } = string.Empty;
 
-    [DataMember]
+    [MsgPackKey]
     public int Top { get; init; }
 
-    [DataMember]
+    [MsgPackKey]
     public int Width { get; init; }
 }

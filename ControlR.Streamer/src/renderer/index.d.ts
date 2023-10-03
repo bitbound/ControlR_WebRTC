@@ -1,12 +1,12 @@
 import { SignedPayloadDto } from "src/shared/dtos/signedPayloadDto";
-import { MediaScreen } from "src/shared/models/MediaScreen";
+import { DisplayDto } from "src/shared/signalrDtos/displayDto";
 
 declare interface MainApi {
   exit(): Promise<void>;
-  verifyDto(base64Payload: string, base64Signature: string, publicKey: string, publicKeyPem: string): Promise<boolean>;
+  verifyDto(payload: Uint8Array, signature: Uint8Array, publicKey: Uint8Array, publicKeyPem: string): Promise<boolean>;
   getServerUri(): Promise<string>;
   getSessionId(): Promise<string>;
-  getDisplays(): Promise<MediaScreen[]>;
+  getDisplays(): Promise<DisplayDto[]>;
   movePointer(x: number, y: number): Promise<void>;
   invokeMouseButton(button: number, isPressed: boolean, x: number, y: number): Promise<void>;
   invokeKeyEvent(keyCode: string, isPressed: boolean, shouldRelease: boolean): Promise<void>;

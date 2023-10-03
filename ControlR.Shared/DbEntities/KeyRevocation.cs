@@ -1,8 +1,8 @@
-﻿using System.Runtime.Serialization;
+﻿using MessagePack;
 
 namespace ControlR.Shared.DbEntities;
 
-[DataContract]
+[MessagePackObject]
 public class KeyRevocation
 {
 }

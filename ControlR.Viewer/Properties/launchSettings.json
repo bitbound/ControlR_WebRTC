@@ -2,10 +2,10 @@
   "profiles": {
     "Windows Machine": {
       "commandName": "MsixPackage",
-      "nativeDebugging": false,
       "environmentVariables": {
         "ControlRServerUri": "http://localhost:5120"
-      }
+      },
+      "nativeDebugging": false
     }
   }
 }

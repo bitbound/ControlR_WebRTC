@@ -67,8 +67,13 @@ public class ProcessInvoker : IProcessInvoker
 
             var proc = Process.Start(psi);
 
+            if (proc is null)
+            {
+                return Result.Fail<string>("Process failed to start.");
+            }
+
             using var cts = new CancellationTokenSource(timeoutMs);
-            await proc!.WaitForExitAsync(cts.Token);
+            await proc.WaitForExitAsync(cts.Token);
 
             var output = await proc.StandardOutput.ReadToEndAsync();
             return Result.Ok(output);

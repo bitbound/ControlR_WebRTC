@@ -1,5 +1,6 @@
 ﻿using ControlR.Server.Models;
 using ControlR.Server.Services;
+using ControlR.Shared.Dtos;
 using ControlR.Shared.Extensions;
 using ControlR.Shared.Interfaces.HubClients;
 using ControlR.Shared.Models;
@@ -27,7 +28,7 @@ public class StreamerHub : Hub<IStreamerHubClient>
         _logger = logger;
     }
 
-    public Task SetSessionDetails(Guid sessionId, Display[] displays)
+    public Task SetSessionDetails(Guid sessionId, DisplayDto[] displays)
     {
         var session = new StreamerHubSession(sessionId, displays, Context.ConnectionId);
         _streamerSessionCache.AddOrUpdate(sessionId, session);
@@ -47,7 +48,13 @@ public class StreamerHub : Hub<IStreamerHubClient>
             return;
         }
 
-        await _viewerHub.Clients.Client(session.ViewerConnectionId!).ReceiveIceCandidate(sessionId, candidateJson);
+        if (string.IsNullOrWhiteSpace(session.ViewerConnectionId))
+        {
+            _logger.LogError("Viewer's connection ID hasn't been set on the session.");
+            return;
+        }
+
+        await _viewerHub.Clients.Client(session.ViewerConnectionId).ReceiveIceCandidate(sessionId, candidateJson);
     }
 
     public async Task SendRtcSessionDescription(Guid sessionId, RtcSessionDescription sessionDescription)
@@ -57,6 +64,13 @@ public class StreamerHub : Hub<IStreamerHubClient>
             _logger.LogError("Could not find session for ID {id}.", sessionId);
             return;
         }
-        await _viewerHub.Clients.Client(session.ViewerConnectionId!).ReceiveRtcSessionDescription(sessionId, sessionDescription);
+
+        if (string.IsNullOrWhiteSpace(session.ViewerConnectionId))
+        {
+            _logger.LogError("Viewer's connection ID hasn't been set on the session.");
+            return;
+        }
+
+        await _viewerHub.Clients.Client(session.ViewerConnectionId).ReceiveRtcSessionDescription(sessionId, sessionDescription);
     }
 }

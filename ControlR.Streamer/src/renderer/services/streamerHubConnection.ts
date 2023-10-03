@@ -1,8 +1,8 @@
 import { HubConnection, HubConnectionBuilder, JsonHubProtocol, LogLevel } from "@microsoft/signalr";
-import { DisplayDto } from "../../shared/signalrDtos/displayDto";
 import { SignedPayloadDto } from "../../shared/signalrDtos/signedPayloadDto";
 import { receiveDto } from "./signalrDtoHandler";
 import rtcSession from "./rtcSession";
+import { MessagePackHubProtocol } from "@microsoft/signalr-protocol-msgpack";
 
 class StreamerHubConnection {
     connection?: HubConnection;
@@ -23,7 +23,7 @@ class StreamerHubConnection {
 
         this.connection = new HubConnectionBuilder()
             .withUrl(`${this.serverUri}/hubs/desktop`)
-            .withHubProtocol(new JsonHubProtocol())
+            .withHubProtocol(new MessagePackHubProtocol())
             .configureLogging(LogLevel.Information)
             .build();
 

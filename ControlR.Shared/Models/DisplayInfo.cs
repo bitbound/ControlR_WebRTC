@@ -1,22 +1,23 @@
-﻿using System.Drawing;
+﻿using ControlR.Shared.Serialization;
+using MessagePack;
+using System.Drawing;
 using System.Numerics;
-using System.Runtime.Serialization;
 
 namespace ControlR.Shared.Models;
 
-[DataContract]
+[MessagePackObject]
 public class DisplayInfo
 {
-    [DataMember]
+    [MsgPackKey]
     public bool IsPrimary { get; set; }
-    [DataMember]
+    [MsgPackKey]
     public Vector2 ScreenSize { get; set; }
-    [DataMember]
+    [MsgPackKey]
     public Rectangle MonitorArea { get; set; }
-    [DataMember]
+    [MsgPackKey]
     public Rectangle WorkArea { get; set; }
-    [DataMember]
+    [MsgPackKey]
     public string DeviceName { get; set; } = string.Empty;
-    [DataMember]
+    [MsgPackKey]
     public IntPtr Hmon { get; set; }
 }

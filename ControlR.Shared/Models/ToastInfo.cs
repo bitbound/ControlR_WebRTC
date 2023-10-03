@@ -1,14 +1,14 @@
 ﻿using ControlR.Shared.Enums;
-using System.Runtime.Serialization;
-
+using ControlR.Shared.Serialization;
+using MessagePack;
 namespace ControlR.Shared.Models;
 
-[DataContract]
+[MessagePackObject]
 public class ToastInfo
 {
-    [DataMember]
+    [MsgPackKey]
     public string Message { get; set; } = string.Empty;
 
-    [DataMember]
+    [MsgPackKey]
     public MessageLevel MessageLevel { get; set; }
 }

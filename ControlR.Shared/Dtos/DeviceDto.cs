@@ -1,11 +1,12 @@
 ﻿using ControlR.Shared.Enums;
 using ControlR.Shared.Extensions;
 using ControlR.Shared.Models;
-using System.Runtime.Serialization;
+using ControlR.Shared.Serialization;
+using MessagePack;
 
 namespace ControlR.Shared.Dtos;
 
-[DataContract]
+[MessagePackObject]
 public class DeviceDto : Device
 {
     public static Result<DeviceDto> TryCreateFrom(Device device, ConnectionType type, string connectionId)
@@ -19,9 +20,9 @@ public class DeviceDto : Device
         return result;
     }
 
-    [DataMember]
+    [MsgPackKey]
     public ConnectionType Type { get; set; }
 
-    [DataMember]
+    [MsgPackKey]
     public string ConnectionId { get; set; } = string.Empty;
 }

@@ -21,7 +21,7 @@ public interface IViewerHubConnection : IViewerHubClient, IHubConnectionBase
     Task CloseStreamingSession(Guid sessionId);
     Task<Result<StreamerHubSession>> GetStreamingSession(string agentConnectionId, Guid sessionId, int targetSystemSession, string targetDesktop = "Default");
 
-    Task<Result<Display[]>> GetDisplays(string desktopConnectionId);
+    Task<Result<DisplayDto[]>> GetDisplays(string desktopConnectionId);
     Task<Result<IceServer[]>> GetIceServers();
 
     Task<Result<WindowsSession[]>> GetWindowsSessions(DeviceDto device);
@@ -88,9 +88,9 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
         }
     }
 
-    public Task<Result<Display[]>> GetDisplays(string desktopConnectionId)
+    public Task<Result<DisplayDto[]>> GetDisplays(string desktopConnectionId)
     {
-        return Result.Fail<Display[]>("Not implemented.").AsTaskResult();
+        return Result.Fail<DisplayDto[]>("Not implemented.").AsTaskResult();
     }
 
     public async Task<Result<IceServer[]>> GetIceServers()

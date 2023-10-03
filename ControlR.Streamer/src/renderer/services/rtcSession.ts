@@ -58,7 +58,7 @@ class RtcSession {
   
         window.mainApi.writeLog("Sending RTC answer: ", "Info", this.peerConnection.localDescription.toJSON());
         await streamerHubConnection.sendRtcSessionDescription(
-          this.peerConnection.localDescription
+          this.peerConnection.localDescription.toJSON()
         );
       }
     }
@@ -161,7 +161,7 @@ class RtcSession {
 
         window.mainApi.writeLog("Sending RTC offer: ", "Info", this.peerConnection.localDescription.toJSON());
         await streamerHubConnection.sendRtcSessionDescription(
-          this.peerConnection.localDescription
+          this.peerConnection.localDescription.toJSON()
         );
       }
       catch (ex) {

@@ -39,6 +39,11 @@
                             OnClick="@(() => _isMobileActionsMenuOpen = !_isMobileActionsMenuOpen)" />
                     </MudTooltip>
 
+                    @if (_controlMode == ControlMode.Touch)
+                    {
+                        <MudIconButton Variant="Variant.Outlined" Icon="@(Icons.Material.Filled.Keyboard)" OnClick="InvokeKeyboard" />
+                    }
+
                     <MudPopover Open="_isMobileActionsMenuOpen" Class="z9001" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
                         <MudList>
                             <MudListItem>
@@ -112,7 +117,7 @@
         {
             <div class="text-center mt-10" style="position: absolute; width: 100%; height: 100%">
                 <MudText Typo="Typo.h4" Color="MudBlazor.Color.Info" Align="Align.Center" GutterBottom>
-                @(_statusMessage)
+                    @(_statusMessage)
                 </MudText>
 
                 @if (_statusProgress > 0)

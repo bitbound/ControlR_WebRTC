@@ -1,8 +1,5 @@
-﻿using System.Runtime.Serialization;
+﻿namespace ControlR.Shared.Dtos;
 
-namespace ControlR.Shared.Dtos;
-
-[DataContract]
 public enum DtoType
 {
     None = 0,

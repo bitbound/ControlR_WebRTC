@@ -1,11 +1,11 @@
 ﻿using ControlR.Shared.Enums;
+using ControlR.Shared.Serialization;
 using MessagePack;
-using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
 namespace ControlR.Shared.Dtos;
 
-[DataContract]
+[MessagePackObject]
 public class PowerStateChangeDto
 {
     [SerializationConstructor]
@@ -15,6 +15,6 @@ public class PowerStateChangeDto
         Type = type;
     }
 
-    [DataMember]
+    [MsgPackKey]
     public PowerStateChangeType Type { get; init; }
 }

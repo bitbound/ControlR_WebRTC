@@ -12,16 +12,16 @@
 @code {
 
     [Parameter]
-    public Display[] Displays { get; set; } = Array.Empty<Display>();
+    public DisplayDto[] Displays { get; set; } = Array.Empty<DisplayDto>();
 
     [Parameter]
-    public Display? SelectedDisplay { get; set; }
+    public DisplayDto? SelectedDisplay { get; set; }
 
     [Parameter]
-    public EventCallback<Display> OnDisplaySelected { get; set; }
+    public EventCallback<DisplayDto> OnDisplaySelected { get; set; }
 
 
-    private async Task SelectDisplay(Display display)
+    private async Task SelectDisplay(DisplayDto display)
     {
         await OnDisplaySelected.InvokeAsync(display);
     }

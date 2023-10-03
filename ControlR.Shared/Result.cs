@@ -1,13 +1,16 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using ControlR.Shared.Serialization;
+using MessagePack;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+
 
 namespace ControlR.Shared;
 
 /// <summary>
 /// Describes the success or failure of any kind of operation.
 /// </summary>
-[DataContract]
+[MessagePackObject]
 public class Result
 {
     [JsonConstructor]
@@ -25,18 +28,18 @@ public class Result
             reason;
     }
 
-    [DataMember]
+    [MsgPackKey]
     public Exception? Exception { get; init; }
 
     [IgnoreDataMember]
     [MemberNotNullWhen(true, nameof(Exception))]
     public bool HadException => Exception is not null;
 
-    [DataMember]
+    [MsgPackKey]
     [MemberNotNullWhen(false, nameof(Reason))]
     public bool IsSuccess { get; init; }
 
-    [DataMember]
+    [MsgPackKey]
     public string Reason { get; init; } = string.Empty;
 
 
@@ -75,7 +78,7 @@ public class Result
 /// <summary>
 /// Describes the success or failure of any kind of operation.
 /// </summary>
-[DataContract]
+[MessagePackObject]
 public class Result<T>
 {
     [JsonConstructor]
@@ -120,22 +123,22 @@ public class Result<T>
         Reason = reason;
     }
 
-    [DataMember]
+    [MsgPackKey]
     public Exception? Exception { get; init; }
 
     [IgnoreDataMember]
     [MemberNotNullWhen(true, nameof(Exception))]
     public bool HadException => Exception is not null;
 
-    [DataMember]
+    [MsgPackKey]
     [MemberNotNullWhen(true, nameof(Value))]
     [MemberNotNullWhen(false, nameof(Reason))]
     public bool IsSuccess { get; init; }
 
-    [DataMember]
+    [MsgPackKey]
     public string Reason { get; init; } = string.Empty;
 
-    [DataMember]
+    [MsgPackKey]
     public T? Value { get; init; }
 }
 

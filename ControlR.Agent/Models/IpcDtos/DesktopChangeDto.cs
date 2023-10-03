@@ -1,10 +1,10 @@
-﻿using MessagePack;
-using System.Runtime.Serialization;
+﻿using ControlR.Shared.Serialization;
+using MessagePack;
 using System.Text.Json.Serialization;
 
 namespace ControlR.Agent.Models.IpcDtos;
 
-[DataContract]
+[MessagePackObject]
 public class DesktopChangeDto
 {
     [JsonConstructor]
@@ -14,6 +14,6 @@ public class DesktopChangeDto
         DesktopName = desktopName;
     }
 
-    [DataMember]
+    [MsgPackKey]
     public string DesktopName { get; set; }
 }

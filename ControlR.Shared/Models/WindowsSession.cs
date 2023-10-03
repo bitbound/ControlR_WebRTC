@@ -1,26 +1,26 @@
-﻿using System.Runtime.Serialization;
-
+﻿using ControlR.Shared.Serialization;
+using MessagePack;
 namespace ControlR.Shared.Models;
 
-[DataContract]
+
 public enum SessionType
 {
     Console = 0,
     RDP = 1
 }
 
-[DataContract]
+[MessagePackObject]
 public class WindowsSession
 {
-    [DataMember(Name = "ID")]
+    [MsgPackKey]
     public int Id { get; set; }
 
-    [DataMember(Name = "Name")]
+    [MsgPackKey]
     public string Name { get; set; } = string.Empty;
 
-    [DataMember(Name = "Type")]
+    [MsgPackKey]
     public SessionType Type { get; set; }
 
-    [DataMember(Name = "Username")]
+    [MsgPackKey]
     public string Username { get; set; } = string.Empty;
 }

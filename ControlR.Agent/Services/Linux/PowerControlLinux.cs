@@ -23,7 +23,7 @@ internal class PowerControlLinux : IPowerControl
                 break;
             case PowerStateChangeType.Shutdown:
                 {
-                    _ = _processInvoker.Start("shutdown", "-p 0", true);
+                    _ = _processInvoker.Start("shutdown", "-P 0", true);
                 }
                 break;
             default:

@@ -1,22 +1,22 @@
-﻿using Microsoft.Extensions.Hosting;
-using ControlR.Shared.Services;
-using Microsoft.Extensions.Logging;
-using System.Net.Http.Headers;
-using System.Net;
-using ControlR.Devices.Common.Services;
+﻿using ControlR.Devices.Common.Services;
 using ControlR.Shared;
-using ControlR.Shared.Services.Http;
-using System.Security.Cryptography.X509Certificates;
 using ControlR.Shared.Extensions;
+using ControlR.Shared.Services;
+using ControlR.Shared.Services.Http;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Security.Cryptography.X509Certificates;
 
 namespace ControlR.Agent.Services;
 
 internal interface IAgentUpdater : IHostedService
 {
-    Task CheckForUpdate();
+    Task CheckForUpdate(CancellationToken cancellationToken = default);
 }
 
-internal class AgentUpdater : IAgentUpdater
+internal class AgentUpdater : BackgroundService, IAgentUpdater
 {
     private readonly SemaphoreSlim _checkForUpdatesLock = new(1, 1);
     private readonly IDownloadsApi _downloadsApi;
@@ -25,7 +25,7 @@ internal class AgentUpdater : IAgentUpdater
     private readonly HttpClient _httpClient;
     private readonly ILogger<AgentUpdater> _logger;
     private readonly IProcessInvoker _processInvoker;
-    private readonly System.Timers.Timer _updateTimer = new(TimeSpan.FromHours(6).TotalMilliseconds);
+
     public AgentUpdater(
         HttpClient httpClient,
         IDownloadsApi downloadsApi,
@@ -42,11 +42,11 @@ internal class AgentUpdater : IAgentUpdater
         _logger = logger;
     }
 
-    public async Task CheckForUpdate()
+    public async Task CheckForUpdate(CancellationToken cancellationToken = default)
     {
         using var _ = _logger.BeginMemberScope();
 
-        if (!await _checkForUpdatesLock.WaitAsync(0))
+        if (!await _checkForUpdatesLock.WaitAsync(0, cancellationToken))
         {
             _logger.LogWarning("Failed to acquire lock in agent updater.  Aborting check.");
             return;
@@ -72,7 +72,7 @@ internal class AgentUpdater : IAgentUpdater
                 }
             }
 
-            using var response = await _httpClient.SendAsync(request);
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
             if (response.StatusCode == HttpStatusCode.NotModified)
             {
                 _logger.LogInformation("Version is current.");
@@ -98,21 +98,39 @@ internal class AgentUpdater : IAgentUpdater
                 return;
             }
 
-            var cert = X509Certificate.CreateFromSignedFile(tempPath);
-            var thumbprint = cert.GetCertHashString().Trim();
-
-            if (!string.Equals(thumbprint, AppConstants.AgentCertificateThumbprint, StringComparison.OrdinalIgnoreCase))
+            // TODO: Sign Linux binary.
+            if (OperatingSystem.IsWindows())
             {
-                _logger.LogCritical(
-                    "The certificate thumbprint of the downloaded agent binary is invalid.  Aborting update.  " +
-                    "Expected Thumbprint: {expected}.  Actual Thumbprint: {actual}.",
-                    AppConstants.AgentCertificateThumbprint,
-                    thumbprint);
-                return;
+                var cert = X509Certificate.CreateFromSignedFile(tempPath);
+                var thumbprint = cert.GetCertHashString().Trim();
+
+                if (!string.Equals(thumbprint, AppConstants.AgentCertificateThumbprint, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogCritical(
+                        "The certificate thumbprint of the downloaded agent binary is invalid.  Aborting update.  " +
+                        "Expected Thumbprint: {expected}.  Actual Thumbprint: {actual}.",
+                        AppConstants.AgentCertificateThumbprint,
+                        thumbprint);
+                    return;
+                }
+
             }
 
             _logger.LogInformation("Launching installer.");
-            _processInvoker.Start(tempPath, "install");
+
+            // TODO: Abstraction.
+            if (OperatingSystem.IsWindows())
+            {
+                _processInvoker.Start(tempPath, "install");
+            }
+            else
+            {
+                await _processInvoker
+                    .Start("sudo", $"chmod +x {tempPath}")
+                    .WaitForExitAsync(cancellationToken);
+
+                _processInvoker.Start("sudo", $"{tempPath} install");
+            }
         }
         catch (Exception ex)
         {
@@ -124,26 +142,21 @@ internal class AgentUpdater : IAgentUpdater
         }
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (_environmentHelper.IsDebug)
         {
             return;
         }
 
-        await CheckForUpdate();
-        _updateTimer.Elapsed += UpdateTimer_Elapsed;
-        _updateTimer.Start();
-    }
 
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        _updateTimer.Dispose();
-        return Task.CompletedTask;
-    }
+        await CheckForUpdate(stoppingToken);
 
-    private async void UpdateTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
-    {
-        await CheckForUpdate();
+        using var timer = new PeriodicTimer(TimeSpan.FromHours(6));
+
+        while (await timer.WaitForNextTickAsync(stoppingToken))
+        {
+            await CheckForUpdate(stoppingToken);
+        }
     }
 }

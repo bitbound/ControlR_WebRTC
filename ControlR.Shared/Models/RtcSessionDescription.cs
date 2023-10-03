@@ -1,13 +1,14 @@
-﻿using System.Runtime.Serialization;
+﻿using ControlR.Shared.Serialization;
+using MessagePack;
 
 namespace ControlR.Shared.Models;
 
-[DataContract]
+[MessagePackObject]
 public class RtcSessionDescription
 {
-    [DataMember(Name = "sdp")]
+    [MsgPackKey]
     public string Sdp { get; init; } = string.Empty;
 
-    [DataMember(Name = "type")]
+    [MsgPackKey]
     public string Type { get; init; } = string.Empty;
 }

@@ -2,7 +2,6 @@
 
 namespace ControlR.Shared.Enums;
 
-[DataContract]
 public enum ConnectionType
 {
     [EnumMember]

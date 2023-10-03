@@ -1,7 +1,8 @@
-﻿using System.Runtime.Serialization;
+﻿using MessagePack;
 
 namespace ControlR.Agent.Models.IpcDtos;
-[DataContract]
+
+[MessagePackObject]
 public class DesktopRequestDto
 {
 

@@ -1,19 +1,20 @@
-﻿using System.Runtime.Serialization;
+﻿using ControlR.Shared.Serialization;
+using MessagePack;
 
 namespace ControlR.Shared.Models;
 
-[DataContract]
+[MessagePackObject]
 public class IceServer
 {
-    [DataMember(Name = "credential")]
+    [MsgPackKey]
     public string Credential { get; init; } = string.Empty;
 
-    [DataMember(Name = "credentialType")]
+    [MsgPackKey]
     public string CredentialType { get; init; } = string.Empty;
 
-    [DataMember(Name = "urls")]
+    [MsgPackKey]
     public string Urls { get; init; } = string.Empty;
 
-    [DataMember(Name = "username")]
+    [MsgPackKey]
     public string Username { get; init; } = string.Empty;
 }

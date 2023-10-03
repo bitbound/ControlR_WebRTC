@@ -1,24 +1,30 @@
-﻿using System.Runtime.Serialization;
+﻿using ControlR.Shared.Serialization;
+using MessagePack;
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
 namespace ControlR.Shared.Dtos;
 
-[DataContract]
+[MessagePackObject]
 public class SignedPayloadDto
 {
-    [DataMember(Name = "dtoType")]
+    [MsgPackKey]
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public required DtoType DtoType { get; init; }
 
-    [DataMember(Name = "payload")]
+    [MsgPackKey]
     public required byte[] Payload { get; init; }
 
-    [DataMember(Name = "publicKey")]
+    [MsgPackKey]
     public required byte[] PublicKey { get; init; }
 
     [IgnoreDataMember]
+    [IgnoreMember]
     public string PublicKeyBase64 => Convert.ToBase64String(PublicKey ?? Array.Empty<byte>());
 
-    [DataMember(Name = "signature")]
+    [MsgPackKey]
+    public required string PublicKeyPem { get; init; }
+
+    [MsgPackKey]
     public required byte[] Signature { get; init; }
 }

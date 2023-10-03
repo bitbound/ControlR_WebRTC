@@ -80,7 +80,7 @@ function App() {
               variant='outlined'
               href="/downloads/ControlR.Agent.exe"
               target='_blank'>
-              APK
+              EXE
             </Button>
           </ButtonWrapper>
 
@@ -92,7 +92,7 @@ function App() {
               variant='outlined'
               href="/downloads/ControlR.Agent"
               target='_blank'>
-              APK
+              EXE
             </Button>
           </ButtonWrapper>
         </Stack>

@@ -1,13 +1,14 @@
-﻿using System.Runtime.Serialization;
+﻿using ControlR.Shared.Serialization;
+using MessagePack;
 
 namespace ControlR.Shared.Dtos;
 
-[DataContract]
+[MessagePackObject]
 public class PublicKeyDto
 {
-    [DataMember]
+    [MsgPackKey]
     public required string Username { get; init; }
 
-    [DataMember]
+    [MsgPackKey]
     public required byte[] PublicKey { get; init; }
 }

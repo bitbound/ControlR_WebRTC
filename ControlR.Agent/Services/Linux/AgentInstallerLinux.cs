@@ -59,6 +59,15 @@ internal class AgentInstallerLinux : AgentInstallerBase, IAgentInstaller
                 _logger.LogError("Install command must be run with sudo.");
             }
 
+            var serviceFilePath = "/etc/systemd/system/controlr.agent.service";
+
+            if (_fileSystem.FileExists(serviceFilePath))
+            {
+                await _processInvoker
+                     .Start("sudo", "systemctl stop controlr.agent.service")
+                     .WaitForExitAsync(_lifetime.ApplicationStopping);
+            }
+
             var exePath = _environment.StartupExePath;
             var fileName = Path.GetFileName(exePath);
             var targetPath = Path.Combine(_installDir, AppConstants.AgentFileName);
@@ -71,7 +80,7 @@ internal class AgentInstallerLinux : AgentInstallerBase, IAgentInstaller
             }
 
             var serviceFile = GetServiceFile().Trim();
-            var serviceFilePath = "/etc/systemd/system/controlr.agent.service";
+
 
             await _fileSystem.WriteAllTextAsync(serviceFilePath, serviceFile);
             await UpdateAppSettings(_installDir, authorizedPublicKey);
