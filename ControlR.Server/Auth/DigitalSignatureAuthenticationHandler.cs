@@ -19,10 +19,9 @@ public class DigitalSignatureAuthenticationHandler : AuthenticationHandler<Authe
         UrlEncoder encoder,
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory loggerFactory,
-        ISystemClock clock,
         IServiceScopeFactory scopeFactory,
         ILogger<DigitalSignatureAuthenticationHandler> logger)
-            : base(options, loggerFactory, encoder, clock)
+            : base(options, loggerFactory, encoder)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
