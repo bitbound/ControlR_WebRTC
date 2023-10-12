@@ -14,7 +14,7 @@ export function cleanupLogs() {
             if (xStat.isFile() && now - xStat.mtime.getTime() > maxLogAge) {
                 try {
                     writeLog("Removing expired log file: ", "Info", x);
-                    rmSync(x);
+                    rmSync(path.join(logDir, x));
                 }
                 catch (ex) {
                     writeLog("Error while removing log file.", "Error", ex);
