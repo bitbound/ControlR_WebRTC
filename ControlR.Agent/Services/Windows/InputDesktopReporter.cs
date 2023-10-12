@@ -63,12 +63,12 @@ internal class InputDesktopReporter : IInputDesktopReporter
 
         var parentProcess = _processes.GetProcessById(_parentId);
 
-        _logger.LogInformation("Beginning desktop watch for pipe: ", _agentPipeName);
+        _logger.LogInformation("Beginning desktop watch for pipe: {AgentPipeName}", _agentPipeName);
 
      
         if (Win32.GetInputDesktop(out var initialInputDesktop))
         {
-            _logger.LogInformation("Initial desktop: {desktopName}", initialInputDesktop);
+            _logger.LogInformation("Initial desktop: {DesktopName}", initialInputDesktop);
         }
         else
         {

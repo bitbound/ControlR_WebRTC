@@ -1,15 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MessagePack" Version="2.5.108" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
+    <PackageReference Include="MessagePack" Version="2.6.100-alpha" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0-rc.2.23479.6" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0-rc.2.23479.6" />
   </ItemGroup>
 
   <ItemGroup>

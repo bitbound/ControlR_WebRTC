@@ -27,7 +27,7 @@ export function cleanupLogs() {
     }
 }
 
-export function writeLog(message: string, level: LogLevel = "Info", ...args: any[]) {
+export function writeLog(message: string, level: LogLevel = "Info", ...args: unknown[]) {
     try {
         if (level == "Info") {
             console.log(message, args);
@@ -46,15 +46,16 @@ export function writeLog(message: string, level: LogLevel = "Info", ...args: any
         const month = (date.getMonth() + 1).toString().padStart(2, "0");
         const day = date.getDate().toString().padStart(2, "0");
 
-        let logPath = path.join(logDir, `Streamer-${year}-${month}-${day}.log`);
+        const logPath = path.join(logDir, `Streamer-${year}-${month}-${day}.log`);
 
         if (existsSync(logPath)) {
             while (statSync(logPath).size > 1000000) {
-                let content = readFileSync(logPath, { encoding: "utf8" });
+                const content = readFileSync(logPath, { encoding: "utf8" });
                 writeFileSync(logPath, content.substring(content.length / 2));
             }
         }
-        var entry = `[${level}]\t[${(new Date()).toLocaleString()}]\t${message}`;
+
+        let entry = `[${level}]\t[${(new Date()).toLocaleString()}]\t${message}`;
 
         if (args && args.length > 0) {
             args = args.filter(x => !!x);

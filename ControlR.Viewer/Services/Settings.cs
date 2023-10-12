@@ -101,7 +101,7 @@ internal class Settings : ISettings
 
     public async Task<string> GetPassphrase()
     {
-        return await _secureStorage.GetAsync("Passphrase");
+        return await _secureStorage.GetAsync("Passphrase") ?? string.Empty;
     }
 
     public async Task SetEncryptedPrivateKey(byte[] value)
