@@ -4,6 +4,10 @@
     <BuildCommand>
     </BuildCommand>
     <!-- Command to run on project clean -->
-    <CleanCommand></CleanCommand>
+    <CleanCommand>
+    </CleanCommand>
   </PropertyGroup>
+  <ItemGroup>
+    <Folder Include=".build\" />
+  </ItemGroup>
 </Project>

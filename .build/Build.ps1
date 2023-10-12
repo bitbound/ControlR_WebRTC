@@ -24,7 +24,7 @@ $InstallerDir = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
 $VsWhere = "$InstallerDir\vswhere.exe"
 $MSBuildPath = (&"$VsWhere" -latest -products * -find "\MSBuild\Current\Bin\MSBuild.exe").Trim()
 $Root = (Get-Item -Path $PSScriptRoot).Parent.FullName
-$DownloadsFolder = "$Root\ControlR.Website\public\downloads"
+$DownloadsFolder = "$Root\ControlR.Server\wwwroot\downloads"
 $Now = [System.DateTime]::UtcNow
 $CurrentVersion = $Now.ToString("yyyy.MM.dd.HHmm")
 
@@ -95,6 +95,9 @@ if ($BuildViewer) {
     dotnet publish "$Root\ControlR.Viewer\" -f:net7.0-android -c:Release /p:AndroidSigningKeyPass=$KeystorePassword /p:AndroidSigningStorePass=$KeystorePassword -o "$Root\ControlR.Viewer\bin\publish\"
     Get-ChildItem -Path "$Root\ControlR.Viewer\bin\publish\" -Recurse -Include "*Signed.apk" | Select-Object -First 1 | Copy-Item -Destination "$DownloadsFolder\ControlR.Viewer.apk"
 }
+
+[System.IO.Directory]::CreateDirectory("$Root\ControlR.Website\public\downloads\")
+Get-ChildItem -Path "$Root\ControlR.Server\wwwroot\downloads\" | Copy-Item -Destination "$Root\ControlR.Website\public\downloads\" -Recurse
 
 Push-Location "$Root\ControlR.Website"
 npm install
