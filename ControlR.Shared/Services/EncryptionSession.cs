@@ -10,14 +10,16 @@ public interface IEncryptionSession : IDisposable
 {
     UserKeyPair? CurrentState { get; }
 
-    SignedPayloadDto CreateRandomSignedDto(DtoType dtoType, byte[] publicKey);
+    SignedPayloadDto CreateRandomSignedDto(DtoType dtoType);
 
-    SignedPayloadDto CreateSignedDto<T>(T payload, DtoType dtoType, byte[] publicKey);
+    SignedPayloadDto CreateSignedDto<T>(T payload, DtoType dtoType);
+
     Result<KeypairExport> ExportKeypair(string username);
 
     UserKeyPair GenerateKeys(string password);
 
     Result<UserKeyPair> ImportPrivateKey(string password, byte[] encryptedKey);
+
     void ImportPublicKey(byte[] publicKey);
 
     void ImportPublicKey(string publicKeyBase64);
@@ -31,7 +33,9 @@ public interface IEncryptionSession : IDisposable
     byte[] Sign(byte[] payload);
 
     bool Verify(string payloadBase64, string signatureBase64);
+
     bool Verify(byte[] payload, byte[] signature);
+
     bool Verify(SignedPayloadDto signedDto);
 }
 
@@ -46,17 +50,18 @@ public class EncryptionSession(ILogger<EncryptionSession> logger) : IEncryptionS
 
     public UserKeyPair? CurrentState => _currentKeys;
 
-    public SignedPayloadDto CreateRandomSignedDto(DtoType dtoType, byte[] publicKey)
+    public SignedPayloadDto CreateRandomSignedDto(DtoType dtoType)
     {
         var payload = RandomNumberGenerator.GetBytes(256);
-        return CreateSignedDtoImpl(payload, dtoType, publicKey);
+        return CreateSignedDtoImpl(payload, dtoType);
     }
 
-    public SignedPayloadDto CreateSignedDto<T>(T payload, DtoType dtoType, byte[] publicKey)
+    public SignedPayloadDto CreateSignedDto<T>(T payload, DtoType dtoType)
     {
         var payloadBytes = MessagePackSerializer.Serialize(payload);
-        return CreateSignedDtoImpl(payloadBytes, dtoType, publicKey);
+        return CreateSignedDtoImpl(payloadBytes, dtoType);
     }
+
     public void Dispose()
     {
         _rsa.Dispose();
@@ -178,15 +183,20 @@ public class EncryptionSession(ILogger<EncryptionSession> logger) : IEncryptionS
         return Verify(signedDto.Payload, signedDto.Signature);
     }
 
-    private SignedPayloadDto CreateSignedDtoImpl(byte[] payload, DtoType dtoType, byte[] publicKey)
+    private SignedPayloadDto CreateSignedDtoImpl(byte[] payload, DtoType dtoType)
     {
+        if (CurrentState is null)
+        {
+            throw new InvalidOperationException("A keypair must be generated before DTOs can be signed.");
+        }
+
         var signature = Sign(payload);
         return new SignedPayloadDto()
         {
             DtoType = dtoType,
             Payload = payload,
             Signature = signature,
-            PublicKey = publicKey,
+            PublicKey = CurrentState.PublicKey,
             PublicKeyPem = _rsa.ExportSubjectPublicKeyInfoPem()
         };
     }

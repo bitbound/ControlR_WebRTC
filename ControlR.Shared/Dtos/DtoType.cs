@@ -11,4 +11,5 @@ public enum DtoType
     RtcIceCandidate = 6,
     CloseStreamingSession = 7,
     PowerStateChange = 8,
+    InvokeCtrlAltDel = 9,
 }

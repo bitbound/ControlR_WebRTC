@@ -16,20 +16,30 @@ using MudBlazor;
 using System.Runtime.CompilerServices;
 
 namespace ControlR.Viewer.Services;
+
 public interface IViewerHubConnection : IViewerHubClient, IHubConnectionBase
 {
     Task CloseStreamingSession(Guid sessionId);
-    Task<Result<StreamerHubSession>> GetStreamingSession(string agentConnectionId, Guid sessionId, int targetSystemSession, string targetDesktop = "Default");
 
     Task<Result<DisplayDto[]>> GetDisplays(string desktopConnectionId);
+
     Task<Result<IceServer[]>> GetIceServers();
 
+    Task<Result<StreamerHubSession>> GetStreamingSession(string agentConnectionId, Guid sessionId, int targetSystemSession, string targetDesktop = "Default");
+
     Task<Result<WindowsSession[]>> GetWindowsSessions(DeviceDto device);
+
     Task RequestDeviceUpdates();
+
+    Task SendCtrlAltDel(Guid sessionId);
+
     Task SendIceCandidate(Guid sessionId, string iceCandidateJson);
-    Task SendRtcSessionDescription(Guid sessionId, RtcSessionDescription sessionDescription);
-    Task Start(CancellationToken cancellationToken);
+
     Task SendPowerStateChange(DeviceDto device, PowerStateChangeType powerStateType);
+
+    Task SendRtcSessionDescription(Guid sessionId, RtcSessionDescription sessionDescription);
+
+    Task Start(CancellationToken cancellationToken);
 }
 
 internal class ViewerHubConnection(
@@ -49,8 +59,28 @@ internal class ViewerHubConnection(
 
     public async Task CloseStreamingSession(Guid sessionId)
     {
-        var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.CloseStreamingSession, _settings.PublicKey);
+        var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.CloseStreamingSession);
         await Connection.InvokeAsync("SendSignedDtoToStreamer", sessionId, signedDto);
+    }
+
+    public Task<Result<DisplayDto[]>> GetDisplays(string desktopConnectionId)
+    {
+        return Result.Fail<DisplayDto[]>("Not implemented.").AsTaskResult();
+    }
+
+    public async Task<Result<IceServer[]>> GetIceServers()
+    {
+        try
+        {
+            var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.None);
+            var iceServers = await Connection.InvokeAsync<IceServer[]>("GetIceServers", signedDto);
+            return Result.Ok(iceServers);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while getting ICE servers..");
+            return Result.Fail<IceServer[]>(ex);
+        }
     }
 
     public async Task<Result<StreamerHubSession>> GetStreamingSession(string agentConnectionId, Guid sessionId, int targetSystemSession, string targetDesktop = "Default")
@@ -63,7 +93,7 @@ internal class ViewerHubConnection(
                 targetDesktop,
                 Connection.ConnectionId);
 
-            var signedDto = _appState.Encryptor.CreateSignedDto(streamingSessionRequest, DtoType.StreamingSessionRequest, _settings.PublicKey);
+            var signedDto = _appState.Encryptor.CreateSignedDto(streamingSessionRequest, DtoType.StreamingSessionRequest);
 
             var result = await Connection.InvokeAsync<Result<StreamerHubSession>>("GetStreamingSession", agentConnectionId, sessionId, signedDto);
             if (!result.IsSuccess)
@@ -79,31 +109,11 @@ internal class ViewerHubConnection(
         }
     }
 
-    public Task<Result<DisplayDto[]>> GetDisplays(string desktopConnectionId)
-    {
-        return Result.Fail<DisplayDto[]>("Not implemented.").AsTaskResult();
-    }
-
-    public async Task<Result<IceServer[]>> GetIceServers()
-    {
-        try
-        {
-            var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.None, _settings.PublicKey);
-            var iceServers = await Connection.InvokeAsync<IceServer[]>("GetIceServers", signedDto);
-            return Result.Ok(iceServers);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error while getting ICE servers..");
-            return Result.Fail<IceServer[]>(ex);
-        }
-    }
-
     public async Task<Result<WindowsSession[]>> GetWindowsSessions(DeviceDto device)
     {
         try
         {
-            var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.WindowsSessions, _settings.PublicKey);
+            var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.WindowsSessions);
             var sessions = await Connection.InvokeAsync<WindowsSession[]>("GetWindowsSessions", device.ConnectionId, signedDto);
             return Result.Ok(sessions);
         }
@@ -150,8 +160,17 @@ internal class ViewerHubConnection(
         await TryInvoke(async () =>
         {
             await WaitForConnection();
-            var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.DeviceUpdateRequest, _settings.PublicKey);
+            var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.DeviceUpdateRequest);
             await Connection.InvokeAsync("SendSignedDtoToPublicKeyGroup", signedDto);
+        });
+    }
+
+    public async Task SendCtrlAltDel(Guid sessionId)
+    {
+        await TryInvoke(async () =>
+        {
+            var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.InvokeCtrlAltDel);
+            await Connection.InvokeAsync("InvokeCtrlAltDel", sessionId, signedDto);
         });
     }
 
@@ -159,7 +178,7 @@ internal class ViewerHubConnection(
     {
         await TryInvoke(async () =>
         {
-            var signedDto = _appState.Encryptor.CreateSignedDto(iceCandidateJson, DtoType.RtcIceCandidate, _settings.PublicKey);
+            var signedDto = _appState.Encryptor.CreateSignedDto(iceCandidateJson, DtoType.RtcIceCandidate);
             await Connection.InvokeAsync("SendSignedDtoToStreamer", sessionId, signedDto);
         });
     }
@@ -169,7 +188,7 @@ internal class ViewerHubConnection(
         await TryInvoke(async () =>
         {
             var powerDto = new PowerStateChangeDto(powerStateType);
-            var signedDto = _appState.Encryptor.CreateSignedDto(powerDto, DtoType.PowerStateChange, _settings.PublicKey);
+            var signedDto = _appState.Encryptor.CreateSignedDto(powerDto, DtoType.PowerStateChange);
             await Connection.InvokeAsync("SendSignedDtoToAgent", device.ConnectionId, signedDto);
         });
     }
@@ -178,7 +197,7 @@ internal class ViewerHubConnection(
     {
         await TryInvoke(async () =>
         {
-            var signedDto = _appState.Encryptor.CreateSignedDto(sessionDescription, DtoType.RtcSessionDescription, _settings.PublicKey);
+            var signedDto = _appState.Encryptor.CreateSignedDto(sessionDescription, DtoType.RtcSessionDescription);
             await Connection.InvokeAsync("SendSignedDtoToStreamer", sessionId, signedDto);
         });
     }
