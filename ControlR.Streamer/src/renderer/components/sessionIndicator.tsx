@@ -7,12 +7,15 @@ export class SessionIndicator extends Component {
        
         return (
             <div style={wrapperCss} className="draggable">
-                <div className="text-primary mb-2">
+                <div>
+                    <img
+                        src={iconImage512x512Base64}
+                        style={logoCss} />
+
+                </div>
+                <div className="text-primary">
                     Your screen is being viewed
                 </div>
-                <img
-                    src={iconImage512x512Base64}
-                    style={logoCss} />
             </div>
         );
     }
@@ -22,15 +25,19 @@ const wrapperCss = {
     position: "absolute",
     top: "50%",
     left: "50%",
+    display: "grid",
+    gridTemplateColumns: "auto 1fr",
+    columnGap: "5px",
+    alignItems: "center",
     textAlign: "center",
     transform: "translate(-50%, -50%)",
-    width: "100vw",
-    overflow: "hidden"
+    overflow: "hidden",
+    whiteSpace: "nowrap",
 } as CSSProperties;
 
 const logoCss = {
-    height: "90px",
-    width: "90px",
+    height: "50px",
+    width: "50px",
     animationName: "spinLogo",
     animationIterationCount: "infinite",
     animationDirection: "alternate",

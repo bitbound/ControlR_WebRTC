@@ -41,7 +41,7 @@ public class AgentHub : Hub<IAgentHubClient>
         if (_agentSessionCache.TryRemove(Context.ConnectionId, out var session))
         {
             session.Device.IsOnline = false;
-            session.Device.LastOnline = _systemTime.Now;
+            session.Device.LastSeen = _systemTime.Now;
 
             var result = DeviceDto.TryCreateFrom(session.Device, ConnectionType.Agent, Context.ConnectionId);
 
@@ -93,7 +93,7 @@ public class AgentHub : Hub<IAgentHubClient>
     public async Task UpdateDevice(Device device)
     {
         device.IsOnline = true;
-        device.LastOnline = _systemTime.Now;
+        device.LastSeen = _systemTime.Now;
 
         if (_agentSessionCache.TryGetValue(Context.ConnectionId, out var session))
         {

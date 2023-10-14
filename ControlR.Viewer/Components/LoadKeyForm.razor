@@ -49,7 +49,7 @@
 </MudGrid>
 
 
-@code {
+ @code {
     private string? _passphrase;
     private MudForm? _loginForm;
     private bool _formIsValid;
@@ -76,7 +76,7 @@
             }
 
             _formIsValid = true;
-            await LoadKeys();
+            await LoadKeys(false);
         }
     }
 
@@ -84,16 +84,16 @@
     {
         if (args.Key == "Enter")
         {
-            await LoadKeys();
+            await LoadKeys(true);
         }
     }
 
     private async Task SubmitButtonClicked(MouseEventArgs args)
     {
-        await LoadKeys();
+        await LoadKeys(true);
     }
 
-    private async Task LoadKeys()
+    private async Task LoadKeys(bool showDecryptionToast)
     {
         if (!_formIsValid || string.IsNullOrWhiteSpace(_passphrase))
         {
@@ -127,7 +127,11 @@
                     await Settings.SetPassphrase(_passphrase);
                 }
 
-                Snackbar.Add("Private key decrypted", Severity.Success);
+                if (showDecryptionToast)
+                {
+                    Snackbar.Add("Private key decrypted", Severity.Success);
+                }
+            
                 Messenger.SendParameterlessMessage(ParameterlessMessageKind.AuthStateChanged);
             }
             else

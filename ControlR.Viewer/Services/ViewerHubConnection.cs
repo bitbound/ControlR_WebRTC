@@ -208,6 +208,8 @@ internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
             cancellationToken);
 
         _messenger.RegisterParameterless(this, ParameterlessMessageKind.AuthStateChanged, HandleAuthStateChanged);
+
+        await RequestDeviceUpdates();
     }
 
     private void ConfigureConnection(HubConnection connection)

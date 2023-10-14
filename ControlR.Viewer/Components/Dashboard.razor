@@ -117,25 +117,27 @@
 
         <PropertyColumn Property="x => x!.CurrentUser" Title="Current User" />
 
-        <PropertyColumn Property="x => x!.AgentVersion" Title="Agent Version" />
-
-        <PropertyColumn Property="x => x!.LastOnline" Title="Last Online" />
-
-        <PropertyColumn Property="x => x!.Platform" Title="Platform" />
-
-        <PropertyColumn Property="x => x!.OsDescription" Title="OS" />
-
-        <PropertyColumn Property="x => x!.OsArchitecture" Title="Arch" />
-
-        <TemplateColumn T="DeviceDto" Title="CPU Util">
+        <TemplateColumn T="DeviceDto" Title="CPU">
             <CellTemplate>
                 @($"{Math.Round(context.Item.CpuUtilization * 100, 2)}%")
             </CellTemplate>
         </TemplateColumn>
 
-        <TemplateColumn T="DeviceDto" Title="Storage Used">
+        <TemplateColumn T="DeviceDto" Title="Memory">
+            <CellTemplate>
+                @($"{Math.Round(context.Item.UsedMemoryPercent * 100, 2)}%")
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn T="DeviceDto" Title="Storage">
             <CellTemplate>
                 @($"{Math.Round(context.Item.UsedStoragePercent * 100, 2)}%")
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn T="DeviceDto" Title="Total Memory (GB)">
+            <CellTemplate>
+                @($"{context.Item.TotalMemory:N2}")
             </CellTemplate>
         </TemplateColumn>
 
@@ -145,17 +147,15 @@
             </CellTemplate>
         </TemplateColumn>
 
-        <TemplateColumn T="DeviceDto" Title="Memory Used">
-            <CellTemplate>
-                @($"{Math.Round(context.Item.UsedMemoryPercent * 100, 2)}%")
-            </CellTemplate>
-        </TemplateColumn>
+        <PropertyColumn Property="x => x!.AgentVersion" Title="Agent Version" />
 
-        <TemplateColumn T="DeviceDto" Title="Total Memory (GB)">
-            <CellTemplate>
-                @($"{context.Item.TotalMemory:N2}")
-            </CellTemplate>
-        </TemplateColumn>
+        <PropertyColumn Property="x => x!.LastSeen" Title="Last Seen" />
+
+        <PropertyColumn Property="x => x!.Platform" Title="Platform" />
+
+        <PropertyColumn Property="x => x!.OsDescription" Title="OS" />
+
+        <PropertyColumn Property="x => x!.OsArchitecture" Title="Arch" />
     </Columns>
 </MudDataGrid>
 
@@ -185,8 +185,6 @@
         Messenger.RegisterParameterless(this, HandleParameterlessMessage);
 
         await base.OnInitializedAsync();
-
-        await Refresh();
 
         _loading = false;
     }

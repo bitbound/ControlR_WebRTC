@@ -34,7 +34,7 @@ public class Device
 
     [MsgPackKey]
     [Display(Name = "Drives")]
-    public List<Drive> Drives { get; set; } = new();
+    public List<Drive> Drives { get; set; } = [];
 
 
     [MsgPackKey]
@@ -50,8 +50,8 @@ public class Device
     public bool IsOnline { get; set; }
 
     [MsgPackKey]
-    [Display(Name = "Last Online")]
-    public DateTimeOffset LastOnline { get; set; }
+    [Display(Name = "Last Seen")]
+    public DateTimeOffset LastSeen { get; set; }
 
     [MsgPackKey]
     [Display(Name = "Device Name")]

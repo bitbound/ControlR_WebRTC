@@ -19,8 +19,8 @@ if (require('electron-squirrel-startup')) {
 const createMainWindow = (): void => {
   writeLog("Creating main window.  App State: ", "Info", appState);
 
-  const windowWidth = appState.isUnattended ? 250 : 800;
-  const windowHeight = appState.isUnattended ? 150 : 600;
+  const windowWidth = appState.isUnattended ? 300 : 800;
+  const windowHeight = appState.isUnattended ? 100 : 600;
   const titleBarStyle = appState.isUnattended ? "hidden" : "default";
 
   // Create the browser window.
@@ -89,8 +89,7 @@ function setCspHandler(){
         ...details.responseHeaders,
             "Content-Security-Policy": [
               "default-src 'self' 'unsafe-inline' 'unsafe-eval' "+
-              "http://localhost:5120/ ws://localhost:5120/ " + 
-              "https://app.controlr.app/ wss://app.controlr.app/ data: https://fonts.googleapis.com; " +
+              `${appState.serverUri} ${appState.websocketUri} data: https://fonts.googleapis.com; ` +
               "font-src https://fonts.googleapis.com https://fonts.gstatic.com;"
         ]
       }

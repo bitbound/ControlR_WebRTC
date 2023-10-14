@@ -84,6 +84,7 @@ internal class DeviceCache : IDeviceCache
 
             foreach (var device in devices)
             {
+                device.IsOnline = false;
                 _cache.AddOrUpdate(device.Id, device, (k, v) => device);
             }
         }
