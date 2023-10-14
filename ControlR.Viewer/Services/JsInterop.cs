@@ -33,14 +33,9 @@ public interface IJsInterop
     ValueTask StartDraggingY(ElementReference element, double clientY);
 }
 
-public class JsInterop : IJsInterop
+public class JsInterop(IJSRuntime jSRuntime) : IJsInterop
 {
-    private readonly IJSRuntime _jsRuntime;
-
-    public JsInterop(IJSRuntime jSRuntime)
-    {
-        _jsRuntime = jSRuntime;
-    }
+    private readonly IJSRuntime _jsRuntime = jSRuntime;
 
     public ValueTask AddBeforeUnloadHandler()
     {

@@ -7,21 +7,14 @@ using Timer = System.Timers.Timer;
 namespace ControlR.Agent.Services.Windows;
 
 [SupportedOSPlatform("windows")]
-internal class StreamingSessionWatcher : IHostedService
+internal class StreamingSessionWatcher(
+    IStreamingSessionCache streamerCache,
+    ILogger<StreamingSessionWatcher> logger) : IHostedService
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
-    private readonly ILogger<StreamingSessionWatcher> _logger;
+    private readonly ILogger<StreamingSessionWatcher> _logger = logger;
     private readonly Timer _timer = new(50);
-    private readonly IStreamingSessionCache _cache;
-
-    public StreamingSessionWatcher(
-        IStreamingSessionCache streamerCache,
-        ILogger<StreamingSessionWatcher> logger)
-    {
-        _cache = streamerCache;
-        _logger = logger;
-
-    }
+    private readonly IStreamingSessionCache _cache = streamerCache;
 
     public Task StartAsync(CancellationToken cancellationToken)
     {

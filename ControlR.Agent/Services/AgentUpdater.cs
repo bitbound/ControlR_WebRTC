@@ -16,31 +16,21 @@ internal interface IAgentUpdater : IHostedService
     Task CheckForUpdate(CancellationToken cancellationToken = default);
 }
 
-internal class AgentUpdater : BackgroundService, IAgentUpdater
+internal class AgentUpdater(
+    HttpClient httpClient,
+    IDownloadsApi downloadsApi,
+    IFileSystem fileSystem,
+    IProcessInvoker processInvoker,
+    IEnvironmentHelper environmentHelper,
+    ILogger<AgentUpdater> logger) : BackgroundService, IAgentUpdater
 {
     private readonly SemaphoreSlim _checkForUpdatesLock = new(1, 1);
-    private readonly IDownloadsApi _downloadsApi;
-    private readonly IEnvironmentHelper _environmentHelper;
-    private readonly IFileSystem _fileSystem;
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<AgentUpdater> _logger;
-    private readonly IProcessInvoker _processInvoker;
-
-    public AgentUpdater(
-        HttpClient httpClient,
-        IDownloadsApi downloadsApi,
-        IFileSystem fileSystem,
-        IProcessInvoker processInvoker,
-        IEnvironmentHelper environmentHelper,
-        ILogger<AgentUpdater> logger)
-    {
-        _httpClient = httpClient;
-        _downloadsApi = downloadsApi;
-        _fileSystem = fileSystem;
-        _processInvoker = processInvoker;
-        _environmentHelper = environmentHelper;
-        _logger = logger;
-    }
+    private readonly IDownloadsApi _downloadsApi = downloadsApi;
+    private readonly IEnvironmentHelper _environmentHelper = environmentHelper;
+    private readonly IFileSystem _fileSystem = fileSystem;
+    private readonly HttpClient _httpClient = httpClient;
+    private readonly ILogger<AgentUpdater> _logger = logger;
+    private readonly IProcessInvoker _processInvoker = processInvoker;
 
     public async Task CheckForUpdate(CancellationToken cancellationToken = default)
     {

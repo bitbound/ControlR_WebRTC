@@ -3,14 +3,9 @@ using ControlR.Devices.Common.Services;
 using ControlR.Shared.Enums;
 
 namespace ControlR.Agent.Services.Linux;
-internal class PowerControlLinux : IPowerControl
+internal class PowerControlLinux(IProcessInvoker processInvoker) : IPowerControl
 {
-    private readonly IProcessInvoker _processInvoker;
-
-    public PowerControlLinux(IProcessInvoker processInvoker)
-    {
-        _processInvoker = processInvoker;
-    }
+    private readonly IProcessInvoker _processInvoker = processInvoker;
 
     public Task ChangeState(PowerStateChangeType type)
     {

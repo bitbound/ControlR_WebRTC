@@ -11,18 +11,12 @@ internal interface IDownloadsApi
     Task<Result<string>> GetAgentEtag();
 }
 
-internal class DownloadsApi : IDownloadsApi
+internal class DownloadsApi(
+    HttpClient client,
+    ILogger<DownloadsApi> logger) : IDownloadsApi
 {
-    private readonly HttpClient _client;
-    private readonly ILogger<DownloadsApi> _logger;
-
-    public DownloadsApi(
-        HttpClient client,
-        ILogger<DownloadsApi> logger)
-    {
-        _client = client;
-        _logger = logger;
-    }
+    private readonly HttpClient _client = client;
+    private readonly ILogger<DownloadsApi> _logger = logger;
 
     public async Task<Result> DownloadAgent(string destinationPath)
     {

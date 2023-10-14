@@ -5,20 +5,13 @@ using ControlR.Shared.Services;
 using Microsoft.Extensions.Logging;
 
 namespace ControlR.Devices.Common.Services.Linux;
-internal class DeviceDataGeneratorLinux : DeviceDataGeneratorBase, IDeviceDataGenerator
+internal class DeviceDataGeneratorLinux(
+    IProcessInvoker processInvoker,
+    IEnvironmentHelper environmentHelper,
+    ILogger<DeviceDataGeneratorLinux> logger) : DeviceDataGeneratorBase(environmentHelper, logger), IDeviceDataGenerator
 {
-    private readonly IProcessInvoker _processInvoker;
-    private readonly ILogger<DeviceDataGeneratorLinux> _logger;
-
-    public DeviceDataGeneratorLinux(
-        IProcessInvoker processInvoker,
-        IEnvironmentHelper environmentHelper,
-        ILogger<DeviceDataGeneratorLinux> logger)
-        : base(environmentHelper, logger)
-    {
-        _processInvoker = processInvoker;
-        _logger = logger;
-    }
+    private readonly IProcessInvoker _processInvoker = processInvoker;
+    private readonly ILogger<DeviceDataGeneratorLinux> _logger = logger;
 
     public async Task<Device> CreateDevice(double cpuUtilization, IEnumerable<string> authorizedKeys, string deviceId)
     {

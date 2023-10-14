@@ -20,7 +20,7 @@ public class SignedPayloadDto
 
     [IgnoreDataMember]
     [IgnoreMember]
-    public string PublicKeyBase64 => Convert.ToBase64String(PublicKey ?? Array.Empty<byte>());
+    public string PublicKeyBase64 => Convert.ToBase64String(PublicKey ?? []);
 
     [MsgPackKey]
     public required string PublicKeyPem { get; init; }

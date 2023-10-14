@@ -35,19 +35,14 @@ public interface IEncryptionSession : IDisposable
     bool Verify(SignedPayloadDto signedDto);
 }
 
-public class EncryptionSession : IEncryptionSession
+public class EncryptionSession(ILogger<EncryptionSession> logger) : IEncryptionSession
 {
-    private readonly ILogger<EncryptionSession> _logger;
+    private readonly ILogger<EncryptionSession> _logger = logger;
     private readonly PbeParameters _pbeParameters = new(PbeEncryptionAlgorithm.Aes256Cbc, HashAlgorithmName.SHA512, 5_000);
     private UserKeyPair? _backupKeys;
     private RSAParameters? _backupParams;
     private UserKeyPair? _currentKeys;
     private RSA _rsa = RSA.Create();
-
-    public EncryptionSession(ILogger<EncryptionSession> logger)
-    {
-        _logger = logger;
-    }
 
     public UserKeyPair? CurrentState => _currentKeys;
 

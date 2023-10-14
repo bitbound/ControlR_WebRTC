@@ -5,15 +5,10 @@ using System.Text.Json.Serialization;
 namespace ControlR.Agent.Models.IpcDtos;
 
 [MessagePackObject]
-public class DesktopChangeDto
+[method: JsonConstructor]
+[method: SerializationConstructor]
+public class DesktopChangeDto(string desktopName)
 {
-    [JsonConstructor]
-    [SerializationConstructor]
-    public DesktopChangeDto(string desktopName)
-    {
-        DesktopName = desktopName;
-    }
-
     [MsgPackKey]
-    public string DesktopName { get; set; }
+    public string DesktopName { get; set; } = desktopName;
 }

@@ -4,21 +4,14 @@ using System.Collections.Concurrent;
 
 namespace ControlR.Devices.Common.Services;
 
-public class FileLogger : ILogger
+public class FileLogger(string componentName, string componentVersion, string categoryName) : ILogger
 {
     private static readonly ConcurrentStack<string> _scopeStack = new();
     private static readonly SemaphoreSlim _writeLock = new(1, 1);
-    private readonly string _categoryName;
-    private readonly string _componentName;
-    private readonly string _componentVersion;
+    private readonly string _categoryName = categoryName;
+    private readonly string _componentName = componentName;
+    private readonly string _componentVersion = componentVersion;
     private DateTimeOffset _lastLogCleanup;
-
-    public FileLogger(string componentName, string componentVersion, string categoryName)
-    {
-        _componentName = componentName;
-        _componentVersion = componentVersion;
-        _categoryName = categoryName;
-    }
 
     private static string LogsFolderPath
     {
@@ -77,7 +70,7 @@ public class FileLogger : ILogger
         try
         {
 
-            var message = FormatLogEntry(logLevel, _categoryName, $"{state}", exception, _scopeStack.ToArray());
+            var message = FormatLogEntry(logLevel, _categoryName, $"{state}", exception, [.. _scopeStack]);
             CheckLogFileExists();
             File.AppendAllText(LogPath, message);
             CleanupLogs();
@@ -144,7 +137,7 @@ public class FileLogger : ILogger
             $"[Thread ID: {Environment.CurrentManagedThreadId}]\t" +
             $"[{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff}]\t";
 
-        entry += scopeStack.Any() ?
+        entry += scopeStack.Length != 0 ?
                     $"[{categoryName} => {string.Join(" => ", scopeStack)}]\t" :
                     $"[{categoryName}]\t";
 

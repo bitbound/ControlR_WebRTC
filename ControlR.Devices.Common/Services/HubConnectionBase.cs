@@ -16,21 +16,15 @@ public interface IHubConnectionBase
     Task Stop(CancellationToken cancellationToken);
 }
 
-public abstract class HubConnectionBase : IHubConnectionBase
+public abstract class HubConnectionBase(
+    IServiceScopeFactory scopeFactory,
+    ILogger<HubConnectionBase> logger) : IHubConnectionBase
 {
-    protected readonly ILogger<HubConnectionBase> _logger;
-    protected readonly IServiceScopeFactory _scopeFactory;
+    protected readonly ILogger<HubConnectionBase> _logger = logger;
+    protected readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private CancellationToken _cancellationToken;
     private Func<string, Task> _onConnectFailure = reason => Task.CompletedTask;
     private HubConnection? _connection;
-
-    public HubConnectionBase(
-        IServiceScopeFactory scopeFactory,
-        ILogger<HubConnectionBase> logger)
-    {
-        _scopeFactory = scopeFactory;
-        _logger = logger;
-    }
 
     public event EventHandler<SignedPayloadDto>? DtoReceived;
 

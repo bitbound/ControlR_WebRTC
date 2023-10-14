@@ -1,17 +1,10 @@
 ﻿namespace ControlR.Shared.Models;
 
-public class UserKeyPair : ICloneable
+public class UserKeyPair(byte[] publicKey, byte[] privateKey, byte[] encryptedPrivateKey) : ICloneable
 {
-    public UserKeyPair(byte[] publicKey, byte[] privateKey, byte[] encryptedPrivateKey)
-    {
-        PublicKey = publicKey;
-        PrivateKey = privateKey;
-        EncryptedPrivateKey = encryptedPrivateKey;
-    }
-
-    public byte[] EncryptedPrivateKey { get; private set; } = Array.Empty<byte>();
-    public byte[] PrivateKey { get; private set; }
-    public byte[] PublicKey { get; private set; }
+    public byte[] EncryptedPrivateKey { get; private set; } = encryptedPrivateKey;
+    public byte[] PrivateKey { get; private set; } = privateKey;
+    public byte[] PublicKey { get; private set; } = publicKey;
 
     public object Clone()
     {

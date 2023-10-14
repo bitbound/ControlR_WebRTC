@@ -11,29 +11,41 @@ using Microsoft.Extensions.Options;
 
 namespace ControlR.Server.Hubs;
 
-public class AgentHub : Hub<IAgentHubClient>
+public class AgentHub(
+    IHubContext<ViewerHub, IViewerHubClient> viewerHubContext,
+    IAgentSessionCache agentSessionCache,
+    IStreamerSessionCache streamerSessionCache,
+    IOptionsMonitor<AppOptions> appOptions,
+    ISystemTime systemTime,
+    ILogger<AgentHub> logger) : Hub<IAgentHubClient>
 {
-    private readonly IHubContext<ViewerHub, IViewerHubClient> _viewerHub;
-    private readonly IAgentSessionCache _agentSessionCache;
-    private readonly IStreamerSessionCache _streamerSessionCache;
-    private readonly IOptionsMonitor<AppOptions> _appOptions;
-    private readonly ISystemTime _systemTime;
-    private readonly ILogger<AgentHub> _logger;
+    private readonly IAgentSessionCache _agentSessionCache = agentSessionCache;
+    private readonly IOptionsMonitor<AppOptions> _appOptions = appOptions;
+    private readonly ILogger<AgentHub> _logger = logger;
+    private readonly IStreamerSessionCache _streamerSessionCache = streamerSessionCache;
+    private readonly ISystemTime _systemTime = systemTime;
+    private readonly IHubContext<ViewerHub, IViewerHubClient> _viewerHub = viewerHubContext;
 
-    public AgentHub(
-        IHubContext<ViewerHub, IViewerHubClient> viewerHubContext,
-        IAgentSessionCache agentSessionCache,
-        IStreamerSessionCache streamerSessionCache,
-        IOptionsMonitor<AppOptions> appOptions,
-        ISystemTime systemTime,
-        ILogger<AgentHub> logger)
+    public IceServer[] GetIceServers()
     {
-        _viewerHub = viewerHubContext;
-        _agentSessionCache = agentSessionCache;
-        _streamerSessionCache = streamerSessionCache;
-        _appOptions = appOptions;
-        _systemTime = systemTime;
-        _logger = logger;
+        return [.. _appOptions.CurrentValue.IceServers];
+    }
+
+    public async Task NotifyViewerDesktopChanged(Guid sessionId, string desktopName)
+    {
+        if (!_streamerSessionCache.TryGetValue(sessionId, out var session))
+        {
+            _logger.LogError("Could not find session ID to notify of desktop change: {id}", sessionId);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(session.ViewerConnectionId))
+        {
+            _logger.LogError("Viewer connection ID is unexpectedly empty.");
+            return;
+        }
+
+        await _viewerHub.Clients.Client(session.ViewerConnectionId).ReceiveDesktopChanged(sessionId, desktopName);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
@@ -61,28 +73,6 @@ public class AgentHub : Hub<IAgentHubClient>
         }
 
         await base.OnDisconnectedAsync(exception);
-    }
-
-    public IceServer[] GetIceServers()
-    {
-        return _appOptions.CurrentValue.IceServers.ToArray();
-    }
-
-    public async Task NotifyViewerDesktopChanged(Guid sessionId, string desktopName)
-    {
-        if (!_streamerSessionCache.TryGetValue(sessionId, out var session))
-        {
-            _logger.LogError("Could not find session ID to notify of desktop change: {id}", sessionId);
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(session.ViewerConnectionId))
-        {
-            _logger.LogError("Viewer connection ID is unexpectedly empty.");
-            return;
-        }
-
-        await _viewerHub.Clients.Client(session.ViewerConnectionId).ReceiveDesktopChanged(sessionId, desktopName);
     }
 
     public async Task SendRemoteControlDownloadProgress(Guid streamingSessionId, string viewerConnectionId, double downloadProgress)
@@ -116,7 +106,6 @@ public class AgentHub : Hub<IAgentHubClient>
                 await Groups.AddToGroupAsync(Context.ConnectionId, key);
             }
         }
-
 
         var result = DeviceDto.TryCreateFrom(device, ConnectionType.Agent, Context.ConnectionId);
 

@@ -3,12 +3,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace ControlR.Server.Data;
 
-public class AppDb : DbContext
+public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)
 {
-    public AppDb(DbContextOptions<AppDb> options)
-        : base(options)
-    { }
-
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

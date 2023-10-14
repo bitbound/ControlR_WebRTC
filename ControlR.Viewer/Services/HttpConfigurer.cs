@@ -15,22 +15,15 @@ internal interface IHttpConfigurer
     void UpdateClientAuthorizations(PublicKeyDto keyDto);
 }
 
-internal class HttpConfigurer : IHttpConfigurer
+internal class HttpConfigurer(
+    IHttpClientFactory clientFactory,
+    ISettings settings,
+    IAppState appState) : IHttpConfigurer
 {
-    public readonly IHttpClientFactory _clientFactory;
-    private static readonly ConcurrentBag<HttpClient> _clients = new();
-    private readonly ISettings _settings;
-    private readonly IAppState _appState;
-
-    public HttpConfigurer(
-        IHttpClientFactory clientFactory,
-        ISettings settings,
-        IAppState appState)
-    {
-        _clientFactory = clientFactory;
-        _settings = settings;
-        _appState = appState;
-    }
+    public readonly IHttpClientFactory _clientFactory = clientFactory;
+    private static readonly ConcurrentBag<HttpClient> _clients = [];
+    private readonly ISettings _settings = settings;
+    private readonly IAppState _appState = appState;
 
     public void ConfigureAuthenticatedClient(HttpClient client)
     {

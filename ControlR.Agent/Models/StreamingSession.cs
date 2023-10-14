@@ -3,23 +3,14 @@ using SimpleIpc;
 using System.Diagnostics;
 
 namespace ControlR.Agent.Models;
-internal class StreamingSession : IDisposable
+internal class StreamingSession(Guid sessionId, byte[] authorizedKey, int targetWindowsSession, string targetDesktop) : IDisposable
 {
-    public StreamingSession(Guid sessionId, byte[] authorizedKey, int targetWindowsSession, string targetDesktop)
-    {
-        SessionId = sessionId;
-        AuthorizedKey = authorizedKey;
-        TargetWindowsSession = targetWindowsSession;
-        LastDesktop = targetDesktop;
-    }
-
-
     public Process? StreamerProcess { get; set; }
-    public Guid SessionId { get; }
-    public int TargetWindowsSession { get; }
-    public byte[] AuthorizedKey { get; }
+    public Guid SessionId { get; } = sessionId;
+    public int TargetWindowsSession { get; } = targetWindowsSession;
+    public byte[] AuthorizedKey { get; } = authorizedKey;
     public Process? WatcherProcess { get; set; }
-    public string LastDesktop { get; set; } = "Default";
+    public string LastDesktop { get; set; } = targetDesktop;
     public IIpcServer? IpcServer { get; set; }
     public string AgentPipeName { get; } = Guid.NewGuid().ToString();
 

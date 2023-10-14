@@ -1,13 +1,8 @@
 ﻿namespace ControlR.Shared;
 
-public sealed class CallbackDisposable : IDisposable
+public sealed class CallbackDisposable(Action disposeCallback) : IDisposable
 {
-    private readonly Action _disposeCallback;
-
-    public CallbackDisposable(Action disposeCallback)
-    {
-        _disposeCallback = disposeCallback;
-    }
+    private readonly Action _disposeCallback = disposeCallback;
 
     public void Dispose()
     {

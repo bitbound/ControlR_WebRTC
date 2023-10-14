@@ -2,16 +2,10 @@
 
 namespace ControlR.Devices.Common.Services;
 
-public class FileLoggerProvider : ILoggerProvider
+public class FileLoggerProvider(string componentName, string componentVersion) : ILoggerProvider
 {
-    private readonly string _componentName;
-    private readonly string _componentVersion;
-
-    public FileLoggerProvider(string componentName, string componentVersion)
-    {
-        _componentName = componentName;
-        _componentVersion = componentVersion;
-    }
+    private readonly string _componentName = componentName;
+    private readonly string _componentVersion = componentVersion;
 
     public ILogger CreateLogger(string categoryName)
     {

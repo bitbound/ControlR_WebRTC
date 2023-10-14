@@ -3,17 +3,12 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 
 namespace ControlR.Viewer.Services.Logging;
-internal class FileLogger : ILogger
+internal class FileLogger(string categoryName) : ILogger
 {
     private static readonly ConcurrentStack<string> _scopeStack = new();
     private static readonly SemaphoreSlim _writeLock = new(1, 1);
-    private readonly string _categoryName;
+    private readonly string _categoryName = categoryName;
     private DateTimeOffset _lastLogCleanup;
-
-    public FileLogger(string categoryName)
-    {
-        _categoryName = categoryName;
-    }
 
     private static string LogPath => Path.Combine(FileSystem.Current.AppDataDirectory, "Logs", $"LogFile_{DateTime.Now:yyyy-MM-dd}.log");
 
@@ -44,7 +39,7 @@ internal class FileLogger : ILogger
         _writeLock.Wait();
         try
         {
-            var message = FormatLogEntry(logLevel, _categoryName, $"{state}", exception, _scopeStack.ToArray());
+            var message = FormatLogEntry(logLevel, _categoryName, $"{state}", exception, [.. _scopeStack]);
             CheckLogFileExists();
             File.AppendAllText(LogPath, message);
 
@@ -84,7 +79,7 @@ internal class FileLogger : ILogger
             $"[{logLevel}]\t" +
             $"[{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff}]\t";
 
-        entry += scopeStack.Any() ?
+        entry += scopeStack.Length != 0 ?
                     $"[{categoryName} => {string.Join(" => ", scopeStack)}]\t" :
                     $"[{categoryName}]\t";
 

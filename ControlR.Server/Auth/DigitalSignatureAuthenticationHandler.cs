@@ -11,21 +11,15 @@ using System.Text.Encodings.Web;
 
 namespace ControlR.Server.Auth;
 
-public class DigitalSignatureAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+public class DigitalSignatureAuthenticationHandler(
+    UrlEncoder encoder,
+    IOptionsMonitor<AuthenticationSchemeOptions> options,
+    ILoggerFactory loggerFactory,
+    IServiceScopeFactory scopeFactory,
+    ILogger<DigitalSignatureAuthenticationHandler> logger) : AuthenticationHandler<AuthenticationSchemeOptions>(options, loggerFactory, encoder)
 {
-    private readonly ILogger<DigitalSignatureAuthenticationHandler> _logger;
-    private readonly IServiceScopeFactory _scopeFactory;
-    public DigitalSignatureAuthenticationHandler(
-        UrlEncoder encoder,
-        IOptionsMonitor<AuthenticationSchemeOptions> options,
-        ILoggerFactory loggerFactory,
-        IServiceScopeFactory scopeFactory,
-        ILogger<DigitalSignatureAuthenticationHandler> logger)
-            : base(options, loggerFactory, encoder)
-    {
-        _scopeFactory = scopeFactory;
-        _logger = logger;
-    }
+    private readonly ILogger<DigitalSignatureAuthenticationHandler> _logger = logger;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -84,7 +78,7 @@ public class DigitalSignatureAuthenticationHandler : AuthenticationHandler<Authe
         var account = MessagePackSerializer.Deserialize<PublicKeyDto>(signedDto.Payload);
         var publicKey = account.PublicKey;
 
-        if (!publicKey.Any())
+        if (publicKey.Length == 0)
         {
             return AuthenticateResult.Fail("No public key found in the payload.");
         }

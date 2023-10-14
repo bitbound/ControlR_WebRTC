@@ -5,18 +5,12 @@ using ControlR.Shared.Models;
 
 namespace ControlR.Devices.Common.Services;
 
-internal class DeviceDataGeneratorBase
+internal class DeviceDataGeneratorBase(
+    IEnvironmentHelper environmentHelper,
+    ILogger<DeviceDataGeneratorBase> logger)
 {
-    private readonly IEnvironmentHelper _environmentHelper;
-    private readonly ILogger<DeviceDataGeneratorBase> _logger;
-
-    public DeviceDataGeneratorBase(
-        IEnvironmentHelper environmentHelper,
-        ILogger<DeviceDataGeneratorBase> logger)
-    {
-        _environmentHelper = environmentHelper;
-        _logger = logger;
-    }
+    private readonly IEnvironmentHelper _environmentHelper = environmentHelper;
+    private readonly ILogger<DeviceDataGeneratorBase> _logger = logger;
 
     public string GetAgentVersion()
     {
@@ -47,7 +41,7 @@ internal class DeviceDataGeneratorBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting drive info.");
-            return new();
+            return [];
         }
     }
 

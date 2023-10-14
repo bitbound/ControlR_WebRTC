@@ -1,12 +1,6 @@
 ﻿namespace ControlR.Viewer.Models.Messages;
-internal class IceCandidateMessage
+internal class IceCandidateMessage(Guid sessionId, string candidateJson)
 {
-    public IceCandidateMessage(Guid sessionId, string candidateJson)
-    {
-        SessionId = sessionId;
-        CandidateJson = candidateJson;
-    }
-
-    public Guid SessionId { get; }
-    public string CandidateJson { get; }
+    public Guid SessionId { get; } = sessionId;
+    public string CandidateJson { get; } = candidateJson;
 }

@@ -4,7 +4,7 @@ namespace ControlR.Shared.Collections;
 
 public class ConcurrentList<T> : IList<T>, ICollection<T>, IEnumerable<T>, IEnumerable, IReadOnlyList<T>
 {
-    private readonly List<T> _list = new();
+    private readonly List<T> _list = [];
 
     private readonly object _lock = new();
 
@@ -87,19 +87,19 @@ public class ConcurrentList<T> : IList<T>, ICollection<T>, IEnumerable<T>, IEnum
         }
     }
 
-    public List<T> FindAll(Predicate<T> predicate)
-    {
-        lock (_lock)
-        {
-            return _list.FindAll(predicate);
-        }
-    }
-
     public T? Find(Predicate<T> predicate)
     {
         lock (_lock)
         {
             return _list.Find(predicate);
+        }
+    }
+
+    public List<T> FindAll(Predicate<T> predicate)
+    {
+        lock (_lock)
+        {
+            return _list.FindAll(predicate);
         }
     }
 

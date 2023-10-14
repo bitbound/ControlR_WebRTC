@@ -5,16 +5,11 @@ using ControlR.Shared.Services;
 using Microsoft.Extensions.Logging;
 
 namespace ControlR.Devices.Common.Services.Windows;
-internal class DeviceDataGeneratorWin : DeviceDataGeneratorBase, IDeviceDataGenerator
+internal class DeviceDataGeneratorWin(
+    IEnvironmentHelper environmentHelper,
+    ILogger<DeviceDataGeneratorWin> logger) : DeviceDataGeneratorBase(environmentHelper, logger), IDeviceDataGenerator
 {
-    private readonly ILogger<DeviceDataGeneratorWin> _logger;
-    public DeviceDataGeneratorWin(
-        IEnvironmentHelper environmentHelper,
-        ILogger<DeviceDataGeneratorWin> logger)
-        : base(environmentHelper, logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger<DeviceDataGeneratorWin> _logger = logger;
 
     public async Task<Device> CreateDevice(double cpuUtilization, IEnumerable<string> authorizedKeys, string deviceId)
     {

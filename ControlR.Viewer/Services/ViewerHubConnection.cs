@@ -32,29 +32,20 @@ public interface IViewerHubConnection : IViewerHubClient, IHubConnectionBase
     Task SendPowerStateChange(DeviceDto device, PowerStateChangeType powerStateType);
 }
 
-internal class ViewerHubConnection : HubConnectionBase, IViewerHubConnection
+internal class ViewerHubConnection(
+    IServiceScopeFactory serviceScopeFactory,
+    IHttpConfigurer httpConfigurer,
+    IMessenger messenger,
+    IAppState appState,
+    ISettings settings,
+    IDeviceCache devicesCache,
+    ILogger<ViewerHubConnection> logger) : HubConnectionBase(serviceScopeFactory, logger), IViewerHubConnection
 {
-    private readonly IAppState _appState;
-    private readonly IDeviceCache _devicesCache;
-    private readonly IHttpConfigurer _httpConfigurer;
-    private readonly IMessenger _messenger;
-    private readonly ISettings _settings;
-    public ViewerHubConnection(
-        IServiceScopeFactory serviceScopeFactory,
-        IHttpConfigurer httpConfigurer,
-        IMessenger messenger,
-        IAppState appState,
-        ISettings settings,
-        IDeviceCache devicesCache,
-        ILogger<ViewerHubConnection> logger)
-        : base(serviceScopeFactory, logger)
-    {
-        _httpConfigurer = httpConfigurer;
-        _appState = appState;
-        _messenger = messenger;
-        _settings = settings;
-        _devicesCache = devicesCache;
-    }
+    private readonly IAppState _appState = appState;
+    private readonly IDeviceCache _devicesCache = devicesCache;
+    private readonly IHttpConfigurer _httpConfigurer = httpConfigurer;
+    private readonly IMessenger _messenger = messenger;
+    private readonly ISettings _settings = settings;
 
     public async Task CloseStreamingSession(Guid sessionId)
     {

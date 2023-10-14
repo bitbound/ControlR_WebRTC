@@ -24,48 +24,36 @@ namespace ControlR.Agent.Services;
 internal interface IAgentHubConnection : IAgentHubClient, IHubConnectionBase
 {
     Task NotifyViewerDesktopChanged(Guid sessionId, string desktopName);
+
     Task SendDeviceHeartbeat();
+
     Task Start();
 }
 
-internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
+internal class AgentHubConnection(
+     IHostApplicationLifetime appLifetime,
+     IServiceScopeFactory scopeFactory,
+     IDeviceDataGenerator deviceCreator,
+     IEnvironmentHelper environmentHelper,
+     IProcessInvoker processes,
+     IFileSystem fileSystem,
+     IOptionsMonitor<AppOptions> appOptions,
+     ICpuUtilizationSampler cpuSampler,
+     IEncryptionSessionFactory encryptionFactory,
+     IRemoteControlLauncher remoteControlLauncher,
+     IAgentUpdater updater,
+     ILogger<AgentHubConnection> logger) : HubConnectionBase(scopeFactory, logger), IAgentHubConnection
 {
-    private readonly IHostApplicationLifetime _appLifetime;
-    private readonly IOptionsMonitor<AppOptions> _appOptions;
-    private readonly ICpuUtilizationSampler _cpuSampler;
-    private readonly IDeviceDataGenerator _deviceCreator;
-    private readonly IEncryptionSessionFactory _encryptionFactory;
-    private readonly IRemoteControlLauncher _remoteControlLauncher;
-    private readonly IAgentUpdater _updater;
-    private readonly IEnvironmentHelper _environmentHelper;
-    private readonly IFileSystem _fileSystem;
-    private readonly IProcessInvoker _processes;
-    public AgentHubConnection(
-         IHostApplicationLifetime appLifetime,
-         IServiceScopeFactory scopeFactory,
-         IDeviceDataGenerator deviceCreator,
-         IEnvironmentHelper environmentHelper,
-         IProcessInvoker processes,
-         IFileSystem fileSystem,
-         IOptionsMonitor<AppOptions> appOptions,
-         ICpuUtilizationSampler cpuSampler,
-         IEncryptionSessionFactory encryptionFactory,
-         IRemoteControlLauncher remoteControlLauncher,
-         IAgentUpdater updater,
-         ILogger<AgentHubConnection> logger)
-        : base(scopeFactory, logger)
-    {
-        _appLifetime = appLifetime;
-        _deviceCreator = deviceCreator;
-        _processes = processes;
-        _fileSystem = fileSystem;
-        _environmentHelper = environmentHelper;
-        _appOptions = appOptions;
-        _cpuSampler = cpuSampler;
-        _encryptionFactory = encryptionFactory;
-        _remoteControlLauncher = remoteControlLauncher;
-        _updater = updater;
-    }
+    private readonly IHostApplicationLifetime _appLifetime = appLifetime;
+    private readonly IOptionsMonitor<AppOptions> _appOptions = appOptions;
+    private readonly ICpuUtilizationSampler _cpuSampler = cpuSampler;
+    private readonly IDeviceDataGenerator _deviceCreator = deviceCreator;
+    private readonly IEncryptionSessionFactory _encryptionFactory = encryptionFactory;
+    private readonly IEnvironmentHelper _environmentHelper = environmentHelper;
+    private readonly IFileSystem _fileSystem = fileSystem;
+    private readonly IProcessInvoker _processes = processes;
+    private readonly IRemoteControlLauncher _remoteControlLauncher = remoteControlLauncher;
+    private readonly IAgentUpdater _updater = updater;
 
     public async Task<bool> GetStreamingSession(SignedPayloadDto signedDto)
     {
@@ -155,7 +143,7 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
                 return;
             }
 
-            if (!_appOptions.CurrentValue.AuthorizedKeys.Any())
+            if (_appOptions.CurrentValue.AuthorizedKeys.Count == 0)
             {
                 _logger.LogWarning("There are no authorized keys in appsettings. Aborting heartbeat.");
                 return;
@@ -201,7 +189,6 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
 
     private void ConfigureHttpOptions(HttpConnectionOptions options)
     {
-
     }
 
     private async Task HubConnection_Reconnected(string? arg)
@@ -209,7 +196,6 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
         await SendDeviceHeartbeat();
         await _updater.CheckForUpdate();
     }
-
 
     private bool VerifyPayload(SignedPayloadDto signedDto)
     {
@@ -229,6 +215,7 @@ internal class AgentHubConnection : HubConnectionBase, IAgentHubConnection
 
         return true;
     }
+
     private class RetryPolicy : IRetryPolicy
     {
         public TimeSpan? NextRetryDelay(RetryContext retryContext)

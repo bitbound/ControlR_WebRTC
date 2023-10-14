@@ -1,16 +1,10 @@
 ﻿using ControlR.Shared.Dtos;
 
 namespace ControlR.Viewer.Models;
-public class RemoteControlSession
+public class RemoteControlSession(DeviceDto device, int initialSystemSession)
 {
-    public RemoteControlSession(DeviceDto device, int initialSystemSession)
-    {
-        Device = device;
-        InitialSystemSession = initialSystemSession;
-    }
-
-    public DeviceDto Device { get; }
-    public int InitialSystemSession { get; }
+    public DeviceDto Device { get; } = device;
+    public int InitialSystemSession { get; } = initialSystemSession;
     public Guid SessionId { get; private set; } = Guid.NewGuid();
 
     public void CreateNewSessionId()

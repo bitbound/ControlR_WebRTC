@@ -3,14 +3,9 @@ using ControlR.Devices.Common.Services;
 using ControlR.Shared.Enums;
 
 namespace ControlR.Agent.Services.Windows;
-internal class PowerControlWindows : IPowerControl
+internal class PowerControlWindows(IProcessInvoker processInvoker) : IPowerControl
 {
-    private readonly IProcessInvoker _processInvoker;
-
-    public PowerControlWindows(IProcessInvoker processInvoker)
-    {
-        _processInvoker = processInvoker;
-    }
+    private readonly IProcessInvoker _processInvoker = processInvoker;
 
     public Task ChangeState(PowerStateChangeType type)
     {

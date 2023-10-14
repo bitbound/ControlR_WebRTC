@@ -22,18 +22,19 @@ namespace ControlR.Viewer.Components;
 [SupportedOSPlatform("browser")]
 public partial class RemoteDisplay : IAsyncDisposable
 {
-    private readonly string _videoId = $"video-{Guid.NewGuid()}";
     private readonly SemaphoreSlim _typeLock = new(1, 1);
+    private readonly string _videoId = $"video-{Guid.NewGuid()}";
     private DotNetObjectReference<RemoteDisplay>? _componentRef;
     private ElementReference _contentArea;
     private ControlMode _controlMode = ControlMode.Mouse;
-    private DisplayDto[] _displays = Array.Empty<DisplayDto>();
-    private IceServer[] _iceServers = Array.Empty<IceServer>();
+    private DisplayDto[] _displays = [];
+    private IceServer[] _iceServers = [];
     private bool _isMobileActionsMenuOpen;
+    private bool _isStreamLoaded;
+    private bool _isStreamReady;
     private double _lastPinchDistance = -1;
     private IJSObjectReference? _module;
     private DisplayDto? _selectedDisplay;
-    private bool _isStreamReady;
     private string _statusMessage = "Starting remote control session";
     private double _statusProgress = -1;
     private double _videoHeight;
@@ -43,10 +44,8 @@ public partial class RemoteDisplay : IAsyncDisposable
     private ViewMode _viewMode = ViewMode.Stretch;
     private ElementReference _virtualKeyboard;
     private WindowState _windowState = WindowState.Maximized;
-    private bool _isStreamLoaded;
-
-
 #nullable disable
+
     [Parameter, EditorRequired]
     public RemoteControlSession Session { get; set; }
 
@@ -61,6 +60,7 @@ public partial class RemoteDisplay : IAsyncDisposable
 
     [Inject]
     private ILogger<RemoteDisplay> Logger { get; init; }
+
     [Inject]
     private IMessenger Messenger { get; init; }
 
@@ -76,6 +76,7 @@ public partial class RemoteDisplay : IAsyncDisposable
                 "display: none;";
         }
     }
+
     private string VideoSizeCss
     {
         get
@@ -88,6 +89,9 @@ public partial class RemoteDisplay : IAsyncDisposable
         }
     }
 
+    [Inject]
+    private IViewerHubConnection ViewerHub { get; init; }
+
     private string VirtualKeyboardText
     {
         get
@@ -96,13 +100,10 @@ public partial class RemoteDisplay : IAsyncDisposable
         }
         set
         {
-
             _ = TypeText(value);
         }
     }
 
-    [Inject]
-    private IViewerHubConnection ViewerHub { get; init; }
 #nullable enable
 
     public async ValueTask DisposeAsync()
@@ -117,23 +118,6 @@ public partial class RemoteDisplay : IAsyncDisposable
     }
 
     [JSInvokable]
-    public async Task NotifyStreamReady()
-    {
-        _isStreamReady = true;
-        _statusMessage = "Stream ready";
-        _statusProgress = 0;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    [JSInvokable]
-    public async Task NotifyStreamLoaded()
-    {
-        _isStreamLoaded = true;
-        _statusMessage = string.Empty;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    [JSInvokable]
     public Task LogError(string message)
     {
         Logger.LogError("JS Log: {message}", message);
@@ -145,6 +129,23 @@ public partial class RemoteDisplay : IAsyncDisposable
     {
         Logger.LogInformation("JS Log: {message}", message);
         return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public async Task NotifyStreamLoaded()
+    {
+        _isStreamLoaded = true;
+        _statusMessage = string.Empty;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task NotifyStreamReady()
+    {
+        _isStreamReady = true;
+        _statusMessage = "Stream ready";
+        _statusProgress = 0;
+        await InvokeAsync(StateHasChanged);
     }
 
     [JSInvokable]
@@ -180,7 +181,7 @@ public partial class RemoteDisplay : IAsyncDisposable
 
             var iceServersResult = await ViewerHub.GetIceServers();
 
-            if (!iceServersResult.IsSuccess || !iceServersResult.Value.Any())
+            if (!iceServersResult.IsSuccess || iceServersResult.Value.Length == 0)
             {
                 Snackbar.Add("Failed to get ICE servers", Severity.Error);
                 await Close();
@@ -261,6 +262,7 @@ public partial class RemoteDisplay : IAsyncDisposable
             case ParameterlessMessageKind.ShuttingDown:
                 await DisposeAsync();
                 break;
+
             default:
                 break;
         }
@@ -333,6 +335,7 @@ public partial class RemoteDisplay : IAsyncDisposable
     {
         _lastPinchDistance = -1;
     }
+
     private async void OnTouchMove(TouchEventArgs ev)
     {
         if (ev.Touches.Length != 2)

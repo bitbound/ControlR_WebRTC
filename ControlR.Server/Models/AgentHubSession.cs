@@ -2,14 +2,8 @@
 
 namespace ControlR.Server.Models;
 
-public class AgentHubSession
+public class AgentHubSession(string connectionId, DeviceDto device)
 {
-    public AgentHubSession(string connectionId, DeviceDto device)
-    {
-        ConnectionId = connectionId;
-        Device = device;
-    }
-
-    public DeviceDto Device { get; }
-    public string ConnectionId { get; }
+    public DeviceDto Device { get; } = device;
+    public string ConnectionId { get; } = connectionId;
 }

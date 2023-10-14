@@ -21,17 +21,17 @@ namespace ControlR.Agent.Services.Windows;
 [SupportedOSPlatform("windows")]
 internal class RemoteControlLauncherWindows : IRemoteControlLauncher
 {
-    private readonly IFileSystem _fileSystem;
-    private readonly IProcessInvoker _processes;
+    private readonly SemaphoreSlim _createSessionLock = new(1, 1);
     private readonly IDownloadsApi _downloadsApi;
     private readonly IEnvironmentHelper _environment;
-    private readonly IStreamingSessionCache _streamingSessionCache;
-    private readonly IIpcRouter _ipcRouter;
+    private readonly IFileSystem _fileSystem;
     private readonly IHostApplicationLifetime _hostLifetime;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IIpcRouter _ipcRouter;
     private readonly ILogger<RemoteControlLauncherWindows> _logger;
+    private readonly IProcessInvoker _processes;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IStreamingSessionCache _streamingSessionCache;
     private readonly string _watcherBinaryPath;
-    private readonly SemaphoreSlim _createSessionLock = new(1, 1);
 
     public RemoteControlLauncherWindows(
         IFileSystem fileSystem,
@@ -70,7 +70,6 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
         {
             var authorizedKeyBase64 = Convert.ToBase64String(authorizedKey);
 
-
             var session = new StreamingSession(sessionId, authorizedKey, targetWindowsSession, targetDesktop);
 
             var watcherResult = await LaunchNewSidecarProcess(session);
@@ -105,7 +104,6 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
                     hiddenWindow: false,
                     out var procInfo);
 
-
                 if (procInfo.dwProcessId == -1)
                 {
                     return Result.Fail("Failed to start remote control process.");
@@ -115,7 +113,6 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
                     _processes.GetProcessById(procInfo.dwProcessId);
                     session.StreamerProcess = _processes.GetProcessById(procInfo.dwProcessId);
                 }
-
             }
             else
             {
@@ -153,7 +150,6 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
                (k, v) => session);
 
             return Result.Ok();
-
         }
         catch (Exception ex)
         {
@@ -166,6 +162,27 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
         }
     }
 
+    // For debugging.
+    private static Result<string> GetSolutionDir(string currentDir)
+    {
+        var dirInfo = new DirectoryInfo(currentDir);
+        if (!dirInfo.Exists)
+        {
+            return Result.Fail<string>("Not found.");
+        }
+
+        if (dirInfo.GetFiles().Any(x => x.Name == "ControlR.sln"))
+        {
+            return Result.Ok(currentDir);
+        }
+
+        if (dirInfo.Parent is not null)
+        {
+            return GetSolutionDir(dirInfo.Parent.FullName);
+        }
+
+        return Result.Fail<string>("Not found.");
+    }
 
     private async Task<Result> DownloadRemoteControl(string remoteControlDir, Func<double, Task>? onDownloadProgress)
     {
@@ -187,28 +204,6 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
         }
     }
 
-    // For debugging.
-    private Result<string> GetSolutionDir(string currentDir)
-    {
-        var dirInfo = new DirectoryInfo(currentDir);
-        if (!dirInfo.Exists)
-        {
-            return Result.Fail<string>("Not found.");
-        }
-
-        if (dirInfo.GetFiles().Any(x => x.Name == "ControlR.sln"))
-        {
-            return Result.Ok(currentDir);
-        }
-
-        if (dirInfo.Parent is not null)
-        {
-            return GetSolutionDir(dirInfo.Parent.FullName);
-        }
-
-        return Result.Fail<string>("Not found.");
-    }
-
     private async Task<Result> LaunchNewSidecarProcess(StreamingSession session)
     {
         if (_processes.GetCurrentProcess().SessionId == 0)
@@ -221,7 +216,6 @@ internal class RemoteControlLauncherWindows : IRemoteControlLauncher
                 desktopName: session.LastDesktop,
                 hiddenWindow: true,
                 out var procInfo);
-
 
             if (procInfo.dwProcessId == -1)
             {

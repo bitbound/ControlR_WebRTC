@@ -15,27 +15,18 @@ using Microsoft.Extensions.Options;
 namespace ControlR.Server.Hubs;
 
 [Authorize]
-public class ViewerHub : Hub<IViewerHubClient>
+public class ViewerHub(
+    IHubContext<AgentHub, IAgentHubClient> agentHubContext,
+    IHubContext<StreamerHub, IStreamerHubClient> streamerHubContext,
+    IStreamerSessionCache streamerSessionCache,
+    IOptionsMonitor<AppOptions> appOptions,
+    ILogger<ViewerHub> logger) : Hub<IViewerHubClient>
 {
-    private readonly IHubContext<AgentHub, IAgentHubClient> _agentHub;
-    private readonly IHubContext<StreamerHub, IStreamerHubClient> _streamerHub;
-    private readonly IStreamerSessionCache _streamerSessionCache;
-    private readonly IOptionsMonitor<AppOptions> _appOptions;
-    private readonly ILogger<ViewerHub> _logger;
-
-    public ViewerHub(
-        IHubContext<AgentHub, IAgentHubClient> agentHubContext,
-        IHubContext<StreamerHub, IStreamerHubClient> streamerHubContext,
-        IStreamerSessionCache streamerSessionCache,
-        IOptionsMonitor<AppOptions> appOptions,
-        ILogger<ViewerHub> logger)
-    {
-        _agentHub = agentHubContext;
-        _streamerHub = streamerHubContext;
-        _streamerSessionCache = streamerSessionCache;
-        _appOptions = appOptions;
-        _logger = logger;
-    }
+    private readonly IHubContext<AgentHub, IAgentHubClient> _agentHub = agentHubContext;
+    private readonly IHubContext<StreamerHub, IStreamerHubClient> _streamerHub = streamerHubContext;
+    private readonly IStreamerSessionCache _streamerSessionCache = streamerSessionCache;
+    private readonly IOptionsMonitor<AppOptions> _appOptions = appOptions;
+    private readonly ILogger<ViewerHub> _logger = logger;
 
     public Task<IceServer[]> GetIceServers(SignedPayloadDto dto)
     {
@@ -51,7 +42,7 @@ public class ViewerHub : Hub<IViewerHubClient>
     {
         if (!VerifyPayload(signedDto, out _))
         {
-            return Array.Empty<WindowsSession>();
+            return [];
         }
 
         return await _agentHub.Clients.Client(agentConnectionId).GetWindowsSessions(signedDto);

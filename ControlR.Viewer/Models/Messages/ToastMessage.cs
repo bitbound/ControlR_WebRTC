@@ -1,14 +1,8 @@
 ﻿using MudBlazor;
 
 namespace ControlR.Viewer.Models.Messages;
-internal class ToastMessage
+internal class ToastMessage(string message, Severity severity)
 {
-    public ToastMessage(string message, Severity severity)
-    {
-        Message = message;
-        Severity = severity;
-    }
-
-    public string Message { get; }
-    public Severity Severity { get; }
+    public string Message { get; } = message;
+    public Severity Severity { get; } = severity;
 }

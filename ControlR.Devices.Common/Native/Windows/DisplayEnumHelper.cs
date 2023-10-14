@@ -1,18 +1,18 @@
 ﻿//  ---------------------------------------------------------------------------------
 //  Copyright (c) Microsoft Corporation.  All rights reserved.
-// 
+//
 //  The MIT License (MIT)
-// 
+//
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
 //  in the Software without restriction, including without limitation the rights
 //  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 //  copies of the Software, and to permit persons to whom the Software is
 //  furnished to do so, subject to the following conditions:
-// 
+//
 //  The above copyright notice and this permission notice shall be included in
 //  all copies or substantial portions of the Software.
-// 
+//
 //  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 //  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 //  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,34 +31,9 @@ namespace ControlR.Devices.Common.Native.Windows;
 
 internal static class DisplaysEnumerationHelper
 {
-    delegate bool EnumMonitorsDelegate(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct RECT
-    {
-        public int Left;
-        public int Top;
-        public int Right;
-        public int Bottom;
-    }
-
     private const int CCHDEVICENAME = 32;
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-    internal struct MonitorInfoEx
-    {
-        public int Size;
-        public RECT Monitor;
-        public RECT WorkArea;
-        public uint Flags;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CCHDEVICENAME)]
-        public string DeviceName;
-    }
 
-    [DllImport("user32.dll")]
-    static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, EnumMonitorsDelegate lpfnEnum, IntPtr dwData);
-
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    static extern bool GetMonitorInfo(IntPtr hMonitor, ref MonitorInfoEx lpmi);
+    private delegate bool EnumMonitorsDelegate(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
 
     public static IEnumerable<DisplayInfo> GetDisplays()
     {
@@ -86,5 +61,32 @@ internal static class DisplaysEnumerationHelper
                 return true;
             }, IntPtr.Zero);
         return result;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, EnumMonitorsDelegate lpfnEnum, IntPtr dwData);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MonitorInfoEx lpmi);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    internal struct MonitorInfoEx
+    {
+        public int Size;
+        public RECT Monitor;
+        public RECT WorkArea;
+        public uint Flags;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CCHDEVICENAME)]
+        public string DeviceName;
     }
 }

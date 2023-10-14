@@ -1,11 +1,12 @@
 ﻿using ControlR.Shared.Models;
+using PInvoke;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
-using PInvoke;
 using static PInvoke.Kernel32;
 
 namespace ControlR.Devices.Common.Native.Windows;
+
 public static partial class Win32
 {
     private const int TOKEN_DUPLICATE = 0x0002;
@@ -112,7 +113,7 @@ public static partial class Win32
 
         // By default, CreateProcessAsUser creates a process on a non-interactive window station, meaning
         // the window station has a desktop that is invisible and the process is incapable of receiving
-        // user input. To remedy this we set the lpDesktop parameter to indicate we want to enable user 
+        // user input. To remedy this we set the lpDesktop parameter to indicate we want to enable user
         // interaction with the new process.
         var si = new STARTUPINFO();
         si.cb = Marshal.SizeOf(si);
@@ -184,13 +185,11 @@ public static partial class Win32
         {
             for (int i = 0; i < count; i++)
             {
-
                 var sessionInfo = Marshal.PtrToStructure<WtsApi32.WTS_SESSION_INFO>(current);
                 current += dataSize;
 
                 if (sessionInfo.State == WtsApi32.WTS_CONNECTSTATE_CLASS.WTSActive && sessionInfo.SessionID != consoleSessionId)
                 {
-
                     sessions.Add(new WindowsSession()
                     {
                         Id = sessionInfo.SessionID,
@@ -207,9 +206,14 @@ public static partial class Win32
 
     public static string GetCommandLineString()
     {
-
         var commandLinePtr = GetCommandLine();
         return Marshal.PtrToStringAuto(commandLinePtr) ?? string.Empty;
+    }
+
+    public static bool GetCurrentThreadDesktop(out string desktopName)
+    {
+        var threadId = GetCurrentThreadId();
+        return GetThreadDesktop((uint)threadId, out desktopName);
     }
 
     public static bool GetInputDesktop(out string desktopName)
@@ -236,11 +240,6 @@ public static partial class Win32
         return GetDesktopName(inputDesktop, out desktopName);
     }
 
-    public static bool GetCurrentThreadDesktop(out string desktopName)
-    {
-        var threadId = GetCurrentThreadId();
-        return GetThreadDesktop((uint)threadId, out desktopName);
-    }
     public static string GetUsernameFromSessionId(int sessionId)
     {
         var username = string.Empty;
@@ -310,8 +309,12 @@ public static partial class Win32
         desktopName = Marshal.PtrToStringAuto(outValue)?.Trim() ?? string.Empty;
         return !string.IsNullOrWhiteSpace(desktopName);
     }
-    [DllImport("advapi32", SetLastError = true), SuppressUnmanagedCodeSecurity]
-    private static extern bool OpenProcessToken(IntPtr processHandle, int desiredAccess, ref IntPtr tokenHandle);
-    [DllImport("Wtsapi32.dll")]
-    private static extern bool WTSQuerySessionInformation(IntPtr hServer, int sessionId, WTS_INFO_CLASS wtsInfoClass, out IntPtr ppBuffer, out uint pBytesReturned);
+
+    [LibraryImport("advapi32", SetLastError = true), SuppressUnmanagedCodeSecurity]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool OpenProcessToken(IntPtr processHandle, int desiredAccess, ref IntPtr tokenHandle);
+
+    [LibraryImport("Wtsapi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool WTSQuerySessionInformation(IntPtr hServer, int sessionId, WTS_INFO_CLASS wtsInfoClass, out IntPtr ppBuffer, out uint pBytesReturned);
 }

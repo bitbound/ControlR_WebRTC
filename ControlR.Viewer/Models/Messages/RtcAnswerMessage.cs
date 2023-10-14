@@ -1,14 +1,8 @@
 ﻿using ControlR.Shared.Models;
 
 namespace ControlR.Viewer.Models.Messages;
-internal class RtcSessionDescriptionMessage
+internal class RtcSessionDescriptionMessage(Guid sessionId, RtcSessionDescription sessionDescription)
 {
-    public RtcSessionDescriptionMessage(Guid sessionId, RtcSessionDescription sessionDescription)
-    {
-        SessionId = sessionId;
-        SessionDescription = sessionDescription;
-    }
-
-    public Guid SessionId { get; }
-    public RtcSessionDescription SessionDescription { get; }
+    public Guid SessionId { get; } = sessionId;
+    public RtcSessionDescription SessionDescription { get; } = sessionDescription;
 }

@@ -51,8 +51,8 @@ public static partial class LibXrandr
         public IntPtr outputs;
     }
 
-    [DllImport("libXrandr")]
-    internal static extern IntPtr XRRGetMonitors(IntPtr display, IntPtr window, bool get_active, out int monitors);
+    [LibraryImport("libXrandr")]
+    internal static partial IntPtr XRRGetMonitors(IntPtr display, IntPtr window, [MarshalAs(UnmanagedType.Bool)] bool get_active, out int monitors);
 
     [LibraryImport("libXrandr")]
     internal static partial void XRRFreeMonitors(IntPtr monitors);

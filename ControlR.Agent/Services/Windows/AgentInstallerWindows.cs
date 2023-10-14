@@ -17,31 +17,22 @@ using ControlR.Shared.Helpers;
 namespace ControlR.Agent.Services.Windows;
 
 [SupportedOSPlatform("windows")]
-internal class AgentInstallerWindows : AgentInstallerBase, IAgentInstaller
+internal class AgentInstallerWindows(
+    IHostApplicationLifetime lifetime,
+    IProcessInvoker processes,
+    IFileSystem fileSystem,
+    IEnvironmentHelper environmentHelper,
+    IDownloadsApi downloadsApi,
+    ILogger<AgentInstallerWindows> logger) : AgentInstallerBase(fileSystem, downloadsApi, logger), IAgentInstaller
 {
     private static readonly SemaphoreSlim _installLock = new(1, 1);
-    private readonly IEnvironmentHelper _environmentHelper;
+    private readonly IEnvironmentHelper _environmentHelper = environmentHelper;
     private readonly string _serviceName = "ControlR.Agent";
-    private readonly IFileSystem _fileSystem;
+    private readonly IFileSystem _fileSystem = fileSystem;
     private readonly string _installDir = Path.Combine(Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\", "Program Files", "ControlR");
-    private readonly IHostApplicationLifetime _lifetime;
-    private readonly ILogger<AgentInstallerWindows> _logger;
-    private readonly IProcessInvoker _processes;
-    public AgentInstallerWindows(
-        IHostApplicationLifetime lifetime,
-        IProcessInvoker processes,
-        IFileSystem fileSystem,
-        IEnvironmentHelper environmentHelper,
-        IDownloadsApi downloadsApi,
-        ILogger<AgentInstallerWindows> logger)
-        : base(fileSystem, downloadsApi, logger)
-    {
-        _lifetime = lifetime;
-        _processes = processes;
-        _fileSystem = fileSystem;
-        _environmentHelper = environmentHelper;
-        _logger = logger;
-    }
+    private readonly IHostApplicationLifetime _lifetime = lifetime;
+    private readonly ILogger<AgentInstallerWindows> _logger = logger;
+    private readonly IProcessInvoker _processes = processes;
 
     public async Task Install(string? authorizedPublicKey = null)
     {

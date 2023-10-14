@@ -12,35 +12,23 @@ using Microsoft.Extensions.Options;
 
 namespace ControlR.Agent.Services.Linux;
 
-internal class AgentInstallerLinux : AgentInstallerBase, IAgentInstaller
+internal class AgentInstallerLinux(
+    IHostApplicationLifetime lifetime,
+    IFileSystem fileSystem,
+    IProcessInvoker processInvoker,
+    IEnvironmentHelper environmentHelper,
+    IDownloadsApi downloadsApi,
+    IOptions<AppOptions> appOptions,
+    ILogger<AgentInstallerLinux> logger) : AgentInstallerBase(fileSystem, downloadsApi, logger), IAgentInstaller
 {
     private static readonly SemaphoreSlim _installLock = new(1, 1);
-    private readonly IOptions<AppOptions> _appOptions;
-    private readonly IFileSystem _fileSystem;
+    private readonly IOptions<AppOptions> _appOptions = appOptions;
+    private readonly IFileSystem _fileSystem = fileSystem;
     private readonly string _installDir = "/usr/local/bin/ControlR";
-    private readonly IHostApplicationLifetime _lifetime;
-    private readonly ILogger<AgentInstallerLinux> _logger;
-    private readonly IProcessInvoker _processInvoker;
-    private readonly IEnvironmentHelper _environment;
-
-    public AgentInstallerLinux(
-        IHostApplicationLifetime lifetime,
-        IFileSystem fileSystem,
-        IProcessInvoker processInvoker,
-        IEnvironmentHelper environmentHelper,
-        IDownloadsApi downloadsApi,
-        IOptions<AppOptions> appOptions,
-        ILogger<AgentInstallerLinux> logger)
-        : base(fileSystem, downloadsApi, logger)
-    {
-        _lifetime = lifetime;
-        _fileSystem = fileSystem;
-        _appOptions = appOptions;
-        _processInvoker = processInvoker;
-        _environment = environmentHelper;
-        _logger = logger;
-    }
-
+    private readonly IHostApplicationLifetime _lifetime = lifetime;
+    private readonly ILogger<AgentInstallerLinux> _logger = logger;
+    private readonly IProcessInvoker _processInvoker = processInvoker;
+    private readonly IEnvironmentHelper _environment = environmentHelper;
 
     public async Task Install(string? authorizedPublicKey = null)
     {

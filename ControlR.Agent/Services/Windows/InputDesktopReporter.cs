@@ -15,26 +15,18 @@ internal interface IInputDesktopReporter
 }
 
 [SupportedOSPlatform("windows")]
-internal class InputDesktopReporter : IInputDesktopReporter
+internal class InputDesktopReporter(
+    IHostApplicationLifetime hostLifetime,
+    IProcessInvoker processes,
+    IIpcConnectionFactory ipcFactory,
+    ILogger<InputDesktopReporter> logger) : IInputDesktopReporter
 {
-    private readonly IHostApplicationLifetime _hostLifetime;
-    private readonly IProcessInvoker _processes;
-    private readonly IIpcConnectionFactory _ipcFactory;
-    private readonly ILogger<InputDesktopReporter> _logger;
+    private readonly IHostApplicationLifetime _hostLifetime = hostLifetime;
+    private readonly IProcessInvoker _processes = processes;
+    private readonly IIpcConnectionFactory _ipcFactory = ipcFactory;
+    private readonly ILogger<InputDesktopReporter> _logger = logger;
     private string _agentPipeName = string.Empty;
     private int _parentId;
-
-    public InputDesktopReporter(
-        IHostApplicationLifetime hostLifetime,
-        IProcessInvoker processes,
-        IIpcConnectionFactory ipcFactory,
-        ILogger<InputDesktopReporter> logger)
-    {
-        _hostLifetime = hostLifetime;
-        _processes = processes;
-        _ipcFactory = ipcFactory;
-        _logger = logger;
-    }
 
     public Task Start(string agentPipeName, int parentProcessId)
     {

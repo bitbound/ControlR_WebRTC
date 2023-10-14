@@ -1,12 +1,7 @@
 ﻿namespace ControlR.Viewer.Models.Messages;
 
-public class GenericMessage<T>
+public class GenericMessage<T>(T value)
     where T : notnull
 {
-    public GenericMessage(T value)
-    {
-        Value = value;
-    }
-
-    public T Value { get; }
+    public T Value { get; } = value;
 }

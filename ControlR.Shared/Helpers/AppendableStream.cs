@@ -1,16 +1,10 @@
 ﻿namespace ControlR.Shared.Helpers;
 
-public class AppendableStream : Stream
+public class AppendableStream(Stream underlyingStream, byte[] bytesToAppend) : Stream
 {
-    private readonly byte[] _bytesToAppend;
-    private readonly Stream _underlyingStream;
+    private readonly byte[] _bytesToAppend = bytesToAppend;
+    private readonly Stream _underlyingStream = underlyingStream;
     private bool _bytesAppended;
-
-    public AppendableStream(Stream underlyingStream, byte[] bytesToAppend)
-    {
-        _underlyingStream = underlyingStream;
-        _bytesToAppend = bytesToAppend;
-    }
 
     public override bool CanRead => _underlyingStream.CanRead;
 

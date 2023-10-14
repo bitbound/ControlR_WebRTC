@@ -51,7 +51,7 @@ internal class AppState : IAppState
     {
         get
         {
-            if (!_settings.PublicKey.Any())
+            if (_settings.PublicKey.Length == 0)
             {
                 return AuthenticationState.NoKeysPresent;
             }
@@ -70,7 +70,7 @@ internal class AppState : IAppState
     public bool IsBusy => _busyCounter > 0;
     public int PendingOperations => _busyCounter;
 
-    public ObservableCollection<RemoteControlSession> RemoteControlSessions { get; } = new();
+    public ObservableCollection<RemoteControlSession> RemoteControlSessions { get; } = [];
 
     public PublicKeyDto GetPublicKeyDto()
     {

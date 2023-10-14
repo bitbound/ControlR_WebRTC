@@ -6,15 +6,10 @@ using System.Text.Json.Serialization;
 namespace ControlR.Shared.Dtos;
 
 [MessagePackObject]
-public class PowerStateChangeDto
+[method: SerializationConstructor]
+[method: JsonConstructor]
+public class PowerStateChangeDto(PowerStateChangeType type)
 {
-    [SerializationConstructor]
-    [JsonConstructor]
-    public PowerStateChangeDto(PowerStateChangeType type)
-    {
-        Type = type;
-    }
-
     [MsgPackKey]
-    public PowerStateChangeType Type { get; init; }
+    public PowerStateChangeType Type { get; init; } = type;
 }

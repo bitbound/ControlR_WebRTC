@@ -1,12 +1,6 @@
 ﻿namespace ControlR.Viewer.Models.Messages;
-internal class DesktopChangedMessage
+internal class DesktopChangedMessage(Guid sessionId, string desktopName)
 {
-    public DesktopChangedMessage(Guid sessionId, string desktopName)
-    {
-        SessionId = sessionId;
-        DesktopName = desktopName;
-    }
-
-    public Guid SessionId { get; }
-    public string DesktopName { get; }
+    public Guid SessionId { get; } = sessionId;
+    public string DesktopName { get; } = desktopName;
 }

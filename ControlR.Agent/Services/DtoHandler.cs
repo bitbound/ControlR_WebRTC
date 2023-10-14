@@ -9,27 +9,18 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace ControlR.Agent.Services;
-internal class DtoHandler : IHostedService
+internal class DtoHandler(
+    IEncryptionSessionFactory encryptionFactory,
+    IAgentHubConnection agentHub,
+    IPowerControl powerControl,
+    IOptionsMonitor<AppOptions> appOptions,
+    ILogger<DtoHandler> logger) : IHostedService
 {
-    private readonly IEncryptionSessionFactory _encryptionFactory;
-    private readonly IAgentHubConnection _agentHub;
-    private readonly IPowerControl _powerControl;
-    private readonly IOptionsMonitor<AppOptions> _appOptions;
-    private readonly ILogger<DtoHandler> _logger;
-
-    public DtoHandler(
-        IEncryptionSessionFactory encryptionFactory,
-        IAgentHubConnection agentHub,
-        IPowerControl powerControl,
-        IOptionsMonitor<AppOptions> appOptions,
-        ILogger<DtoHandler> logger)
-    {
-        _encryptionFactory = encryptionFactory;
-        _agentHub = agentHub;
-        _powerControl = powerControl;
-        _appOptions = appOptions;
-        _logger = logger;
-    }
+    private readonly IEncryptionSessionFactory _encryptionFactory = encryptionFactory;
+    private readonly IAgentHubConnection _agentHub = agentHub;
+    private readonly IPowerControl _powerControl = powerControl;
+    private readonly IOptionsMonitor<AppOptions> _appOptions = appOptions;
+    private readonly ILogger<DtoHandler> _logger = logger;
 
     public Task StartAsync(CancellationToken cancellationToken)
     {

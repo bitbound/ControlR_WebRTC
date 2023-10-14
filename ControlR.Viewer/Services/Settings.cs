@@ -24,22 +24,15 @@ internal interface ISettings
     Task UpdateKeypair(KeypairExport export);
 }
 
-internal class Settings : ISettings
+internal class Settings(
+    ISecureStorage secureStorage,
+    IPreferences preferences,
+    IMessenger messenger) : ISettings
 {
-    private readonly IMessenger _messenger;
-    private readonly IPreferences _preferences;
-    private readonly ISecureStorage _secureStorage;
-    private byte[] _privateKey = Array.Empty<byte>();
-
-    public Settings(
-        ISecureStorage secureStorage,
-        IPreferences preferences,
-        IMessenger messenger)
-    {
-        _secureStorage = secureStorage;
-        _preferences = preferences;
-        _messenger = messenger;
-    }
+    private readonly IMessenger _messenger = messenger;
+    private readonly IPreferences _preferences = preferences;
+    private readonly ISecureStorage _secureStorage = secureStorage;
+    private byte[] _privateKey = [];
 
     public string KeypairExportPath
     {
@@ -82,8 +75,8 @@ internal class Settings : ISettings
     public Task Clear()
     {
         RememberPassphrase = false;
-        PrivateKey = Array.Empty<byte>();
-        PublicKey = Array.Empty<byte>();
+        PrivateKey = [];
+        PublicKey = [];
         _secureStorage.RemoveAll();
         _messenger.SendParameterlessMessage(ParameterlessMessageKind.AuthStateChanged);
         return Task.CompletedTask;
@@ -94,7 +87,7 @@ internal class Settings : ISettings
         var stored = await _secureStorage.GetAsync("EncryptedPrivateKey");
         if (string.IsNullOrWhiteSpace(stored))
         {
-            return Array.Empty<byte>();
+            return [];
         }
         return Convert.FromBase64String(stored);
     }

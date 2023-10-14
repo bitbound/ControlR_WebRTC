@@ -6,28 +6,21 @@ using System.Text.Json.Serialization;
 namespace ControlR.Shared.Models;
 
 [MessagePackObject]
-public class StreamerHubSession
+[method: SerializationConstructor]
+[method: JsonConstructor]
+public class StreamerHubSession(Guid sessionId, DisplayDto[] displays, string streamerConnectionId)
 {
-    [SerializationConstructor]
-    [JsonConstructor]
-    public StreamerHubSession(Guid sessionId, DisplayDto[] displays, string streamerConnectionId)
-    {
-        SessionId = sessionId;
-        StreamerConnectionId = streamerConnectionId;
-        Displays = displays;
-    }
+    [MsgPackKey]
+    public string StreamerConnectionId { get; init; } = streamerConnectionId;
 
     [MsgPackKey]
-    public string StreamerConnectionId { get; init; }
-
-    [MsgPackKey]
-    public DisplayDto[] Displays { get; init; }
+    public DisplayDto[] Displays { get; init; } = displays;
 
     [MsgPackKey]
     public string? AgentConnectionId { get; set; }
 
     [MsgPackKey]
-    public Guid SessionId { get; init; }
+    public Guid SessionId { get; init; } = sessionId;
 
     [MsgPackKey]
     public string? ViewerConnectionId { get; set; }

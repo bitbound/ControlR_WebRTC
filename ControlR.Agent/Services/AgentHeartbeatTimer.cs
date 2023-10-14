@@ -3,18 +3,12 @@ using Microsoft.Extensions.Logging;
 using Timer = System.Timers.Timer;
 
 namespace ControlR.Agent.Services;
-internal class AgentHeartbeatTimer : BackgroundService
+internal class AgentHeartbeatTimer(
+    IAgentHubConnection hubConnection,
+    ILogger<AgentHeartbeatTimer> logger) : BackgroundService
 {
-    private readonly IAgentHubConnection _hubConnection;
-    private readonly ILogger<AgentHeartbeatTimer> _logger;
-
-    public AgentHeartbeatTimer(
-        IAgentHubConnection hubConnection,
-        ILogger<AgentHeartbeatTimer> logger)
-    {
-        _hubConnection = hubConnection;
-        _logger = logger;
-    }
+    private readonly IAgentHubConnection _hubConnection = hubConnection;
+    private readonly ILogger<AgentHeartbeatTimer> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

@@ -7,18 +7,12 @@ public interface IKeyApi
     Task<Result> VerifyKeys();
 }
 
-internal class KeyApi : IKeyApi
+internal class KeyApi(
+    HttpClient client,
+    ILogger<KeyApi> logger) : IKeyApi
 {
-    private readonly HttpClient _client;
-    private readonly ILogger<KeyApi> _logger;
-
-    public KeyApi(
-        HttpClient client,
-        ILogger<KeyApi> logger)
-    {
-        _client = client;
-        _logger = logger;
-    }
+    private readonly HttpClient _client = client;
+    private readonly ILogger<KeyApi> _logger = logger;
 
     public async Task<Result> VerifyKeys()
     {

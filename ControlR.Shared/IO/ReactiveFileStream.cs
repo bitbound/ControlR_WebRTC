@@ -1,14 +1,9 @@
 ﻿namespace ControlR.Shared.IO;
-public class ReactiveFileStream : FileStream
+public class ReactiveFileStream(string path, FileMode mode) : FileStream(path, mode)
 {
     private int _totalRead = 0;
 
     private int _totalWritten = 0;
-
-    public ReactiveFileStream(string path, FileMode mode) :
-        base(path, mode)
-    {
-    }
 
     public event EventHandler<int>? TotalBytesReadChanged;
 

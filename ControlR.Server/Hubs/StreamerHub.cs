@@ -9,24 +9,16 @@ using Microsoft.Extensions.Options;
 
 namespace ControlR.Server.Hubs;
 
-public class StreamerHub : Hub<IStreamerHubClient>
+public class StreamerHub(
+    IStreamerSessionCache streamerSessionCache,
+    IHubContext<ViewerHub, IViewerHubClient> viewerHubContext,
+    IOptionsMonitor<AppOptions> appOptions,
+    ILogger<StreamerHub> logger) : Hub<IStreamerHubClient>
 {
-    private readonly IStreamerSessionCache _streamerSessionCache;
-    private readonly IOptionsMonitor<AppOptions> _appOptions;
-    private readonly IHubContext<ViewerHub, IViewerHubClient> _viewerHub;
-    private readonly ILogger<StreamerHub> _logger;
-
-    public StreamerHub(
-        IStreamerSessionCache streamerSessionCache,
-        IHubContext<ViewerHub, IViewerHubClient> viewerHubContext,
-        IOptionsMonitor<AppOptions> appOptions,
-        ILogger<StreamerHub> logger)
-    {
-        _streamerSessionCache = streamerSessionCache;
-        _appOptions = appOptions;
-        _viewerHub = viewerHubContext;
-        _logger = logger;
-    }
+    private readonly IStreamerSessionCache _streamerSessionCache = streamerSessionCache;
+    private readonly IOptionsMonitor<AppOptions> _appOptions = appOptions;
+    private readonly IHubContext<ViewerHub, IViewerHubClient> _viewerHub = viewerHubContext;
+    private readonly ILogger<StreamerHub> _logger = logger;
 
     public Task SetSessionDetails(Guid sessionId, DisplayDto[] displays)
     {

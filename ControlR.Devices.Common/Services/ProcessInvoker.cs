@@ -25,14 +25,9 @@ public interface IProcessInvoker
     Process? Start(ProcessStartInfo startInfo);
 }
 
-public class ProcessInvoker : IProcessInvoker
+public class ProcessInvoker(ILogger<ProcessInvoker> logger) : IProcessInvoker
 {
-    private readonly ILogger<ProcessInvoker> _logger;
-
-    public ProcessInvoker(ILogger<ProcessInvoker> logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger<ProcessInvoker> _logger = logger;
 
     public Process GetCurrentProcess()
     {
