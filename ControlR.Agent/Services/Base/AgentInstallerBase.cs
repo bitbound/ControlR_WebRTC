@@ -7,15 +7,16 @@ using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace ControlR.Agent.Services.Base;
+
 internal abstract class AgentInstallerBase(
     IFileSystem fileSystem,
     IDownloadsApi downloadsApi,
     ILogger<AgentInstallerBase> logger)
 {
-    private readonly IFileSystem _fileSystem = fileSystem;
     private readonly IDownloadsApi _downloadsApi = downloadsApi;
-    private readonly ILogger<AgentInstallerBase> _logger = logger;
+    private readonly IFileSystem _fileSystem = fileSystem;
     private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+    private readonly ILogger<AgentInstallerBase> _logger = logger;
 
     protected async Task UpdateAppSettings(string installDir, string? authorizedKey)
     {

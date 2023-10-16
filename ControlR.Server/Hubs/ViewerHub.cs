@@ -23,10 +23,10 @@ public class ViewerHub(
     ILogger<ViewerHub> logger) : Hub<IViewerHubClient>
 {
     private readonly IHubContext<AgentHub, IAgentHubClient> _agentHub = agentHubContext;
-    private readonly IHubContext<StreamerHub, IStreamerHubClient> _streamerHub = streamerHubContext;
-    private readonly IStreamerSessionCache _streamerSessionCache = streamerSessionCache;
     private readonly IOptionsMonitor<AppOptions> _appOptions = appOptions;
     private readonly ILogger<ViewerHub> _logger = logger;
+    private readonly IHubContext<StreamerHub, IStreamerHubClient> _streamerHub = streamerHubContext;
+    private readonly IStreamerSessionCache _streamerSessionCache = streamerSessionCache;
 
     public Task<IceServer[]> GetIceServers(SignedPayloadDto dto)
     {
@@ -36,16 +36,6 @@ public class ViewerHub(
         }
 
         return _appOptions.CurrentValue.IceServers.ToArray().AsTaskResult();
-    }
-
-    public async Task<WindowsSession[]> GetWindowsSessions(string agentConnectionId, SignedPayloadDto signedDto)
-    {
-        if (!VerifyPayload(signedDto, out _))
-        {
-            return [];
-        }
-
-        return await _agentHub.Clients.Client(agentConnectionId).GetWindowsSessions(signedDto);
     }
 
     public async Task<Result<StreamerHubSession>> GetStreamingSession(string agentConnectionId, Guid streamingSessionId, SignedPayloadDto sessionRequestDto)
@@ -85,35 +75,14 @@ public class ViewerHub(
         }
     }
 
-    public async Task SendSignedDtoToAgent(string agentConnectionId, SignedPayloadDto signedDto)
+    public async Task<WindowsSession[]> GetWindowsSessions(string agentConnectionId, SignedPayloadDto signedDto)
     {
-        using var scope = _logger.BeginMemberScope();
-
         if (!VerifyPayload(signedDto, out _))
         {
-            return;
+            return [];
         }
 
-        await _agentHub.Clients.Client(agentConnectionId).ReceiveDto(signedDto);
-    }
-    public async Task SendSignedDtoToStreamer(Guid streamingSessionId, SignedPayloadDto signedDto)
-    {
-        using var scope = _logger.BeginMemberScope();
-
-        if (!VerifyPayload(signedDto, out _))
-        {
-            return;
-        }
-
-        if (!_streamerSessionCache.TryGetValue(streamingSessionId, out var session))
-        {
-            _logger.LogError("Session ID not found: {id}", streamingSessionId);
-            return;
-        }
-
-        await _streamerHub.Clients
-            .Client(session.StreamerConnectionId)
-            .ReceiveDto(signedDto);
+        return await _agentHub.Clients.Client(agentConnectionId).GetWindowsSessions(signedDto);
     }
 
     public override async Task OnConnectedAsync()
@@ -139,6 +108,18 @@ public class ViewerHub(
         await base.OnDisconnectedAsync(exception);
     }
 
+    public async Task SendSignedDtoToAgent(string deviceId, SignedPayloadDto signedDto)
+    {
+        using var scope = _logger.BeginMemberScope();
+
+        if (!VerifyPayload(signedDto, out _))
+        {
+            return;
+        }
+
+        await _agentHub.Clients.Group(deviceId).ReceiveDto(signedDto);
+    }
+
     public async Task SendSignedDtoToPublicKeyGroup(SignedPayloadDto signedDto)
     {
         using var _ = _logger.BeginMemberScope();
@@ -149,6 +130,26 @@ public class ViewerHub(
         }
 
         await _agentHub.Clients.Group(publicKey).ReceiveDto(signedDto);
+    }
+
+    public async Task SendSignedDtoToStreamer(Guid streamingSessionId, SignedPayloadDto signedDto)
+    {
+        using var scope = _logger.BeginMemberScope();
+
+        if (!VerifyPayload(signedDto, out _))
+        {
+            return;
+        }
+
+        if (!_streamerSessionCache.TryGetValue(streamingSessionId, out var session))
+        {
+            _logger.LogError("Session ID not found: {StreamerSessionId}", streamingSessionId);
+            return;
+        }
+
+        await _streamerHub.Clients
+            .Client(session.StreamerConnectionId)
+            .ReceiveDto(signedDto);
     }
 
     private bool VerifyPayload(SignedPayloadDto signedDto, out string publicKey)

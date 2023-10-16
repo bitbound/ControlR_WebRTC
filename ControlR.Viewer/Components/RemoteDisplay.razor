@@ -28,6 +28,10 @@
                         OnViewModeSelected="@((viewMode) => _viewMode = viewMode)" />
 
                     <MonitorsMenu Displays="_displays" SelectedDisplay="_selectedDisplay" />
+
+                    <MudButton Variant="Variant.Outlined" StartIcon="@(Icons.Material.Filled.KeyboardControlKey)" OnClick="InvokeCtrlAltDel">
+                        Ctrl+Alt+Del
+                    </MudButton>
                 </div>
 
                 <div class="mobile-actions">

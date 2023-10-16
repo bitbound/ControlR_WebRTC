@@ -29,9 +29,9 @@ public interface IViewerHubConnection : IViewerHubClient, IHubConnectionBase
 
     Task<Result<WindowsSession[]>> GetWindowsSessions(DeviceDto device);
 
-    Task RequestDeviceUpdates();
+    Task InvokeCtrlAltDel(string deviceId);
 
-    Task SendCtrlAltDel(Guid sessionId);
+    Task RequestDeviceUpdates();
 
     Task SendIceCandidate(Guid sessionId, string iceCandidateJson);
 
@@ -124,6 +124,15 @@ internal class ViewerHubConnection(
         }
     }
 
+    public async Task InvokeCtrlAltDel(string deviceId)
+    {
+        await TryInvoke(async () =>
+        {
+            var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.InvokeCtrlAltDel);
+            await Connection.InvokeAsync("SendSignedDtoToAgent", deviceId, signedDto);
+        });
+    }
+
     public Task ReceiveDesktopChanged(Guid sessionId, string desktopName)
     {
         _messenger.Send(new DesktopChangedMessage(sessionId, desktopName));
@@ -162,15 +171,6 @@ internal class ViewerHubConnection(
             await WaitForConnection();
             var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.DeviceUpdateRequest);
             await Connection.InvokeAsync("SendSignedDtoToPublicKeyGroup", signedDto);
-        });
-    }
-
-    public async Task SendCtrlAltDel(Guid sessionId)
-    {
-        await TryInvoke(async () =>
-        {
-            var signedDto = _appState.Encryptor.CreateRandomSignedDto(DtoType.InvokeCtrlAltDel);
-            await Connection.InvokeAsync("InvokeCtrlAltDel", sessionId, signedDto);
         });
     }
 

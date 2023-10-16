@@ -1,8 +1,6 @@
 ﻿using ControlR.Server.Models;
 using ControlR.Server.Services;
 using ControlR.Shared.Dtos;
-using ControlR.Shared.Enums;
-using ControlR.Shared.Extensions;
 using ControlR.Shared.Interfaces.HubClients;
 using ControlR.Shared.Models;
 using ControlR.Shared.Services;
@@ -13,18 +11,33 @@ namespace ControlR.Server.Hubs;
 
 public class AgentHub(
     IHubContext<ViewerHub, IViewerHubClient> viewerHubContext,
-    IAgentSessionCache agentSessionCache,
     IStreamerSessionCache streamerSessionCache,
     IOptionsMonitor<AppOptions> appOptions,
     ISystemTime systemTime,
     ILogger<AgentHub> logger) : Hub<IAgentHubClient>
 {
-    private readonly IAgentSessionCache _agentSessionCache = agentSessionCache;
     private readonly IOptionsMonitor<AppOptions> _appOptions = appOptions;
     private readonly ILogger<AgentHub> _logger = logger;
     private readonly IStreamerSessionCache _streamerSessionCache = streamerSessionCache;
     private readonly ISystemTime _systemTime = systemTime;
     private readonly IHubContext<ViewerHub, IViewerHubClient> _viewerHub = viewerHubContext;
+
+    private DeviceDto? Device
+    {
+        get
+        {
+            if (Context.Items.TryGetValue(nameof(Device), out var cachedItem) &&
+                cachedItem is DeviceDto deviceDto)
+            {
+                return deviceDto;
+            }
+            return null;
+        }
+        set
+        {
+            Context.Items[nameof(Device)] = value;
+        }
+    }
 
     public IceServer[] GetIceServers()
     {
@@ -50,23 +63,14 @@ public class AgentHub(
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        if (_agentSessionCache.TryRemove(Context.ConnectionId, out var session))
+        if (Device is DeviceDto cachedDevice)
         {
-            session.Device.IsOnline = false;
-            session.Device.LastSeen = _systemTime.Now;
+            cachedDevice.IsOnline = false;
+            cachedDevice.LastSeen = _systemTime.Now;
 
-            var result = DeviceDto.TryCreateFrom(session.Device, ConnectionType.Agent, Context.ConnectionId);
+            await _viewerHub.Clients.Groups(cachedDevice.AuthorizedKeys).ReceiveDeviceUpdate(cachedDevice);
 
-            if (result.IsSuccess)
-            {
-                await _viewerHub.Clients.Groups(session.Device.AuthorizedKeys).ReceiveDeviceUpdate(result.Value);
-            }
-            else
-            {
-                _logger.LogResult(result);
-            }
-
-            foreach (var key in session.Device.AuthorizedKeys)
+            foreach (var key in Device.AuthorizedKeys)
             {
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, key);
             }
@@ -80,20 +84,23 @@ public class AgentHub(
         await _viewerHub.Clients.Client(viewerConnectionId).ReceiveRemoteControlDownloadProgress(streamingSessionId, downloadProgress);
     }
 
-    public async Task UpdateDevice(Device device)
+    public async Task UpdateDevice(DeviceDto device)
     {
+        device.ConnectionId = Context.ConnectionId;
         device.IsOnline = true;
         device.LastSeen = _systemTime.Now;
 
-        if (_agentSessionCache.TryGetValue(Context.ConnectionId, out var session))
+        await Groups.AddToGroupAsync(Context.ConnectionId, device.Id);
+
+        if (Device is DeviceDto cachedDevice)
         {
-            var oldKeys = session.Device.AuthorizedKeys.Except(device.AuthorizedKeys);
+            var oldKeys = cachedDevice.AuthorizedKeys.Except(device.AuthorizedKeys);
             foreach (var oldKey in oldKeys)
             {
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, oldKey);
             }
 
-            var newKeys = device.AuthorizedKeys.Except(session.Device.AuthorizedKeys);
+            var newKeys = device.AuthorizedKeys.Except(cachedDevice.AuthorizedKeys);
             foreach (var newKey in newKeys)
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, newKey);
@@ -107,16 +114,7 @@ public class AgentHub(
             }
         }
 
-        var result = DeviceDto.TryCreateFrom(device, ConnectionType.Agent, Context.ConnectionId);
-
-        if (!result.IsSuccess)
-        {
-            _logger.LogResult(result);
-            return;
-        }
-
-        session = new AgentHubSession(Context.ConnectionId, result.Value);
-        _agentSessionCache.AddOrUpdate(Context.ConnectionId, session);
-        await _viewerHub.Clients.Groups(device.AuthorizedKeys).ReceiveDeviceUpdate(result.Value);
+        Device = device;
+        await _viewerHub.Clients.Groups(device.AuthorizedKeys).ReceiveDeviceUpdate(device);
     }
 }

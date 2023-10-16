@@ -5,6 +5,7 @@ using ControlR.Shared.Services;
 using Microsoft.Extensions.Logging;
 
 namespace ControlR.Devices.Common.Services.MacOs;
+
 internal class DeviceDataGeneratorMac(
     IProcessInvoker processInvoker,
     IEnvironmentHelper environmentHelper,
@@ -126,6 +127,7 @@ internal class DeviceDataGeneratorMac(
 
         return 0;
     }
+
     private async Task<string> GetCurrentUser()
     {
         var result = await _processService.GetProcessOutput("users", "");

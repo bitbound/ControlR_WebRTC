@@ -51,7 +51,6 @@ builder.Services.AddAuthorization(options =>
     });
 });
 
-
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
@@ -71,7 +70,6 @@ builder.Services.AddServerSideBlazor();
 
 builder.Services.AddSingleton<IEncryptionSessionFactory, EncryptionSessionFactory>();
 builder.Services.AddSingleton<ISystemTime, SystemTime>();
-builder.Services.AddSingleton<IAgentSessionCache, AgentSessionCache>();
 builder.Services.AddSingleton<IStreamerSessionCache, StreamerSessionCache>();
 
 builder.Host.UseSystemd();
@@ -132,7 +130,6 @@ app.UseWhen(
         }
     });
 
-
 var scopeFactory = app.Services.GetRequiredService<IServiceScopeFactory>();
 using (var scope = scopeFactory.CreateScope())
 using (var appDb = scope.ServiceProvider.GetRequiredService<AppDb>())
@@ -141,8 +138,6 @@ using (var appDb = scope.ServiceProvider.GetRequiredService<AppDb>())
 }
 
 app.Run();
-
-
 
 static void ConfigureStaticFiles(WebApplication app)
 {
@@ -164,5 +159,4 @@ static void ConfigureStaticFiles(WebApplication app)
         ContentTypeProvider = provider,
         DefaultContentType = "application/octet-stream"
     });
-
 }

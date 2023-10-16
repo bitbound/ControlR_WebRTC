@@ -11,6 +11,7 @@ internal interface IDeviceCache
     IEnumerable<DeviceDto> Devices { get; }
 
     Task AddOrUpdate(DeviceDto device);
+
     Task Remove(DeviceDto device);
 
     Task SetAllOffline();
@@ -40,6 +41,7 @@ internal class DeviceCache : IDeviceCache
         _cache.AddOrUpdate(device.Id, device, (k, v) => device);
         await TrySaveCache();
     }
+
     public async Task Remove(DeviceDto device)
     {
         if (_cache.Remove(device.Id, out _))
@@ -47,6 +49,7 @@ internal class DeviceCache : IDeviceCache
             await TrySaveCache();
         }
     }
+
     public async Task SetAllOffline()
     {
         foreach (var device in _cache.Values)

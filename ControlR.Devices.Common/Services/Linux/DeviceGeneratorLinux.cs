@@ -5,13 +5,14 @@ using ControlR.Shared.Services;
 using Microsoft.Extensions.Logging;
 
 namespace ControlR.Devices.Common.Services.Linux;
+
 internal class DeviceDataGeneratorLinux(
     IProcessInvoker processInvoker,
     IEnvironmentHelper environmentHelper,
     ILogger<DeviceDataGeneratorLinux> logger) : DeviceDataGeneratorBase(environmentHelper, logger), IDeviceDataGenerator
 {
-    private readonly IProcessInvoker _processInvoker = processInvoker;
     private readonly ILogger<DeviceDataGeneratorLinux> _logger = logger;
+    private readonly IProcessInvoker _processInvoker = processInvoker;
 
     public async Task<Device> CreateDevice(double cpuUtilization, IEnumerable<string> authorizedKeys, string deviceId)
     {
@@ -37,16 +38,6 @@ internal class DeviceDataGeneratorLinux(
         }
 
         return device;
-    }
-
-    private async Task<string> GetCurrentUser()
-    {
-        var result = await _processInvoker.GetProcessOutput("users", "");
-        if (!result.IsSuccess)
-        {
-            return string.Empty;
-        }
-        return result.Value.Split()?.FirstOrDefault()?.Trim() ?? string.Empty;
     }
 
     public async Task<(double usedGB, double totalGB)> GetMemoryInGB()
@@ -96,5 +87,15 @@ internal class DeviceDataGeneratorLinux(
             _logger.LogError(ex, "Error while getting device memory.");
             return (0, 0);
         }
+    }
+
+    private async Task<string> GetCurrentUser()
+    {
+        var result = await _processInvoker.GetProcessOutput("users", "");
+        if (!result.IsSuccess)
+        {
+            return string.Empty;
+        }
+        return result.Value.Split()?.FirstOrDefault()?.Trim() ?? string.Empty;
     }
 }

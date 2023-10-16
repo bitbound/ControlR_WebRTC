@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
-using System.Runtime.InteropServices;
+﻿using ControlR.Shared.Models;
 using ControlR.Shared.Services;
-using ControlR.Shared.Models;
+using Microsoft.Extensions.Logging;
+using System.Runtime.InteropServices;
 
 namespace ControlR.Devices.Common.Services;
 
@@ -47,7 +47,6 @@ internal class DeviceDataGeneratorBase(
 
     public Device GetDeviceBase(IEnumerable<string> authorizedKeys, string deviceId)
     {
-
         return new Device()
         {
             Id = deviceId,
@@ -92,7 +91,6 @@ internal class DeviceDataGeneratorBase(
 
                 return (usedStorage, totalStorage);
             }
-
         }
         catch (Exception ex)
         {

@@ -2,8 +2,10 @@
 using PInvoke;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Security;
 using static PInvoke.Kernel32;
+using Win32PInvoke = global::Windows.Win32.PInvoke;
 
 namespace ControlR.Devices.Common.Native.Windows;
 
@@ -257,6 +259,13 @@ public static partial class Win32
     [LibraryImport("kernel32.dll", SetLastError = true)]
     public static partial bool GlobalMemoryStatusEx(ref MemoryStatusEx lpBuffer);
 
+    [SupportedOSPlatform("windows6.1")]
+    public static void InvokeCtrlAltDel()
+    {
+        var isService = Process.GetCurrentProcess().SessionId == 0;
+        Win32PInvoke.SendSAS(!isService);
+    }
+
     public static User32.SafeDesktopHandle OpenInputDesktop()
     {
         return User32.OpenInputDesktop(User32.DesktopCreationFlags.None, true, ACCESS_MASK.GenericRight.GENERIC_ALL);
@@ -314,7 +323,7 @@ public static partial class Win32
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool OpenProcessToken(IntPtr processHandle, int desiredAccess, ref IntPtr tokenHandle);
 
-    [LibraryImport("Wtsapi32.dll")]
+    [DllImport("Wtsapi32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool WTSQuerySessionInformation(IntPtr hServer, int sessionId, WTS_INFO_CLASS wtsInfoClass, out IntPtr ppBuffer, out uint pBytesReturned);
+    private static extern bool WTSQuerySessionInformation(IntPtr hServer, int sessionId, WTS_INFO_CLASS wtsInfoClass, out IntPtr ppBuffer, out uint pBytesReturned);
 }

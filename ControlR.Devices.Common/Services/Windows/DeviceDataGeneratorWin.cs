@@ -5,6 +5,7 @@ using ControlR.Shared.Services;
 using Microsoft.Extensions.Logging;
 
 namespace ControlR.Devices.Common.Services.Windows;
+
 internal class DeviceDataGeneratorWin(
     IEnvironmentHelper environmentHelper,
     ILogger<DeviceDataGeneratorWin> logger) : DeviceDataGeneratorBase(environmentHelper, logger), IDeviceDataGenerator
@@ -45,7 +46,6 @@ internal class DeviceDataGeneratorWin(
         try
         {
             var memoryStatus = new MemoryStatusEx();
-
 
             if (Win32.GlobalMemoryStatusEx(ref memoryStatus))
             {

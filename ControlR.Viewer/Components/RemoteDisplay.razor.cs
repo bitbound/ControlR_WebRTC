@@ -320,6 +320,11 @@ public partial class RemoteDisplay : IAsyncDisposable
         }
     }
 
+    private async Task InvokeCtrlAltDel()
+    {
+        await ViewerHub.InvokeCtrlAltDel(Session.Device.Id);
+    }
+
     private async Task InvokeKeyboard()
     {
         _isMobileActionsMenuOpen = false;

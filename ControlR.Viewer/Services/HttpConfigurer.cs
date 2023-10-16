@@ -8,7 +8,7 @@ namespace ControlR.Viewer.Services;
 
 internal interface IHttpConfigurer
 {
-    void ConfigureAuthenticatedClient(HttpClient client);
+    void ConfigureClient(HttpClient client);
 
     HttpClient GetAuthorizedClient();
 
@@ -29,17 +29,21 @@ internal class HttpConfigurer(
     private readonly IAppState _appState = appState;
     private readonly ISettings _settings = settings;
 
-    public void ConfigureAuthenticatedClient(HttpClient client)
+    public void ConfigureClient(HttpClient client)
     {
-        var keyDto = new PublicKeyDto()
-        {
-            PublicKey = _settings.PublicKey,
-            Username = _settings.Username
-        };
-
-        var signature = GetDigitalSignature(keyDto);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(AuthSchemes.DigitalSignature, signature);
         client.BaseAddress = new Uri(AppConstants.ServerUri);
+
+        if (_appState.IsAuthenticated)
+        {
+            var keyDto = new PublicKeyDto()
+            {
+                PublicKey = _settings.PublicKey,
+                Username = _settings.Username
+            };
+
+            var signature = GetDigitalSignature(keyDto);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(AuthSchemes.DigitalSignature, signature);
+        }
 
         _clients.Add(client);
     }
@@ -47,7 +51,7 @@ internal class HttpConfigurer(
     public HttpClient GetAuthorizedClient()
     {
         var client = _clientFactory.CreateClient();
-        ConfigureAuthenticatedClient(client);
+        ConfigureClient(client);
         return client;
     }
 

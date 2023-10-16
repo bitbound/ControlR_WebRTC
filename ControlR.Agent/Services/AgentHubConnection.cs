@@ -154,7 +154,15 @@ internal class AgentHubConnection(
                 _appOptions.CurrentValue.AuthorizedKeys,
                 _appOptions.CurrentValue.DeviceId);
 
-            await Connection.InvokeAsync("UpdateDevice", device);
+            var result = device.TryCloneAs<Device, DeviceDto>();
+
+            if (!result.IsSuccess)
+            {
+                _logger.LogResult(result);
+                return;
+            }
+
+            await Connection.InvokeAsync("UpdateDevice", result.Value);
         }
         catch (Exception ex)
         {
@@ -180,11 +188,11 @@ internal class AgentHubConnection(
         if (_environmentHelper.Platform == SystemPlatform.Windows)
         {
 #pragma warning disable CA1416 // Validate platform compatibility
-            hubConnection.On(nameof(GetWindowsSessions), (Func<SignedPayloadDto, Task<WindowsSession[]>>)GetWindowsSessions);
+            hubConnection.On<SignedPayloadDto, Task<WindowsSession[]>>(nameof(GetWindowsSessions), GetWindowsSessions);
 #pragma warning restore CA1416 // Validate platform compatibility
         }
 
-        hubConnection.On(nameof(GetStreamingSession), (Func<SignedPayloadDto, Task<bool>>)GetStreamingSession);
+        hubConnection.On<SignedPayloadDto, Task<bool>>(nameof(GetStreamingSession), GetStreamingSession);
     }
 
     private void ConfigureHttpOptions(HttpConnectionOptions options)

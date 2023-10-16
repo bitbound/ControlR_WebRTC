@@ -36,7 +36,6 @@ public class Device
     [Display(Name = "Drives")]
     public List<Drive> Drives { get; set; } = [];
 
-
     [MsgPackKey]
     [Display(Name = "Device Id")]
     public string Id { get; set; } = string.Empty;
@@ -65,6 +64,7 @@ public class Device
     [MsgPackKey]
     [Display(Name = "OS Architecture")]
     public Architecture OsArchitecture { get; set; }
+
     [MsgPackKey]
     [Display(Name = "OS Description")]
     public string OsDescription { get; set; } = string.Empty;

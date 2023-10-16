@@ -1,5 +1,6 @@
 ﻿using ControlR.Agent.Interfaces;
 using ControlR.Agent.Models;
+using ControlR.Devices.Common.Native.Windows;
 using ControlR.Shared.Dtos;
 using ControlR.Shared.Extensions;
 using ControlR.Shared.Services;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace ControlR.Agent.Services;
+
 internal class DtoHandler(
     IEncryptionSessionFactory encryptionFactory,
     IAgentHubConnection agentHub,
@@ -16,15 +18,21 @@ internal class DtoHandler(
     IOptionsMonitor<AppOptions> appOptions,
     ILogger<DtoHandler> logger) : IHostedService
 {
-    private readonly IEncryptionSessionFactory _encryptionFactory = encryptionFactory;
     private readonly IAgentHubConnection _agentHub = agentHub;
-    private readonly IPowerControl _powerControl = powerControl;
     private readonly IOptionsMonitor<AppOptions> _appOptions = appOptions;
+    private readonly IEncryptionSessionFactory _encryptionFactory = encryptionFactory;
     private readonly ILogger<DtoHandler> _logger = logger;
+    private readonly IPowerControl _powerControl = powerControl;
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _agentHub.DtoReceived += AgentHub_DtoReceived;
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _agentHub.DtoReceived -= AgentHub_DtoReceived;
         return Task.CompletedTask;
     }
 
@@ -50,19 +58,22 @@ internal class DtoHandler(
             case DtoType.DeviceUpdateRequest:
                 await _agentHub.SendDeviceHeartbeat();
                 break;
+
             case DtoType.PowerStateChange:
                 var powerDto = MessagePackSerializer.Deserialize<PowerStateChangeDto>(dto.Payload);
                 await _powerControl.ChangeState(powerDto.Type);
                 break;
+
+            case DtoType.InvokeCtrlAltDel:
+                if (OperatingSystem.IsWindowsVersionAtLeast(6, 1))
+                {
+                    Win32.InvokeCtrlAltDel();
+                }
+                break;
+
             default:
                 _logger.LogWarning("Unhandled DTO type: {type}", dto.DtoType);
                 break;
         }
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        _agentHub.DtoReceived -= AgentHub_DtoReceived;
-        return Task.CompletedTask;
     }
 }
