@@ -1,0 +1,195 @@
+﻿@page "/settings"
+@inject ISettings SettingsStore
+@inject ISnackbar Snackbar
+@inject IMessenger Messenger
+@inject IViewerHubConnection HubConnection
+@inject IDeviceCache DeviceCache
+@inject IAppState AppState
+@inject IDialogService Dialogs
+@inject ISettingsExporter SettingsExporter
+@inject ILogger<Settings> Logger
+
+<PageTitle>Settings</PageTitle>
+
+<MudText Typo="Typo.h4" Color="Color.Primary" GutterBottom>
+    Settings
+</MudText>
+
+<div class="mt-10">
+    <MudText Typo="Typo.h6" Color="Color.Primary" GutterBottom>
+        Server
+    </MudText>
+    <MudTextField T="string"
+                  @bind-Value="Server"
+                  Label="The server URI to which the viewer connects (e.g. 'https://my.example.com')">
+
+    </MudTextField>
+</div>
+
+<div class="mt-10">
+    <MudText Typo="Typo.h6" Color="Color.Primary" GutterBottom>
+        Username
+    </MudText>
+    <MudTextField T="string"
+                  @bind-Value="Username"
+                  Validation="(string e) => ValidateUsername(e)"
+                  Label="Shown to partners when connecting">
+
+    </MudTextField>
+</div>
+
+<div class="mt-10">
+    <MudText Typo="Typo.h6" Color="Color.Primary" GutterBottom>
+        Show Notification to User
+    </MudText>
+    <MudCheckBox @bind-Value="NotifyUser"
+                 Label="Notify users when a remote control session starts" />
+</div>
+
+<div class="mt-10">
+    <MudText Typo="Typo.h6" Color="Color.Primary">
+        Lower UAC Level During Session
+    </MudText>
+    <MudText GutterBottom>
+        During a remote control session, lower the UAC prompt elevation to reduce desktop switching.
+        UAC prompts will appear on the interactive desktop instead of the secure desktop.
+    </MudText>
+    <MudCheckBox @bind-Value="LowerUacDuringSession"
+                 Label="Show UAC prompts on the interactive desktop" />
+</div>
+
+<div class="mt-10">
+    <MudText Typo="Typo.h6" Color="Color.Primary" GutterBottom>
+        Import/Export Settings
+    </MudText>
+    <MudText>
+        The export includes devices and preferences.  It does not include your public/private keypair.  That must be exported separately.
+    </MudText>
+    <div class="d-flex gap-4 mt-3">
+        <MudButton ButtonType="ButtonType.Button" Color="Color.Default" Variant="Variant.Filled" OnClick="ExportSettings">
+            Export
+        </MudButton>
+        <MudButton ButtonType="ButtonType.Button" Color="Color.Default" Variant="Variant.Filled" OnClick="ImportSettings">
+            Import
+        </MudButton>
+    </div>
+</div>
+
+
+
+@code {
+    private bool NotifyUser
+    {
+        get => SettingsStore.NotifyUserSessionStart;
+        set => SettingsStore.NotifyUserSessionStart = value;
+    }
+
+    private bool LowerUacDuringSession
+    {
+        get => SettingsStore.LowerUacDuringSession;
+        set => SettingsStore.LowerUacDuringSession = value;
+    }
+
+
+    private string Server
+    {
+        get => SettingsStore.ServerUri;
+        set
+        {
+            if (!Uri.TryCreate(value, UriKind.Absolute, out var serverUri))
+            {
+                Snackbar.Add("Invalid URI", Severity.Error);
+                return;
+            }
+            SettingsStore.ServerUri = serverUri.ToString();
+            Snackbar.Add("Server updated", Severity.Success);
+            DeviceCache.SetAllOffline();
+            Dialogs.ShowMessageBox(
+                "Restart Recommended",
+                "Please restart the application soon for changes to fully take effect.")
+                .AndForget(true);
+        }
+    }
+
+    private string Username
+    {
+        get => SettingsStore.Username;
+        set
+        {
+            SettingsStore.Username = value;
+            Snackbar.Add("Username updated", Severity.Success);
+        }
+    }
+
+    private async Task ExportSettings()
+    {
+        try
+        {
+            var result = await SettingsExporter.ExportSettings();
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Settings exported successfully", Severity.Success);
+            }
+            else
+            {
+                Logger.LogResult(result);
+                var severity = result.HadException ?
+                    Severity.Error :
+                    Severity.Warning;
+
+                Snackbar.Add(result.Reason, severity);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.LogWarning("Export settings operation was canceled.");
+            Snackbar.Add("Export operation aborted", Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error while exporting settings.");
+            Snackbar.Add("Failed to export settings (see logs)", Severity.Error);
+        }
+    }
+    private async Task ImportSettings()
+    {
+        try
+        {
+            var result = await SettingsExporter.ImportSettings();
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Settings imported successfully", Severity.Success);
+            }
+            else
+            {
+                Logger.LogResult(result);
+                var severity = result.HadException ?
+                    Severity.Error :
+                    Severity.Warning;
+
+                Snackbar.Add(result.Reason, severity);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error while import settings.");
+            Snackbar.Add("Failed to import settings (see logs)", Severity.Error);
+        }
+    }
+
+
+    private string? ValidateUsername(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return null;
+        }
+
+        if (AppConstants.UsernameValidator().IsMatch(input))
+        {
+            return "Username can only contain letters, numbers, underscores, and hyphens.";
+        }
+
+        return null;
+    }
+}

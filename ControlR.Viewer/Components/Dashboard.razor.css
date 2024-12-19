@@ -1,0 +1,5 @@
+.child-content-grid {
+    display: grid;
+    grid-template-columns: min-content auto;
+    column-gap: 20px;
+}

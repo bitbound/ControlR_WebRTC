@@ -1,0 +1,129 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0-android</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net8.0-windows10.0.19041.0</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('macos'))">net8.0-ios;net8.0-maccatalyst</TargetFrameworks>
+		<!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
+		<!-- <TargetFrameworks>$(TargetFrameworks);net8.0-tizen</TargetFrameworks> -->
+		<OutputType>Exe</OutputType>
+		<RootNamespace>ControlR.Viewer</RootNamespace>
+		<UseMaui>true</UseMaui>
+		<SingleProject>true</SingleProject>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<EnableDefaultCssItems>false</EnableDefaultCssItems>
+
+		<!-- Display name -->
+		<ApplicationTitle>ControlR Viewer</ApplicationTitle>
+		<PublisherName>Jared Goodwin</PublisherName>
+
+		<!-- App Identifier -->
+		<ApplicationId>dev.jaredg.controlr.viewer</ApplicationId>
+		<ApplicationIdGuid>8956DD24-5084-4303-BE59-0E1119CDB38C</ApplicationIdGuid>
+
+		<!-- Versions -->
+		<ApplicationDisplayVersion>0.9.5.0</ApplicationDisplayVersion>
+
+		<ApplicationVersion>5</ApplicationVersion>
+
+		<ApplicationTitle>ControlR</ApplicationTitle>
+
+		<Configurations>Debug;Release;DebugStore</Configurations>
+	</PropertyGroup>
+
+	<ItemGroup Condition="$([MSBuild]::IsOSPlatform('windows')) AND '$(Configuration)' == 'Debug'">
+		<AppxManifest Remove="Platforms\Windows\Package.appxmanifest" />
+		<AppxManifest Include="Platforms\Windows\Package.Debug.appxmanifest" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
+		<Nullable>enable</Nullable>
+		<GenerateAppInstallerFile>True</GenerateAppInstallerFile>
+		<AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+		<PackageCertificateThumbprint>f3a7944d7ac81725ae01dd307551866574a6be70</PackageCertificateThumbprint>
+
+		<AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
+		<AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
+		<AppxSymbolPackageEnabled>True</AppxSymbolPackageEnabled>
+		<GenerateTestArtifacts>True</GenerateTestArtifacts>
+		<AppInstallerUri>https://controlr.app/downloads</AppInstallerUri>
+		<HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
+		<AppxPackageSigningTimestampServerUrl>http://timestamp.digicert.com</AppxPackageSigningTimestampServerUrl>
+		<GenerateTemporaryStoreCertificate>True</GenerateTemporaryStoreCertificate>
+		<DefaultLanguage>en-us</DefaultLanguage>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)'=='Debug|net8.0-android'">
+	  <AndroidPackageFormat>apk</AndroidPackageFormat>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)'=='DebugStore|net8.0-android'">
+		<AndroidPackageFormat>apk</AndroidPackageFormat>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)'=='Release|net8.0-android'">
+	    <AndroidUseAapt2>True</AndroidUseAapt2>
+	    <AndroidCreatePackagePerAbi>False</AndroidCreatePackagePerAbi>
+	    <AndroidPackageFormat>aab</AndroidPackageFormat>
+	    <AndroidLinkTool>r8</AndroidLinkTool>
+	</PropertyGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0-android'">
+		<PackageReference Include="Xamarin.AndroidX.Activity.Ktx" Version="1.8.2.1" />
+		<PackageReference Include="Xamarin.AndroidX.Collection.Ktx" Version="1.4.0.1" />
+		<PackageReference Include="Xamarin.Google.Android.Play.App.Update.Ktx" Version="2.1.0.5" />
+	    <ProguardConfiguration Include="Platforms\Android\proguard.cfg" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- App Icon -->
+		<MauiIcon Include="Resources\AppIcon\appicon.svg" Color="#141414" />
+
+		<!-- Splash Screen -->
+		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#141414" />
+
+		<!-- Images -->
+		<MauiImage Include="Resources\Images\*" />
+
+		<!-- Custom Fonts -->
+		<MauiFont Include="Resources\Fonts\*" />
+
+		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
+		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="Platforms\Android\Resources\xml\auto_backup_rules.xml" />
+	  <None Remove="Resources\Raw\appicon.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Bitbound.SimpleMessenger" Version="2.1.0" />
+		<PackageReference Include="CommunityToolkit.Maui" Version="9.0.1" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.6" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
+		<PackageReference Include="MudBlazor" Version="6.20.0" />
+
+		<PackageReference Include="Microsoft.Maui.Controls" Version="8.0.40" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.14" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="8.0.40" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Update="Microsoft.Maui.Controls.Compatibility" Version="8.0.40" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Resources\Images\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Libraries\ControlR.Libraries.DevicesCommon\ControlR.Libraries.DevicesCommon.csproj" />
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,112 @@
+﻿@inherits JsInteropableComponent
+@using System.Diagnostics
+@using System.Runtime.InteropServices
+@using System.Text
+@using System.Runtime.InteropServices.JavaScript;
+@using ControlR.Viewer.Components.RemoteDisplays;
+
+<input @ref="_virtualKeyboard"
+       class="virtual-keyboard"
+       type="text"
+       autocomplete="off"
+       autocapitalize="off"
+       @onblur="HandleVirtualKeyboardBlurred"
+       @bind-value="VirtualKeyboardText"
+       @bind-value:event="oninput"
+       @onkeydown="OnVkKeyDown" />
+
+<div class="display-grid">
+    <div class="action-bar pa-2">
+        <div class="desktop-actions">
+            <ViewModeMenu ViewMode="_viewMode"
+                          OnViewModeSelected="@((viewMode) => _viewMode = viewMode)" />
+
+            <MonitorsMenu Displays="_displays" SelectedDisplay="_selectedDisplay" OnDisplaySelected="ChangeDisplays" />
+
+            <MudButton Variant="Variant.Outlined" StartIcon="@(Icons.Material.Filled.KeyboardControlKey)" OnClick="InvokeCtrlAltDel">
+                Ctrl+Alt+Del
+            </MudButton>
+        </div>
+
+        <div class="mobile-actions">
+
+            <MudTooltip Text="Actions">
+                <MudIconButton Icon="@(Icons.Material.Filled.MoreVert)"
+                               Color="Color.Info"
+                               OnClick="@(() => _isMobileActionsMenuOpen = !_isMobileActionsMenuOpen)" />
+            </MudTooltip>
+
+            @if (_controlMode == ControlMode.Touch)
+            {
+                <MudToggleIconButton Title="Virtual Keyboard Off"
+                                     Variant="Variant.Outlined"
+                                     Icon="@(Icons.Material.Filled.Keyboard)"
+                                     ToggledTitle="Virtual Keyboard On"
+                                     ToggledColor="Color.Success"
+                                     ToggledIcon="@(Icons.Material.Filled.Keyboard)"
+                                     ToggledChanged="HandleKeyboardToggled" />
+
+                <MudToggleIconButton Title="Scroll Mode Off"
+                                     Variant="Variant.Outlined"
+                                     Icon="@(Icons.Material.Filled.UnfoldMoreDouble)"
+                                     ToggledTitle="Scroll Mode On"
+                                     ToggledColor="Color.Success"
+                                     ToggledIcon="@(Icons.Material.Filled.UnfoldMoreDouble)"
+                                     ToggledChanged="HandleScrollModeToggled" />
+            }
+
+            <MudPopover Open="_isMobileActionsMenuOpen" Class="z9001" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
+                <MudList>
+                    <MudListItem>
+                        <ViewModeMenu ViewMode="_viewMode" OnViewModeSelected="@((viewMode) => _viewMode = viewMode)" />
+                    </MudListItem>
+                    <MudListItem>
+                        <MonitorsMenu Displays="_displays" SelectedDisplay="_selectedDisplay" OnDisplaySelected="ChangeDisplays" />
+                    </MudListItem>
+                    <MudListItem>
+                        <MudButton Variant="Variant.Outlined" StartIcon="@(Icons.Material.Filled.KeyboardControlKey)" OnClick="InvokeCtrlAltDel">
+                            Ctrl+Alt+Del
+                        </MudButton>
+                    </MudListItem>
+                </MudList>
+            </MudPopover>
+        </div>
+    </div>
+    <div class="screen-area"
+         @ref="_screenArea"
+         @ontouchstart="OnTouchStart"
+         @ontouchmove="OnTouchMove"
+         @ontouchcancel="OnTouchCancel"
+         @ontouchend="OnTouchEnd">
+
+        <video id="@_videoId"
+               @ref="_videoRef"
+               autoplay
+               muted
+               class="@($"remote-screen {VideoClasses}")"
+               style="@(VideoStyle)" />
+
+        @if (!string.IsNullOrWhiteSpace(_statusMessage))
+        {
+            <div class="text-center message-wrapper">
+                <MudText Typo="Typo.h4" Color="MudBlazor.Color.Info" Align="Align.Center" GutterBottom Class="mt-5">
+                    @(_statusMessage)
+                </MudText>
+
+                @if (_statusProgress > 0)
+                {
+                    <MudProgressCircular Min="0" Max="1" Value="_statusProgress" Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Large" />
+                }
+                else if (_statusProgress < 0)
+                {
+                    <MudProgressCircular Indeterminate Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Large" />
+                }
+
+                @if (_isStreamReady && !_isStreamLoaded)
+                {
+                    <MudIconButton Icon="@(Icons.Material.Outlined.PlayCircle)" Size="Size.Large" OnClick="HandlePlayButtonClicked" />
+                }
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,34 @@
+﻿<MudMenu Variant="Variant.Outlined" StartIcon="@(Icons.Material.Filled.ScreenshotMonitor)" Label="Monitor" PopoverClass="z9001">
+    @foreach (var display in Displays)
+    {
+        <MudMenuItem @key=(display) OnClick="@(() => SelectDisplay(display))" OnTouch="@(() => SelectDisplay(display))">
+            <MudText Color="@(display == SelectedDisplay ? Color.Success : Color.Default)">
+                @(display.Name)
+            </MudText>
+            @if (!string.IsNullOrWhiteSpace(display.Label))
+            {
+                <MudText Color="Color.Secondary">
+                    (@(display.Label))
+                </MudText>
+            }
+        </MudMenuItem>
+    }
+</MudMenu>
+
+@code {
+
+    [Parameter]
+    public DisplayDto[] Displays { get; set; } = Array.Empty<DisplayDto>();
+
+    [Parameter]
+    public DisplayDto? SelectedDisplay { get; set; }
+
+    [Parameter]
+    public EventCallback<DisplayDto> OnDisplaySelected { get; set; }
+
+
+    private async Task SelectDisplay(DisplayDto display)
+    {
+        await OnDisplaySelected.InvokeAsync(display);
+    }
+}

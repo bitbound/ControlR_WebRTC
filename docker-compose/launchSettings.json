@@ -1,0 +1,15 @@
+{
+  "profiles": {
+    "Docker Compose": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "controlr": "StartDebugging",
+        "coturn": "StartWithoutDebugging"
+      },
+      "environmentVariables": {
+        "TURN_SECRET": "CEWKxEnGt965tDr6FU2rxsDDWAVufr6U"
+      }
+    }
+  }
+}
